@@ -6,6 +6,7 @@
 package moteur
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"path/filepath"
 	"runtime"
@@ -505,7 +506,9 @@ func sansEffet(id string) bool {
 func ordreFamille(id string) (int, int) {
 	fam, num, _ := strings.Cut(id, "-")
 	n, _ := strconv.Atoi(num)
-	ordre := map[string]int{"D": 0, "E": 1, "C": 2, "M": 3, "P": 4, "A": 5, "K": 6, "AT": 7, "T": 8, "O": 9, "R": 10, "N": 11}
+	// Familles d'avertissement dans l'ordre d'EX-6.15 (complément du
+	// 2026-11-19) : T, O, R, N, K, AT.
+	ordre := map[string]int{"T": 0, "O": 1, "R": 2, "N": 3, "K": 4, "AT": 5}
 	return ordre[fam], n
 }
 
@@ -554,12 +557,19 @@ func (c *calcul) synthese() {
 			res.AConstruire = append(res.AConstruire, v.ID)
 		}
 	}
-	// Avertissements (EX-6.15).
+	// Statuts des contrôles.
+	var ctrls [9]commun.Resultat
+	for n := 1; n <= 8; n++ {
+		ctrls[n] = c.statutControle(n, verifs)
+	}
+	res.Controles = ctrls
+	// Avertissements (EX-6.15), avec ceux de pièce d'essai (EX-6.24).
 	var avert []commun.Avertissement
 	avert = append(avert, c.avert...)
 	if an.Attestation != nil {
 		avert = append(avert, an.Attestation.Avertissements...)
 	}
+	avert = append(avert, c.avertissementsEssai(ctrls, parID)...)
 	sort.SliceStable(avert, func(i, j int) bool {
 		ri, rj := rang[avert[i].Verification], rang[avert[j].Verification]
 		if ri != rj {
@@ -573,12 +583,6 @@ func (c *calcul) synthese() {
 		return ni < nj
 	})
 	res.Avertissements = avert
-	// Statuts des contrôles.
-	var ctrls [9]commun.Resultat
-	for n := 1; n <= 8; n++ {
-		ctrls[n] = c.statutControle(n, verifs)
-	}
-	res.Controles = ctrls
 	// Verdict.
 	var echecs, bloquantes []string
 	for _, v := range verifs {
@@ -592,16 +596,27 @@ func (c *calcul) synthese() {
 			bloquantes = append(bloquantes, v.ID)
 		}
 	}
-	var exigesNonReussis []int
+	var exigesNonReussis, exigesSansValeur []int
+	var reussis [9]bool
+	for n := 1; n <= 8; n++ {
+		reussis[n] = ctrls[n].Statut == commun.Reussi
+	}
+	approbateurs, requis := c.approbationEssai(reussis[7])
+	sansValeur := map[int]bool{}
+	for _, n := range commun.ControlesSansValeur(reussis, avert, approbateurs, requis) {
+		sansValeur[n] = true
+	}
 	for _, n := range c.o.Exiger {
 		if ctrls[n].Statut != commun.Reussi {
 			exigesNonReussis = append(exigesNonReussis, n)
+		} else if sansValeur[n] {
+			exigesSansValeur = append(exigesSansValeur, n)
 		}
 	}
 	switch {
 	case len(echecs) > 0 || len(bloquantes) > 0:
 		res.Verdict, res.Code = "invalide", 1
-	case len(exigesNonReussis) > 0:
+	case len(exigesNonReussis) > 0 || len(exigesSansValeur) > 0:
 		res.Verdict, res.Code = "incomplet", 3
 	default:
 		res.Verdict, res.Code = "valide", 0
@@ -610,6 +625,104 @@ func (c *calcul) synthese() {
 		return
 	}
 	res.Rapport = c.construireRapport(verifs, parID, ctrls, echecs, bloquantes, exigesNonReussis, avert)
+	if res.Verdict == "incomplet" {
+		res.Rapport.Lisible.ExigesSansValeur = exigesSansValeur
+	}
+}
+
+// approbationEssai : approbateurs et seuil requis de l'événement prouvé,
+// pour EX-6.25 (contrôle 7 réussi seulement).
+func (c *calcul) approbationEssai(reussi7 bool) ([]string, int64) {
+	ev := c.an.Evenement
+	if !reussi7 || ev == nil {
+		return nil, 0
+	}
+	ap := ev.V.Membre("approval")
+	var out []string
+	for _, x := range ap.Membre("approvers").Elements {
+		out = append(out, x.S())
+	}
+	requis, _ := ap.Chemin("threshold", "required").Entier()
+	return out, requis
+}
+
+// avertissementsEssai lève AV-N-1 (clés d'enregistreur de l'événement, du
+// manifeste et du point) et AV-N-2 (approbateurs) d'EX-6.24 (CT-6 6.10,
+// complément du 2026-11-19).
+func (c *calcul) avertissementsEssai(ctrls [9]commun.Resultat, parID map[string]commun.Verification) []commun.Avertissement {
+	an := c.an
+	var out []commun.Avertissement
+	dites := map[string]bool{}
+	cle := func(k, role, verif string) {
+		if k == "" || dites[k] {
+			return
+		}
+		dites[k] = true
+		if cl, ok := an.Cles[k]; ok && commun.EstCleEnregistreurEssai(cl.Hex) {
+			out = append(out, commun.Avertissement{ID: "AV-N-1", Verification: verif, Detail: commun.DetailCleEssai(k, role)})
+		}
+	}
+	cleEv := ""
+	if an.Evenement != nil {
+		cleEv = an.Evenement.Cle()
+	}
+	if ctrls[6].Statut == commun.Reussi {
+		cle(cleEv, "evenement", "E-8")
+		cle(an.CleManifeste, "manifeste", "P-5")
+	} else {
+		dites[cleEv], dites[an.CleManifeste] = true, true
+	}
+	if an.Point != nil && parID["K-3"].Statut == commun.Reussi {
+		cle(an.Point.KeyID, "point", "K-3")
+	}
+	if ctrls[7].Statut == commun.Reussi && an.Evenement != nil {
+		for _, x := range an.Evenement.V.Membre("approval").Membre("approvers").Elements {
+			if commun.EstApprobateurEssai(x.S()) {
+				out = append(out, commun.Avertissement{ID: "AV-N-2", Verification: "E-9", Detail: commun.DetailApprobateurEssai(x.S())})
+			}
+		}
+	}
+	if c.anc == nil {
+		return out
+	}
+	// Autorité d'horodatage d'essai (AV-T-5) : celle que T-7 a retenue
+	// (premier pointeur des ancres employées), pour le contrôle 4 réussi et
+	// pour K-7 réussie.
+	autorite := func(employees []string, verif string) {
+		if len(employees) == 0 {
+			return
+		}
+		for _, a := range c.anc.Autorites {
+			if a.Pointeur != employees[0] {
+				continue
+			}
+			if sha := cryptographie.Hex32(sha256.Sum256(a.Certificat)); commun.EstCertificatEssai(sha) {
+				out = append(out, commun.Avertissement{ID: "AV-T-5", Verification: verif, Detail: commun.DetailAutoriteEssai(a.Nom, sha)})
+			}
+			return
+		}
+	}
+	if ctrls[4].Statut == commun.Reussi && c.jeton != nil {
+		autorite(c.jeton.AncresEmployees, "T-7")
+	}
+	if parID["K-7"].Statut == commun.Reussi && c.jetonPt != nil {
+		autorite(c.jetonPt.AncresEmployees, "K-7")
+	}
+	// Registre d'essai (AV-R-4) : contrôle 8 réussi sur le réseau de développement.
+	if ctrls[8].Statut == commun.Reussi && c.anc.Registre != nil && commun.EstChaineEssai(c.anc.Registre.ChainID) {
+		out = append(out, commun.Avertissement{ID: "AV-R-4", Verification: "R-4", Detail: commun.DetailRegistreEssai(c.anc.Registre.ChainID)})
+	}
+	// Clé de chaîne d'essai (AV-N-1 sur N-4) : N-4 réussie ; l'enregistreur
+	// comparé est la dernière ancre employée du contrôle 8.
+	if c.reg != nil && c.reg.N4 != nil && c.reg.N4.Statut == commun.Reussi && len(c.reg.AncresEmployees) > 0 {
+		dernier := c.reg.AncresEmployees[len(c.reg.AncresEmployees)-1]
+		for _, e := range c.anc.Enregistreurs {
+			if e.Pointeur == dernier && commun.EstCleChaineEssai(e.CleChaine) {
+				out = append(out, commun.Avertissement{ID: "AV-N-1", Verification: "N-4", Detail: commun.DetailCleChaineEssai(e.CleChaine, e.KeyID)})
+			}
+		}
+	}
+	return out
 }
 
 func contient(vs []commun.Verification, id string) bool {

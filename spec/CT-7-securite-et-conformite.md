@@ -257,57 +257,57 @@ lignes, comme ceux de `spec/README.md`.
 | TR-36 | CT-2 §18.5 (l. 13198) | Ce qu'une compromission de l'enregistreur fait à l'agent et à l'hôte (« l'inverse relève de CT-7 et de l'exploitation »). | Menace MN-25, risque RA-22 ; empreinte de l'image en cours (CT-7 EX-3.14, PA-4). |
 | TR-37 | CT-2 §20 (l. 14284) | Décision 2 : la cérémonie n'est pas réglée par CT-2. | Section 5. |
 | TR-38 | CT-2 §21 (l. 14361) | Hors de CT-2 : la cérémonie des clés et la revue de sécurité. | Sections 3 et 5. |
-| TR-39 | CT-3 §1 (l. 717) | Hors périmètre de CT-3 : la cérémonie des clés d'approbateur et la revue de sécurité. | Clés d'approbateur : 4.2 (CLE-3, la clé naît chez l'approbateur) et cérémonie d'inscription des membres (5.1, CR-8) ; revue : MN-44 à MN-52, MN-100 et MN-102. |
-| TR-40 | CT-3 §1 (l. 745) | Table des relations : surface du service et de la console ; garde des clés d'approbateur (EX-3.4, §9, §13) ; une personne, une clé (8.6, 13.4) ; publication des empreintes de la page (EX-13.35). | Surface : MN-44 à MN-52, MN-100 et MN-102 ; secrets du service et du serveur de console : 4.2 (CLE-23, CLE-25, CLE-30 à CLE-35) ; garde : CLE-3 et MN-35 ; une personne, une clé : CR-2, CR-8, MN-36, RA-32 ; empreintes : CT-7 EX-3.9. |
-| TR-41 | CT-3 §8.6 (l. 2925) | EX-8.11 : « une personne, une clé » est tenue à l'inscription des membres, en cérémonie ; rien ne la vérifie en version 0. | Cérémonie d'objet `inscription_membres` (CT-7 EX-5.1) : chaque membre signe le procès-verbal avec sa clé devant un témoin qui vérifie son identité ; CR-8 et CR-11 ; reste déclaré : RA-32. |
-| TR-42 | CT-3 §8.6 (l. 2937) | Deux comptes du système d'identité tenus par une même personne : à l'organisation de l'empêcher à l'inscription. | Même cérémonie : le témoin constate l'identité de chaque membre sur une pièce, hors du système d'identité (CT-7 EX-5.2) ; RA-32. |
-| TR-43 | CT-3 §13.2 (l. 5949) | Construction reproductible et publication du code de la console (avec CT-8). | Publication des empreintes du document et des scripts hors du serveur et comparaison quotidienne (CT-7 EX-3.9) ; la construction reproductible relève de CT-8. |
-| TR-44 | CT-3 §13.15 (l. 7777) | Publication des empreintes du document de la console et construction reproductible (avec CT-8). | CT-7 EX-3.9 ; CT-8 pour la construction. |
-| TR-45 | CT-3 §14.4 (l. 8956) | Contre un service qui déclare un faux jeu, la parade est le canal authentifié et l'intégrité du service. | CT-7 EX-3.10 (identité distincte, image désignée par son empreinte consignée, lecture du jeu chez un validateur du client ou d'un partenaire) ; MN-44, RA-40. |
-| TR-46 | CT-3 §16 (l. 9223) | Des membres de jeu qui ne seraient pas des adresses (évolution) toucheraient la cérémonie des clés. | Hors de la version 0.1 (section 10) : le procès-verbal consigne des adresses ; une version 1 ajouterait une valeur d'`algorithm` et la vérification correspondante à CR-5 et CR-11. |
-| TR-47 | CT-4 §1 (l. 325) | Hors périmètre de CT-4 : les cérémonies de clés et la revue de sécurité. | Sections 3, 4 et 5. |
-| TR-48 | CT-4 §1 (l. 352) | Table des relations : CT-4 fournit l'inventaire des clés du registre (3.1) et leurs menaces (3.5, §12) ; il attend les cérémonies et la garde. | Inventaire : 4.2 (CLE-4 à CLE-9) ; menaces consolidées en 3.3 ; garde : 4.3 ; cérémonies : 5.1. |
-| TR-49 | CT-4 §4.4 (l. 699) | Cérémonie de la clé d'un validateur ; garde en module visée, non réalisable en version 0. | Cérémonie de création sur site (CT-7 EX-5.1) ; classe D seule admise en version 0, sans sauvegarde (4.3, 4.4 ; CR-6, CR-7) ; MN-39, RA-35. |
-| TR-50 | CT-4 §5.5 (l. 1268) | EX-5.4 : la clé de l'administrateur du registre est gardée en module matériel par l'exploitant. | Classe A seule admise en production (CT-7 EX-4.2, CR-6), sauvegarde partagée exigée (CT-7 EX-4.4, CR-7) ; MN-38, RA-34. |
-| TR-51 | CT-4 §7.2 (l. 2073) | En production, les clés sont gardées selon CT-2 §11 et CT-7. | Table des classes admises par usage et environnement (4.3, CT-7 EX-4.2). |
-| TR-52 | CT-4 §7.5 (l. 2377) | EX-7.8 : « un membre = une personne, une personne = une clé », consigné par l'exploitant à la cérémonie. | Cérémonie d'objet `inscription_membres` ; CR-2 et CR-8 ; RA-32. |
-| TR-53 | CT-4 §8.4 (l. 3558) | Le délai de révocation est borné par la disponibilité des approbateurs (4 h, astreinte : CT-3 §13, CT-7). | Exercice annuel de rotation d'urgence et de révocation, délai mesuré, cible 4 h (CT-7 EX-3.12) ; conduite en 4.6. |
-| TR-54 | CT-4 §8.5 (l. 3617) | `--changement-administrateur` exige une demande consignée selon CT-7. | Procès-verbal d'objet `changement_administrateur`, signé par les membres présents et un témoin, que l'exploitant vérifie (CR-1 à CR-12) et conserve avant de relayer (CT-7 EX-5.1). |
-| TR-55 | CT-4 §8.5 (l. 3657) | EX-8.21 : clé de gouvernance en classe A à C, jamais D ; cérémonie selon CT-7. | 4.3 (CR-6) et cérémonie de création (5.1) ; MN-37. |
-| TR-56 | CT-4 §8.7 (l. 3811) | Compte d'approvisionnement recomplété par cérémonie. | Cérémonie d'objet `recompletement` (CT-7 EX-5.1) ; MN-40, RA-36. |
-| TR-57 | CT-4 §10.5 (l. 4373) | La cérémonie de la clé de validateur, en fichier sur un seul site, relève de CT-7. | Même réponse que la ligne de §4.4 : CT-7 EX-5.1, CR-6, CR-7, RA-35. |
-| TR-58 | CT-4 §12 (l. 4465) | Ligne « Clés des validateurs » : cérémonie selon CT-7. | MN-39 (consolidée en 3.3). |
-| TR-59 | CT-4 §12 (l. 4467) | Ligne « Clé de gouvernance compromise » : garde en classe A à C (EX-8.21, CT-7). | MN-37 (consolidée en 3.3) ; 4.3. |
-| TR-60 | CT-4 §12 (l. 4468) | Ligne « Clé de l'administrateur du registre » : garde en module (EX-5.4, CT-7). | MN-38 (consolidée en 3.3) ; 4.3, 4.4. |
-| TR-61 | CT-4 §12 (l. 4469) | Ligne « Trésorerie » : cérémonie CT-7. | MN-40 (consolidée en 3.3) ; 5.1. |
+| TR-39 | CT-3 §1 (l. 744) | Hors périmètre de CT-3 : la cérémonie des clés d'approbateur et la revue de sécurité. | Clés d'approbateur : 4.2 (CLE-3, la clé naît chez l'approbateur) et cérémonie d'inscription des membres (5.1, CR-8) ; revue : MN-44 à MN-52, MN-100 et MN-102. |
+| TR-40 | CT-3 §1 (l. 772) | Table des relations : surface du service et de la console ; garde des clés d'approbateur (EX-3.4, §9, §13) ; une personne, une clé (8.6, 13.4) ; publication des empreintes de la page (EX-13.35). | Surface : MN-44 à MN-52, MN-100 et MN-102 ; secrets du service et du serveur de console : 4.2 (CLE-23, CLE-25, CLE-30 à CLE-35) ; garde : CLE-3 et MN-35 ; une personne, une clé : CR-2, CR-8, MN-36, RA-32 ; empreintes : CT-7 EX-3.9. |
+| TR-41 | CT-3 §8.6 (l. 2952) | EX-8.11 : « une personne, une clé » est tenue à l'inscription des membres, en cérémonie ; rien ne la vérifie en version 0. | Cérémonie d'objet `inscription_membres` (CT-7 EX-5.1) : chaque membre signe le procès-verbal avec sa clé devant un témoin qui vérifie son identité ; CR-8 et CR-11 ; reste déclaré : RA-32. |
+| TR-42 | CT-3 §8.6 (l. 2964) | Deux comptes du système d'identité tenus par une même personne : à l'organisation de l'empêcher à l'inscription. | Même cérémonie : le témoin constate l'identité de chaque membre sur une pièce, hors du système d'identité (CT-7 EX-5.2) ; RA-32. |
+| TR-43 | CT-3 §13.2 (l. 6091) | Construction reproductible et publication du code de la console (avec CT-8). | Publication des empreintes du document et des scripts hors du serveur et comparaison quotidienne (CT-7 EX-3.9) ; la construction reproductible relève de CT-8. |
+| TR-44 | CT-3 §13.15 (l. 7942) | Publication des empreintes du document de la console et construction reproductible (avec CT-8). | CT-7 EX-3.9 ; CT-8 pour la construction. |
+| TR-45 | CT-3 §14.4 (l. 9129) | Contre un service qui déclare un faux jeu, la parade est le canal authentifié et l'intégrité du service. | CT-7 EX-3.10 (identité distincte, image désignée par son empreinte consignée, lecture du jeu chez un validateur du client ou d'un partenaire) ; MN-44, RA-40. |
+| TR-46 | CT-3 §16 (l. 9396) | Des membres de jeu qui ne seraient pas des adresses (évolution) toucheraient la cérémonie des clés. | Hors de la version 0.1 (section 10) : le procès-verbal consigne des adresses ; une version 1 ajouterait une valeur d'`algorithm` et la vérification correspondante à CR-5 et CR-11. |
+| TR-47 | CT-4 §1 (l. 330) | Hors périmètre de CT-4 : les cérémonies de clés et la revue de sécurité. | Sections 3, 4 et 5. |
+| TR-48 | CT-4 §1 (l. 357) | Table des relations : CT-4 fournit l'inventaire des clés du registre (3.1) et leurs menaces (3.5, §12) ; il attend les cérémonies et la garde. | Inventaire : 4.2 (CLE-4 à CLE-9) ; menaces consolidées en 3.3 ; garde : 4.3 ; cérémonies : 5.1. |
+| TR-49 | CT-4 §4.4 (l. 704) | Cérémonie de la clé d'un validateur ; garde en module visée, non réalisable en version 0. | Cérémonie de création sur site (CT-7 EX-5.1) ; classe D seule admise en version 0, sans sauvegarde (4.3, 4.4 ; CR-6, CR-7) ; MN-39, RA-35. |
+| TR-50 | CT-4 §5.5 (l. 1273) | EX-5.4 : la clé de l'administrateur du registre est gardée en module matériel par l'exploitant. | Classe A seule admise en production (CT-7 EX-4.2, CR-6), sauvegarde partagée exigée (CT-7 EX-4.4, CR-7) ; MN-38, RA-34. |
+| TR-51 | CT-4 §7.2 (l. 2078) | En production, les clés sont gardées selon CT-2 §11 et CT-7. | Table des classes admises par usage et environnement (4.3, CT-7 EX-4.2). |
+| TR-52 | CT-4 §7.5 (l. 2382) | EX-7.8 : « un membre = une personne, une personne = une clé », consigné par l'exploitant à la cérémonie. | Cérémonie d'objet `inscription_membres` ; CR-2 et CR-8 ; RA-32. |
+| TR-53 | CT-4 §8.4 (l. 3589) | Le délai de révocation est borné par la disponibilité des approbateurs (4 h, astreinte : CT-3 §13, CT-7). | Exercice annuel de rotation d'urgence et de révocation, délai mesuré, cible 4 h (CT-7 EX-3.12) ; conduite en 4.6. |
+| TR-54 | CT-4 §8.5 (l. 3648) | `--changement-administrateur` exige une demande consignée selon CT-7. | Procès-verbal d'objet `changement_administrateur`, signé par les membres présents et un témoin, que l'exploitant vérifie (CR-1 à CR-12) et conserve avant de relayer (CT-7 EX-5.1). |
+| TR-55 | CT-4 §8.5 (l. 3688) | EX-8.21 : clé de gouvernance en classe A à C, jamais D ; cérémonie selon CT-7. | 4.3 (CR-6) et cérémonie de création (5.1) ; MN-37. |
+| TR-56 | CT-4 §8.7 (l. 3842) | Compte d'approvisionnement recomplété par cérémonie. | Cérémonie d'objet `recompletement` (CT-7 EX-5.1) ; MN-40, RA-36. |
+| TR-57 | CT-4 §10.5 (l. 4404) | La cérémonie de la clé de validateur, en fichier sur un seul site, relève de CT-7. | Même réponse que la ligne de §4.4 : CT-7 EX-5.1, CR-6, CR-7, RA-35. |
+| TR-58 | CT-4 §12 (l. 4496) | Ligne « Clés des validateurs » : cérémonie selon CT-7. | MN-39 (consolidée en 3.3). |
+| TR-59 | CT-4 §12 (l. 4498) | Ligne « Clé de gouvernance compromise » : garde en classe A à C (EX-8.21, CT-7). | MN-37 (consolidée en 3.3) ; 4.3. |
+| TR-60 | CT-4 §12 (l. 4499) | Ligne « Clé de l'administrateur du registre » : garde en module (EX-5.4, CT-7). | MN-38 (consolidée en 3.3) ; 4.3, 4.4. |
+| TR-61 | CT-4 §12 (l. 4500) | Ligne « Trésorerie » : cérémonie CT-7. | MN-40 (consolidée en 3.3) ; 5.1. |
 | TR-62 | CT-5 §1 (l. 899) | Hors périmètre de CT-5 : la cérémonie des identifiants de prestataire. | Les identifiants d'accès ne sont pas des clés de signature : aucune cérémonie, création et rotation consignées (4.2, ligne CLE-11 ; 4.6) ; un certificat client se crée comme une clé de classe C ou D sur le poste du client. |
 | TR-63 | CT-5 §1 (l. 922) | Table des relations : garde et rotation des secrets de l'ancrage ; procédure de statut qualifié d'un prestataire (5.3). | 4.2 (CLE-10 à CLE-12) et 4.6 ; constat du statut qualifié à deux personnes (CT-7 EX-4.5) ; MN-65. |
 | TR-64 | CT-5 §3.4 (l. 1143) | Ligne « Composant d'ancrage compromis » : rotation des identifiants (CT-7). | MN-63 (consolidée en 3.3) ; conduite de 4.6 pour CLE-11. |
 | TR-65 | CT-5 §5.5 (l. 2152) | Ajustement de la rétention à toute durée légale plus longue que dix ans. | 8.8, CT-7 EX-8.12 : le client porte les trois paramètres de durée à la plus longue durée légale qui s'applique ; aucune durée de plus de dix ans dans les textes lus ; durées sectorielles non recherchées (lacune L-7) ; cohérence des paramètres : CT-7 EX-8.13, PA-13. |
 | TR-66 | CT-5 §15 (l. 6205) | Garde en module de la clé du serveur interne et sa cérémonie. | Classe A à C exigée (4.3, CR-6) ; cérémonie de création (5.1) ; MN-42, RA-38. |
-| TR-67 | CT-6 « en-tête » (l. 80) | La définition de l'attestation vérifiée par la révision 0.3. | Section 7. |
-| TR-68 | CT-6 §1 (l. 243) | L'attestation que vérifie la partie facultative. | Section 7 ; vérifications : 7.7. |
-| TR-69 | CT-6 §1 (l. 288) | Ce que CT-6 reprend de CT-7 : l'attestation, `D_P`, la règle « déclaré, jamais prouvé ». | 7.2 (CT-7 EX-7.6) et CT-7 EX-7.1 ; ce que CT-7 attend du rapport : CT-7 EX-7.17. |
-| TR-70 | CT-6 §2 (l. 327) | La définition du terme. | Section 7 ; terme défini en section 2. |
-| TR-71 | CT-6 §3.2 (l. 433) | Le périmètre reste une déclaration. | CT-7 EX-7.1. |
-| TR-72 | CT-6 §3.4 (l. 514) | L'opérateur qui déclare faux. | Menace MN-78 (3.4), risque accepté RA-68 (3.5). |
-| TR-73 | CT-6 §3.4 (l. 516) | L'attestation jointe sans inscription. | Menace MN-85, risque accepté RA-72. |
-| TR-74 | CT-6 §4.2 (l. 575) | Le format de la partie. | Section 7 (7.1 à 7.6). |
-| TR-75 | CT-6 §4.5 (l. 844) | La taille de l'exemple avec inscription. | 7.5. |
-| TR-76 | CT-6 §5.5 (l. 1135) | L'attestation jointe au dossier. | Section 7. |
-| TR-77 | CT-6 §5.5 (l. 1138) | La portée des vérifications AT-. | CT-7 EX-7.1. |
-| TR-78 | CT-6 §5.5 (l. 1170) | Le motif de l'absence d'effet sur le verdict. | CT-7 EX-7.1 ; menaces MN-78 et MN-89. |
-| TR-79 | CT-6 §6.5 (l. 1682) | L'exemple du fragment FP. | 7.5 ; dossiers : annexe A.7. |
-| TR-80 | CT-6 §7.2 (l. 2259) | Le détenteur de la clé et sa classe se constatent hors du vérificateur : procès-verbal d'inscription (CT-2 EX-11.13) et cérémonie des clés. | Le réviseur vérifie le procès-verbal (CR-1 à CR-12) et n'en tire la clé publique et la classe de garde de la ligne `recorders` de son fichier d'ancres qu'aux conditions de CT-7 EX-5.10 : un signataire connu de lui par un canal indépendant du client et un `D_C` ancré en production (5.9, CT-7 EX-5.11). |
-| TR-81 | CT-6 §7.10 (l. 2878) | AT-7 ne compare que des noms de version ; un nom réannoncé avec un autre contenu la fait réussir tant que CT-2 ne l'interdit pas. | PA-9 (6.2) ; menace MN-91, risque accepté RA-75 ; CT-7 EX-7.11. |
-| TR-82 | CT-6 §7.10 (l. 2879) | Ce qu'une conformité réglementaire supposerait. | Section 8 : correspondance technique, pas un avis juridique (CT-7 EX-8.1). |
-| TR-83 | CT-6 §12.5 (l. 5809) | Ligne `recorders` : procès-verbal d'inscription de la clé et cérémonie des clés. | 5.9 (même réponse). |
-| TR-84 | CT-6 §16 (l. 6384) | Le schéma `attestation-perimetre-v0`. | 7.1 ; `spec/schemas/attestation-perimetre-v0.schema.json`. |
-| TR-85 | CT-6 §16 (l. 6386) | Les dossiers de la famille `ct-6`. | Annexe A.7 (EX-A.10). |
-| TR-86 | CT-6 « A.8 Confrontation par des implémentations tierces » (l. 8384) | Les dossiers avec la partie. | Annexe A.7. |
-| TR-87 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8834) | Les notes de recherche de CT-7. | Annexe B.1 (R7). |
-| TR-88 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8836) | Les faits R7-F51 à R7-F53. | Annexe B.1. |
-| TR-89 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 8843) | Les extraits exacts des sources. | Annexe B.1, extraits cités par la section 7. |
+| TR-67 | CT-6 « en-tête » (l. 91) | La définition de l'attestation vérifiée par la révision 0.3. | Section 7. |
+| TR-68 | CT-6 §1 (l. 260) | L'attestation que vérifie la partie facultative. | Section 7 ; vérifications : 7.7. |
+| TR-69 | CT-6 §1 (l. 305) | Ce que CT-6 reprend de CT-7 : l'attestation, `D_P`, la règle « déclaré, jamais prouvé ». | 7.2 (CT-7 EX-7.6) et CT-7 EX-7.1 ; ce que CT-7 attend du rapport : CT-7 EX-7.17. |
+| TR-70 | CT-6 §2 (l. 345) | La définition du terme. | Section 7 ; terme défini en section 2. |
+| TR-71 | CT-6 §3.2 (l. 451) | Le périmètre reste une déclaration. | CT-7 EX-7.1. |
+| TR-72 | CT-6 §3.4 (l. 532) | L'opérateur qui déclare faux. | Menace MN-78 (3.4), risque accepté RA-68 (3.5). |
+| TR-73 | CT-6 §3.4 (l. 534) | L'attestation jointe sans inscription. | Menace MN-85, risque accepté RA-72. |
+| TR-74 | CT-6 §4.2 (l. 593) | Le format de la partie. | Section 7 (7.1 à 7.6). |
+| TR-75 | CT-6 §4.5 (l. 862) | La taille de l'exemple avec inscription. | 7.5. |
+| TR-76 | CT-6 §5.5 (l. 1155) | L'attestation jointe au dossier. | Section 7. |
+| TR-77 | CT-6 §5.5 (l. 1158) | La portée des vérifications AT-. | CT-7 EX-7.1. |
+| TR-78 | CT-6 §5.5 (l. 1190) | Le motif de l'absence d'effet sur le verdict. | CT-7 EX-7.1 ; menaces MN-78 et MN-89. |
+| TR-79 | CT-6 §6.5 (l. 1704) | L'exemple du fragment FP. | 7.5 ; dossiers : annexe A.7. |
+| TR-80 | CT-6 §7.2 (l. 2416) | Le détenteur de la clé et sa classe se constatent hors du vérificateur : procès-verbal d'inscription (CT-2 EX-11.13) et cérémonie des clés. | Le réviseur vérifie le procès-verbal (CR-1 à CR-12) et n'en tire la clé publique et la classe de garde de la ligne `recorders` de son fichier d'ancres qu'aux conditions de CT-7 EX-5.10 : un signataire connu de lui par un canal indépendant du client et un `D_C` ancré en production (5.9, CT-7 EX-5.11). |
+| TR-81 | CT-6 §7.10 (l. 3044) | AT-7 ne compare que des noms de version ; un nom réannoncé avec un autre contenu la fait réussir tant que CT-2 ne l'interdit pas. | PA-9 (6.2) ; menace MN-91, risque accepté RA-75 ; CT-7 EX-7.11. |
+| TR-82 | CT-6 §7.10 (l. 3045) | Ce qu'une conformité réglementaire supposerait. | Section 8 : correspondance technique, pas un avis juridique (CT-7 EX-8.1). |
+| TR-83 | CT-6 §12.5 (l. 6023) | Ligne `recorders` : procès-verbal d'inscription de la clé et cérémonie des clés. | 5.9 (même réponse). |
+| TR-84 | CT-6 §16 (l. 6603) | Le schéma `attestation-perimetre-v0`. | 7.1 ; `spec/schemas/attestation-perimetre-v0.schema.json`. |
+| TR-85 | CT-6 §16 (l. 6605) | Les dossiers de la famille `ct-6`. | Annexe A.7 (EX-A.10). |
+| TR-86 | CT-6 « A.8 Confrontation par des implémentations tierces » (l. 8657) | Les dossiers avec la partie. | Annexe A.7. |
+| TR-87 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 9107) | Les notes de recherche de CT-7. | Annexe B.1 (R7). |
+| TR-88 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 9109) | Les faits R7-F51 à R7-F53. | Annexe B.1. |
+| TR-89 | CT-6 « B.6 Notes de CT-7 (révision 0.3) » (l. 9116) | Les extraits exacts des sources. | Annexe B.1, extraits cités par la section 7. |
 | TR-90 | spec/README.md « Spécifications » (l. 21) | L'état de CT-7. | Ce document, version 0.4 du 2026-11-11 (version 0.3 du 2026-11-10, version 0.2 du 2026-11-03, version 0.1 du 2026-10-26). |
 | TR-91 | spec/README.md « Spécifications » (l. 21) | Le lien vers ce document. | Ce document. |
 | TR-92 | spec/README.md « Spécifications » (l. 26) | Ordre d'écriture : CT-7 après CT-3, CT-4 et CT-5. | Respecté (section 1) : CT-7 0.1 reprend CT-2 0.5, CT-3 0.3, CT-4 0.4 et CT-5 0.2 en l'état, et accompagne CT-1 0.4 et CT-6 0.3. |
@@ -340,11 +340,11 @@ lignes, comme ceux de `spec/README.md`.
 | TR-119 | CT-2 §21 (l. 14500) | `wrap.endpoint` : un client qui pose `AWS_ENDPOINT_URL_KMS` sort son fichier Compose des vérifications CO- ; risque accepté RA-93, nommé dans CT-7 §3.5.1. | RA-93 (3.5.1) : adaptation du client hors des vérifications CO-, risque accepté par le porteur le 2026-11-16, attribué au client ; correction à l'ordre du jour. |
 | TR-120 | CT-2 §0.4 (l. 255) | Note de la révision 0.11, point 7 (clés) : un constat de la revue sur les points d'accès des services de clés et SoftHSM2 cité en motif relève de CLE-21. | CLE-21 (4.2) : accès au signataire et identité d'usage IAM du démon. |
 | TR-121 | CT-2 §0.4 (l. 281) | Note de la révision 0.11, point 10 (validation, exploitation, supervision) : un constat de la revue cité en motif relève de la menace MN-99. | MN-99 (3.4) : un compte du système autre que celui du démon qui lit ou écrit le répertoire des exports. |
-| TR-122 | CT-4 §10.2 (l. 4242) | EX-10.8 : aucune garde d'admission livrée en version 0 ; livrable dû avant la production ; risque accepté d'ici là. | RA-94 (3.5.1) : garde d'admission du registre non livrée, portée par l'exploitant NOORTRACE ; MN-55 et RA-50 (3.4, 3.5). |
+| TR-122 | CT-4 §10.2 (l. 4273) | EX-10.8 : aucune garde d'admission livrée en version 0 ; livrable dû avant la production ; risque accepté d'ici là. | RA-94 (3.5.1) : garde d'admission du registre non livrée, portée par l'exploitant NOORTRACE ; MN-55 et RA-50 (3.4, 3.5). |
 | TR-123 | CT-5 §7.3 (l. 2605) | Serveur interne livré de classe D, sans révocation outillée ni CRL servie : risque accepté par le client, borné aux points. | RA-89 (3.5.1) ; MN-42 et RA-38 (3.4, 3.5). |
 | TR-124 | CT-5 §15 (l. 6216) | Ré-établissement de `qualified`, acte de l'exploitant ; levée d'un retrait par `noortrace-ctl ancrage retablir-qualification <id>` (complément du 2026-11-16). | RA-90 (3.5.1) ; MN-65 (3.4). |
 | TR-125 | CT-2 §5.1.3 (l. 2778) | EX-5.6, complément du 2026-11-16 : authentification de la copie et de la prise du mode miroir ; ce qui reste non couvert est un risque accepté par le client. | RA-95 (3.5.1) : copie du mode miroir non authentifiable, attribuée au client ; MN-2, MN-12, MN-14 et RA-12 (3.4, 3.5). |
-| TR-126 | CT-3 §7.10 (l. 2563) | EX-7.30, complément du 2026-11-16 : un retour en arrière ou une troncature de l'état chiffré n'est pas détecté par le chiffrement ; risque accepté par le client. | RA-88 (3.5.1) : retour en arrière ou troncature de l'état chiffré du service d'approbation, attribué au client ; MN-44 et MN-47 (3.4). |
+| TR-126 | CT-3 §7.10 (l. 2590) | EX-7.30, complément du 2026-11-16 : un retour en arrière ou une troncature de l'état chiffré n'est pas détecté par le chiffrement ; risque accepté par le client. | RA-88 (3.5.1) : retour en arrière ou troncature de l'état chiffré du service d'approbation, attribué au client ; MN-44 et MN-47 (3.4). |
 
 Hors de `spec/`, cinq renvois existent aussi ; ils ne sont pas comptés par
 RV-7 et reçoivent la même réponse : `test/approbation.test.js` (EX-3.4 de

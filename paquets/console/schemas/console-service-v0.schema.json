@@ -471,7 +471,7 @@
       "properties": {}
     },
     "reponse_session": {
-      "description": "Réponse de la méthode session que le serveur de la console sert à sa propre page (EX-13.33) : l'identité de session canonique, l'instant de la dernière authentification active et le rôle d'administrateur ; jamais transmise au service. Depuis la révision 0.5, le serveur y porte aussi delai_signature_ms.",
+      "description": "Réponse de la méthode session que le serveur de la console sert à sa propre page (EX-13.33) : l'identité de session canonique, l'instant de la dernière authentification active et le rôle d'administrateur ; jamais transmise au service. Depuis la révision 0.5, le serveur y porte aussi delai_signature_ms. Complément du 2026-11-19 : display_name et titles, facultatifs (EX-13.48).",
       "type": "object",
       "additionalProperties": false,
       "required": [
@@ -500,6 +500,33 @@
           "type": "integer",
           "minimum": 30000,
           "maximum": 1800000
+        },
+        "display_name": {
+          "description": "Complément du 2026-11-19 (EX-13.7, EX-13.48) : nom affiché de l'entrée active de la session dans le dernier annuaire rendu pour elle ; nul sans entrée active ou sans nom. Absent (serveur antérieur) : la page nomme la personne par son identité.",
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          ]
+        },
+        "titles": {
+          "description": "Complément du 2026-11-19, décision du porteur (CT-3 EX-9.4, 10.3) : phrases modèles du titre d'un ticket, chacune sous le nom d'une règle de la politique ; chaque champ est le pointeur d'une feuille des arguments entre accolades, sans autre accolade. Au plus 256 phrases, comme dans la configuration du serveur de console, qui les contrôle ; la page refuse une session qui en porte plus. Transmis à la page par la méthode session (EX-13.48) ; ne change ni le modèle d'affichage ni une décision (EX-10.11). Absent : aucun titre.",
+          "type": "object",
+          "propertyNames": {
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "additionalProperties": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "pattern": "^([^{}]|\\{/([^{}~]|~[01])*\\})*$"
+          }
         }
       }
     },

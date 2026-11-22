@@ -121,6 +121,74 @@ export function montantVerifie(modele) {
 }
 
 /**
+ * Forme d'une phrase modèle (CT-3 EX-9.4, complément du 2026-11-19 ;
+ * `titles` de la configuration du serveur de console) : un texte sans
+ * accolade, sauf autour d'un champ, pointeur RFC 6901 qui commence par `/`.
+ */
+export const MOTIF_MODELE = /^([^{}]|\{\/([^{}~]|~[01])*\})*$/u;
+const CHAMP_MODELE = /\{(\/(?:[^{}~]|~[01])*)\}/gu;
+const INVISIBLES = /[\p{Cc}\p{Cf}\p{Zl}\p{Zp}]/u;
+
+/**
+ * Vrai si `titres` a la forme des phrases modèles : un objet d'au plus 256
+ * membres, chaque nom de 1 à 256 caractères, chaque modèle une chaîne de 1 à
+ * 512 caractères conforme à `MOTIF_MODELE`.
+ * @param {unknown} titres
+ */
+export function titresValides(titres) {
+  if (titres === null || typeof titres !== "object" || Array.isArray(titres)) return false;
+  const noms = Object.keys(titres);
+  if (noms.length > 256) return false;
+  return noms.every((n) => {
+    const m = titres[n];
+    const l = [...n].length;
+    return l >= 1 && l <= 256 && typeof m === "string" && m.length > 0 && [...m].length <= 512 && MOTIF_MODELE.test(m);
+  });
+}
+
+/**
+ * Le titre d'une demande (CT-3 EX-9.4, complément du 2026-11-19) : la phrase
+ * modèle que l'organisation a écrite pour la règle retenue, remplie des
+ * seules valeurs « inchangé ». Rend `null` (le titre d'avant reste) sans
+ * modèle pour cette règle, si la règle n'est pas vérifiée et liée à la
+ * demande, ou si un champ ne désigne pas une feuille `verifie` dont la
+ * valeur est une chaîne non vide sans caractère invisible, ou un nombre.
+ * Sinon, les morceaux du titre, dans l'ordre : texte fixe (`pointeur` nul) ou
+ * valeur d'un champ (son pointeur). Le montant du résumé s'écrit sous sa
+ * forme lisible ; toute autre valeur telle quelle, une chaîne sans ses
+ * guillemets, un nombre sous sa forme JSON. Rien n'est déduit du nom de
+ * l'outil.
+ * @param {object} modele `$defs/modele_affichage`
+ * @param {unknown} titres phrases modèles, par nom de règle
+ * @returns {{texte: string, pointeur: string|null}[]|null}
+ */
+export function titreDemande(modele, titres) {
+  if (!titresValides(titres)) return null;
+  const r = resumeVerifie(modele);
+  if (r.outil === null || r.regle === null || !Object.hasOwn(titres, r.regle)) return null;
+  const gabarit = titres[r.regle];
+  const feuilles = Array.isArray(modele.arguments) ? modele.arguments : [];
+  const montant = montantDuResume(r);
+  const morceaux = [];
+  let fin = 0;
+  for (const m of gabarit.matchAll(CHAMP_MODELE)) {
+    if (m.index > fin) morceaux.push({ texte: gabarit.slice(fin, m.index), pointeur: null });
+    const p = m[1];
+    const f = feuilles.find((x) => x.pointer === p) ?? null;
+    if (f === null || f.status !== "verifie") return null;
+    let texte;
+    if (montant !== null && p === montant.pointeurs[0]) texte = montant.texte;
+    else if (typeof f.value === "string" && f.value !== "" && !INVISIBLES.test(f.value)) texte = f.value;
+    else if (typeof f.value === "number" && Number.isFinite(f.value)) texte = JSON.stringify(f.value);
+    else return null;
+    morceaux.push({ texte, pointeur: p });
+    fin = m.index + m[0].length;
+  }
+  if (fin < gabarit.length) morceaux.push({ texte: gabarit.slice(fin), pointeur: null });
+  return morceaux;
+}
+
+/**
  * Les feuilles des arguments, réparties selon leur état, chacune dans
  * l'ordre du modèle d'affichage : `verifiees` (état `verifie`),
  * `differentes` (état `different`), `aControler` (tout autre état, dont

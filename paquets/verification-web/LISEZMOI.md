@@ -210,6 +210,16 @@ retour dit ; ce qu'elle ajoute vient du seul rapport JSON, lu exactement.
   preuve (AV-O-3, réseau d'essai ; table de CT-6 §18, point 15), la ligne porte
   « Sans valeur de preuve (réseau d'essai) » : le contrôle n'est plus compté
   parmi les réussis, ni dans « En résumé », et compte comme non prouvé.
+  Depuis les décisions du 2026-11-19, de même pour les autres pièces d'essai
+  que le vérificateur signale (CT-6 6.10) : autorité d'horodatage (AV-T-5,
+  contrôle 4), registre de développement (AV-R-4, contrôle 8), clé
+  d'enregistreur ou de chaîne (AV-N-1, contrôles 6 et 8), approbateur (AV-N-2,
+  contrôle 7) ; la page suit EX-6.25 à la lettre, par couple (avertissement,
+  vérification) : AV-T-5 de T-7, AV-O-3 de O-5, AV-N-1 de E-8, P-5 ou N-4,
+  AV-R-4 de R-4, et AV-N-2 seulement quand les approbateurs hors de la liste
+  d'EX-6.23 sont moins nombreux que le requis (`facts.approval`, sous les
+  codes 0 et 3) ; levé par K-3, K-7 ou K-9, ou rattaché à un autre contrôle
+  (AV-N-1 par P-5, contrôle 3), un tel avertissement n'y est qu'une réserve.
 - **Clés du dossier.** Sous les codes 0 et 3, quand le rapport dit que les
   clés du contrôle 6 sont celles que le dossier déclare (`facts.recorder_keys`),
   ou que le jeu d'approbateurs du contrôle 7 est celui du dossier
@@ -270,13 +280,12 @@ Troisième lecture, même date (CT-6 §18, EX-18.7 et EX-18.9) :
 
 Cinquième lecture, même date (CT-6 §18, EX-18.5 et EX-18.9) :
 
-- **Contrôle exigé sans valeur de preuve.** Le vérificateur rend 0 quand un
-  contrôle exigé est réussi sur un réseau d'essai (CT-6 7.5) ; la page ne dit
-  plus l'exigence remplie : titre « Valide, mais ce que vous avez exigé n'est
-  pas prouvé, et avec des réserves », phrase du verdict à part, ligne
-  « Contrôles que vous avez exigés et qui sont sans valeur de preuve : … »,
-  troisième ligne de « Et maintenant ? » à part. La formule exacte, en tête
-  de « Pour les spécialistes », reste celle du code 0.
+- **Contrôle exigé sans valeur de preuve.** Remplacé par les décisions du
+  2026-11-19 : le vérificateur rend désormais 3 quand un contrôle exigé ne
+  repose que sur une pièce d'essai (CT-6 EX-6.25) ; la page dit « Incomplet »,
+  avec la phrase du code 3 et la ligne « Contrôles que vous avez exigés et qui
+  reposent sur une pièce d'essai : … ». Le titre, la phrase et la ligne de
+  « Et maintenant ? » propres à ce cas sous le code 0 sont retirés.
 - **Clés et approbateurs du dossier.** La pastille dit « Cohérent ; identité
   du signataire non prouvée » (contrôle 6) ou « … des approbateurs … »
   (contrôle 7) ; ces contrôles ne sont plus comptés parmi les réussis, ni
@@ -298,8 +307,12 @@ Cinquième lecture, même date (CT-6 §18, EX-18.5 et EX-18.9) :
   par le vérificateur, et à qui demander une explication.
 - **Empreintes publiées.** La mise en garde dit qui les publie (le projet,
   avec chaque version, dans un fichier signé) ; le bloc de l'empreinte nomme
-  ce fichier (`SHA256SUMS`, EX-18.4). Le texte ne fixe pas l'adresse de cette
-  publication : la page ne la donne pas.
+  ce fichier (`SHA256SUMS`, EX-18.4). Depuis les décisions du 2026-11-19, la
+  mise en garde dit où (la page des versions du dépôt) et le bloc de
+  l'empreinte donne l'adresse, https://github.com/noorfinances-eng/NOORTRACE/releases,
+  comme un lien (`#adresse-versions`, `target="_blank"`, `rel="noopener
+  noreferrer"`) que la personne ouvre elle-même : la page n'ouvre aucune
+  connexion vers elle (EX-14.9, EX-18.5).
 
 ## Bornes et limites (EX-18.7 ; revue de sécurité de l'étape 8)
 

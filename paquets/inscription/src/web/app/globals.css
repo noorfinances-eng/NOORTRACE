@@ -2148,6 +2148,31 @@ html[data-theme="clair"] .nt-case input {
   text-decoration: underline;
 }
 
+/* Nom interne (complément du 2026-11-19) : le nom court du client, en petit, sous le nom interne ; il se coupe où il faut. */
+.ins-nom-bloc {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-1);
+  min-width: 0;
+}
+
+.ins-nom-court {
+  overflow-wrap: anywhere;
+}
+
+/* Remise du paquet : l'encart sous le téléchargement. */
+.ins-remise {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-3);
+}
+
+.ins-remise .ins-essentiel-texte {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--nt-e-2);
+}
+
 .ins-pastilles {
   display: flex;
   flex-wrap: wrap;

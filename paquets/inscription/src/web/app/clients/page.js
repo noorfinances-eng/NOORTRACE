@@ -8,10 +8,15 @@
 // l'outil. Il dit à quoi il sert, explique le parcours une fois (« Comment ça marche », cinq lignes) et nomme les
 // huit étapes avec les mots employés partout ailleurs. La dernière action d'un client ne se dit jamais « réussi »
 // quand une de ses étapes est en échec.
+//
+// Nom interne (complément du 2026-11-19, décision du porteur sur le suivi interne des clients ; CT-4 EX-7.23) : une
+// carte montre d'abord le nom interne du client, s'il en a un, et son nom court à côté, en petit ; sans nom interne,
+// le nom court reste le titre de la carte.
 
-import { client, clients, confirmations } from "../../lib/donnees.mjs";
+import { client, clients, confirmations, lignesNotes, notes } from "../../lib/donnees.mjs";
+import { remiseEnVigueur } from "../../../commun/notes.mjs";
 import { exigerSession } from "../../lib/page.mjs";
-import { ETAPES, ETAPE_PREPARATION, avancement, dateLisible, etatsTravaux, libelleCommande, prochaineAction } from "../../lib/parcours.mjs";
+import { ETAPES, ETAPE_PREPARATION, avancement, dateLisible, etatsTravaux, libelleCommande, manifesteDuPaquet, prochaineAction } from "../../lib/parcours.mjs";
 import Icone from "../../composants/Icone.js";
 import Lexique from "../../composants/Lexique.js";
 import Pastille from "../../composants/Pastille.js";
@@ -23,9 +28,13 @@ const PARCOURS = [ETAPE_PREPARATION, ...Object.values(ETAPES)];
 
 export default async function PageClients() {
   await exigerSession();
+  const lignes = lignesNotes();
   const liste = clients().map((resume) => {
     const c = client(resume.slug);
-    return c ? { resume, c, a: avancement(c.dossier), action: prochaineAction({ ...c, confirmations: confirmations(resume.slug) }) } : null;
+    if (!c) return null;
+    const n = notes(resume.slug, lignes);
+    const remise = remiseEnVigueur(n, manifesteDuPaquet(c));
+    return { resume, c, nom: n.nom?.valeur ?? null, a: avancement(c.dossier), action: prochaineAction({ ...c, confirmations: confirmations(resume.slug), remise }) };
   }).filter(Boolean);
   return (
     <main className="nt-page">
@@ -69,14 +78,17 @@ export default async function PageClients() {
         </div>
       ) : (
         <div className="ins-clients">
-          {liste.map(({ resume, c, a, action }) => {
+          {liste.map(({ resume, c, nom, a, action }) => {
             const k = resume.dernier_travail ? c.travaux.findIndex((t) => t.id === resume.dernier_travail.id) : -1;
             const dernier = k >= 0 ? c.travaux[k] : null;
             const e = dernier ? etatsTravaux(c.travaux, c.dossier)[k] : null;
             return (
               <article className="nt-carte" key={resume.slug} data-client={resume.slug}>
                 <div className="ins-carte-tete">
-                  <h3 className="ins-nom"><a href={`/clients/${resume.slug}`} data-valeur="">{resume.slug}</a></h3>
+                  <div className="ins-nom-bloc">
+                    <h3 className="ins-nom"><a href={`/clients/${resume.slug}`} data-valeur="" data-nom-interne={nom ? "" : undefined}>{nom ?? resume.slug}</a></h3>
+                    {nom ? <p className="nt-attenue nt-petit ins-nom-court" data-nom-court="">Nom court : <span className="nt-fixe" data-valeur="">{resume.slug}</span></p> : null}
+                  </div>
                   <div className="ins-pastilles">
                     <Pastille ton={a.ton} icone={a.icone}>{a.libelle}</Pastille>
                     <Pastille data-avancement>{a.phrase}</Pastille>

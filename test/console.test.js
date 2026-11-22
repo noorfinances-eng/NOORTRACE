@@ -832,7 +832,7 @@ describe("CT-3 0.3 : console de référence dans Chromium (EX-13.36)", function 
       await choisirEtOuvrir(page);
       expect(etat.appels.map((a) => [a.fournisseur, a.method])).to.deep.equal([["a", "eth_requestAccounts"]]);
       const args = await page.getByTestId("argument").evaluateAll((ns) => ns.map((n) => [n.getAttribute("data-pointer"), n.getAttribute("data-statut"), n.lastChild.textContent]));
-      expect(args).to.deep.equal([["/amount", "verifie", "vérifié"], ["/beneficiary_iban", "non_verifiable", "non vérifiable par la console"], ["/claim_id", "verifie", "vérifié"], ["/currency", "verifie", "vérifié"]]);
+      expect(args).to.deep.equal([["/amount", "verifie", "inchangé"], ["/beneficiary_iban", "non_verifiable", "non vérifiable par la console"], ["/claim_id", "verifie", "inchangé"], ["/currency", "verifie", "inchangé"]]);
       expect(await texte(page, "intention")).to.include("déclarée par l'agent, non vérifiée");
       expect(await page.getByTestId("intention").getAttribute("data-statut")).to.equal("en_clair");
       expect(await texte(page, "effets")).to.include("SAP, ecriture ; objet 2026-81044 ; montant 12500.00 CHF");

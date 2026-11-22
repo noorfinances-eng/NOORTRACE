@@ -1036,8 +1036,8 @@ les mêmes essais.
   lit ensuite `annuaire` (une fois) puis `consulter` de chaque demande,
   l'une après l'autre, et affiche sous le titre de la carte le montant que
   `montantVerifie` de `lisible.mjs` rend (`[data-montant]` : le montant et
-  la marque « vérifié ») : la même porte que le montant en grand de l'écran
-  d'une demande ; rien quand le montant n'est pas vérifié. Ce sont des
+  la marque « inchangé ») : la même porte que le montant en grand de l'écran
+  d'une demande ; rien quand le montant n'est pas `verifie`. Ce sont des
   lectures : aucune écriture, aucune requête à un portefeuille. La liste
   s'affiche d'abord ; une lecture qui échoue laisse sa ligne sans montant,
   sans erreur ; un identifiant hors d'EX-7.1 n'est jamais lu. Chaque date
@@ -1064,13 +1064,10 @@ les mêmes essais.
   portefeuille, l'écran de signature, le résultat d'une signature et tout
   bloc visé par un lien viennent sous la barre, quelle que soit sa hauteur
   (`amenerSousLaBarre`), sans constante. - **Carte « essentiel ».** Sous les
-  valeurs vérifiées, une légende bien visible (`#legende-verifie`, encre des
-  titres) : « « vérifié » veut dire : c'est bien la valeur que l'agent
-  logiciel a envoyée, personne ne l'a changée depuis. La console ne dit pas
-  que cette valeur est juste : comparez le montant, le compte et le
-  bénéficiaire à vos pièces avant d'approuver. » (sans l'invitation sur une
-  demande décidée) ; elle paraît aussi dans la liste, sous « À décider »,
-  dès qu'un montant vérifié y paraît. « Demandé par » porte, avant la marque
+  valeurs inchangées, une légende bien visible (`#legende-verifie`, encre des
+  titres), dont le texte est celui du complément du 2026-11-19 (« inchangé »,
+  plus bas) ; elle paraît aussi dans la liste, sous « À décider », dès
+  qu'un montant inchangé y paraît. « Demandé par » porte, avant la marque
   fixée « configuration de la connexion d'hôte », la phrase « Identité tirée
   du réglage de la connexion de l'agent : la console ne peut pas vérifier
   qui l'a lancé. » La phrase d'en-tête et le montant se suivent sur une
@@ -1103,8 +1100,10 @@ les mêmes essais.
   (CT-3 EX-9.18 et EX-9.20, compléments du 2026-11-18). En tête, la décision
   en toutes lettres ; puis le rappel de la demande et, à côté, « Avant de
   signer » et les quatre consignes courantes, sans sigle, mot anglais ni
-  parenthèse ; dessous, sur une rangée, la décision signée, l'adresse et le
-  portefeuille ; puis les deux codes, en grand, début et fin : « Code de
+  parenthèse, et sous elles la décision signée, l'adresse et le
+  portefeuille, une ligne chacun (sous le rappel, sur une rangée, ils
+  repoussaient le bouton hors du premier écran quand la demande porte deux
+  valeurs à contrôler) ; puis les deux codes, en grand, début et fin : « Code de
   contrôle de votre décision » (`#empreinte-d-a`, `D_A` en entier juste
   dessous) et « Autre forme de ce code » (`#empreinte-h`, suivi de «
   Certaines applications l'affichent en plus du long code. ») ; sur un
@@ -1264,6 +1263,56 @@ console, dans Chromium ») et par les essais des pages.
   formulaire lui-même) ; 204 : navigation vers `retour` de l'adresse de
   l'écran, retenu comme en EX-13.43 ; refus : code et, pour `essai_trop_tot`,
   le délai.
+
+Complément du 2026-11-19, décisions du porteur (écrans de la console). Il
+remplace, dans les compléments ci-dessus, ce qui suit ; il est éprouvé par
+`test/exploitation-console-langage-chromium.test.js` et les essais des pages,
+du serveur et du service.
+
+- **« inchangé »** (CT-3 EX-9.16, complément). La marque d'une feuille
+  `verifie` s'affiche « inchangé » (`marque.verifie`), dans la carte, la liste
+  et la console de référence ; l'état `verifie` (`data-marque`, modèle,
+  vecteurs) ne change pas. La légende (`#legende-verifie`) dit : « « inchangé
+  » veut dire : c'est bien la valeur que l'agent logiciel a envoyée ; personne
+  ne l'a changée depuis. Cela ne dit pas qu'elle est juste… » ; le groupe à
+  contrôler dit que la console ne peut pas dire si ces valeurs sont
+  inchangées. « non vérifiable par la console » reste (CT-3 la fixe aussi pour
+  l'intention portée par une référence).
+- **Titre d'une demande** (CT-3 EX-9.4, complément). `titles` de la
+  configuration du serveur de console (phrases modèles par nom de règle,
+  champs `{/pointeur}`) parvient à la page par `session` ; `titreDemande` de
+  `lisible.mjs` le remplit des seules feuilles `verifie`, et rend `null` sinon
+  (feuille non contrôlée, absente, vide, à caractère invisible, règle non liée
+  ou sous une marque, modèle mal formé). Avec un titre : `#titre-demande`
+  (chaque valeur `[data-pointeur]`), puis la phrase d'avant en petit
+  (`#phrase-entete`, nom de l'outil et montant) ; le même titre dans le rappel
+  de l'écran de signature (`#rappel-titre`) et, pour les demandes dont la
+  liste lit la vue, sur la carte (`[data-champ=titre]`, l'outil dessous,
+  `[data-champ=outil]`). Sans titre, rien ne change.
+- **Un seul code** (CT-3 EX-9.18, EX-9.20, compléments). Sous « Code de
+  contrôle de votre décision », `D_A` en entier, en grand, par groupes de huit
+  (`#code-controle-groupes`, sur toute la largeur), et d'un seul tenant
+  dessous (`code.d-a`). Les quatre consignes courantes sont celles du
+  complément du 2026-11-19. L'autre forme passe derrière le lien « Mon
+  application affiche un autre code » (`details#code-autre`, fermé à
+  l'ouverture de l'écran) : sa consigne, mot pour mot, `groupes(H)` en grand
+  et `empreinte(H)`. La forme abrégée `empreinte(D_A)` (`#empreinte-d-a`)
+  n'est plus que dans le bloc « Consignes complètes ». Le bouton reste dans le
+  premier écran à 1280 × 800 avec les deux polices.
+- **Refus dans l'application** (CT-3 EX-13.29, complément). Après
+  `refus_approbateur`, plus de « Réessayer » : « Prévenez votre administrateur
+  : ne réessayez pas. » (`#panne-consigne`), puis le lien discret « J'ai
+  refusé par erreur, le code était identique : recommencer la signature »
+  (`#recommencer-signature`), qui reprend la décision confirmée. Les autres
+  pannes gardent « Réessayer ».
+- **Noms** (CT-3 EX-12.15, EX-13.7, EX-13.48, compléments). Chaque décision
+  donnée dit le nom que `approver_names` de la vue lui donne, l'adresse en
+  petit, « (administrateur de l'annuaire) » pour un administrateur ; une
+  adresse sans fiche, « adresse inconnue de l'annuaire » ; une vue sans ce
+  membre garde l'affichage d'avant. La barre nomme la personne par
+  `display_name` de `session` (« Vous êtes connecté : Claire Favre », puis «
+  compte approbateur-1, fourni par le service d'identité … ») ; la demande lui
+  donne le même nom, suivi de « (vous) ».
 
 ### 3.5 Réauthentification avant une signature
 

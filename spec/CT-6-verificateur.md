@@ -34,11 +34,22 @@ valeur de preuve » si l'avertissement le dit sans valeur probante, un contrôle
 des signatures fait avec les clés ou les approbateurs du dossier se dit
 « Cohérent », l'identité de qui a signé restant non prouvée, un contrôle exigé
 que le rapport dit sans valeur de preuve n'est pas dit satisfait, le
-vérificateur rendant pourtant 0 (7.5), et un bloc « En résumé » recopie
-quelques champs du rapport dans des gabarits fixes (EX-18.2, EX-18.5, EX-18.7,
-EX-18.9) ; la présentation ne peut que restreindre ce que le code de retour
+vérificateur rendant pourtant 0 (7.5) (point que le complément du 2026-11-19
+remplace : ce contrôle rend désormais le code 3), et un bloc « En résumé »
+recopie quelques champs du rapport dans des gabarits fixes (EX-18.2, EX-18.5,
+EX-18.7, EX-18.9) ; la présentation ne peut que restreindre ce que le code de retour
 dit ; la page ne calcule toujours aucun statut, et aucune règle du
-vérificateur, aucun rapport ni aucun code de retour ne change.
+vérificateur, aucun rapport ni aucun code de retour ne change ; complément
+du 2026-11-19, décision du porteur (pièces d'essai et empreintes publiées) :
+le vérificateur signale par un avertissement chaque pièce d'essai que les
+données désignent par une valeur exacte fixée dans le texte (autorité
+d'horodatage, registre, clés d'enregistreur et de chaîne, approbateurs ;
+section 6.10, EX-6.23, EX-6.24), un contrôle exigé dont ce qu'il établit
+repose sur une pièce d'essai n'est plus satisfait et rend le code 3
+(EX-6.25, EX-6.7, 7.5, 8.3), la page de vérification ne garde plus le cas
+« Valide, mais ce que vous avez exigé n'est pas prouvé » et dit où sont
+publiées les empreintes (EX-14.9, EX-18.5) ; l'énoncé, les schémas et les
+codes de retour eux-mêmes ne changent pas.
 Version 0.8, 2026-11-12, révision 0.8,
 textuelle et minimale : publication
 du binaire préparée à l'étape 7 sans rien publier, image de construction et
@@ -160,6 +171,12 @@ renvoi à la section 18 (« Révision 0.6 : »), sans effet normatif nouveau.
 La révision 0.7 n'ajoute ni ne retire aucune règle ; elle complète en place,
 en le disant (« Révision 0.7 : »), le texte d'EX-14.6, EX-18.3, EX-18.4,
 EX-18.6 à EX-18.9, EX-18.12 et EX-18.13 (section 16).
+Le complément du 2026-11-19 (pièces d'essai) ajoute EX-6.23 à EX-6.25
+(section 6.10, nouvelle) ; il complète en place, en le disant, EX-5.1,
+EX-6.1, EX-6.7, EX-6.15, EX-8.4, EX-8.6, EX-14.9, EX-18.5 et EX-18.9, et les
+textes de
+2, 7.1, 7.2, 7.5, 8.2, 8.3, 9.7, 10.7, 11.6 et 12.4 ; aucune règle n'est
+retirée ni renumérotée (section 16).
 
 Les vérifications élémentaires portent l'identifiant de leur famille :
 
@@ -312,7 +329,8 @@ ajoutent :
 | Raison admise | Raison qui n'empêche pas un verdict `valide`. |
 | Verdict | `valide`, `invalide` ou `incomplet` (section 6.4), ou aucun verdict quand l'entrée est inutilisable (code 2). |
 | Énoncé | Phrase, en français et en anglais, qui dit ce que le verdict établit et ce qu'il n'établit pas (section 6.5). |
-| Avertissement | Signal `AV-…` des sections 9 à 11 (par exemple AV-O-3, réseau d'essai) : il n'est jamais un échec et ne change aucun statut. |
+| Avertissement | Signal `AV-…` des sections 9 à 11 (par exemple AV-O-3, réseau d'essai) et, depuis le complément du 2026-11-19, de la section 6.10 : il n'est jamais un échec et ne change aucun statut. Un avertissement de pièce d'essai qui vise un contrôle exigé par `--exiger` rend toutefois le verdict `incomplet` (EX-6.25). |
+| Pièce d'essai | (complément du 2026-11-19) Pièce que les données désignent comme d'essai par une valeur exacte fixée en 6.10 (EX-6.23) : réseau `regtest`, certificat d'une autorité d'horodatage, identifiant de chaîne, clé d'enregistreur ou de chaîne, adresse d'approbateur. Un contrôle réussi dont ce qu'il établit repose sur une pièce d'essai est sans valeur de preuve (EX-6.25). |
 | Borne | Mention, exigée par CT-1 §11.3, des contrôles non exécutés qui limitent le verdict (section 6.6). |
 | `periodHash` | SHA-256 des octets « noortrace/manifeste/v0\n » suivis de la forme canonique du manifeste (CT-1 §10.2). Les trois ancres portent sur lui : il engage la racine, les bornes de la période, la continuité avec la période précédente (`prev_period_hash`), le journal et la clé de l'enregistreur, alors qu'horodater la racine seule n'engagerait que la racine (section 16). |
 | Autorité d'horodatage | Prestataire qui signe un jeton RFC 3161 (en anglais : TSA). |
@@ -954,7 +972,9 @@ l'architecture » de CT-1 §11.4 ; il ne donne aux AT- aucun effet sur le
 statut de ces contrôles ni sur le verdict (5.5).
 
 **EX-5.1** Le vérificateur exécute les vérifications de cette table, et
-seulement elles ; aucune autre règle n'entre dans le verdict. Une vérification
+seulement elles ; aucune autre règle n'entre dans le verdict (complément du
+2026-11-19 : sous `--exiger`, sauf les avertissements de pièce d'essai,
+EX-6.25). Une vérification
 qui sert deux contrôles compte pour les deux.
 
 ### 5.2 Ordre d'exécution
@@ -1398,7 +1418,8 @@ la règle tient), `echoue` (exécutée, la règle ne tient pas), `non_execute`
 `non_execute` n'est jamais comptée comme réussie. `reussi` dit que la règle
 tient sur les entrées ; ce que cela prouve dépend des hypothèses de 3.5. Sur
 un réseau d'essai, H5 ne tient pas, et un contrôle 5 réussi ne prouve rien
-(AV-O-3).
+(AV-O-3) ; les autres pièces d'essai que les données désignent sont dites en
+6.10 (complément du 2026-11-19).
 
 ### 6.2 Raisons de non-exécution : liste fermée
 
@@ -1483,7 +1504,8 @@ traite une ancre absente comme un succès.
    comptent pas (EX-5.11), et ni `failed_checks` ni `blocking_unexecuted` ne
    les listent ;
 2. sinon `incomplet` si l'option `--exiger` (section 8.2) nomme un contrôle
-   dont le statut n'est pas `reussi` ;
+   dont le statut n'est pas `reussi`, ou (complément du 2026-11-19) un
+   contrôle `reussi` sans valeur de preuve (EX-6.25) ;
 3. sinon `valide`.
 
 Le rapport liste dans `failed_checks` les vérifications en échec et dans
@@ -1815,7 +1837,10 @@ identifiant et une même vérification, dans l'ordre de leur objet : attestation
 dans l'ordre du fichier `.ots`, CRL dans l'ordre du fichier d'ancres puis du
 champ `crls` du jeton, extensions dans l'ordre du jeton, certificats et
 entrées dans l'ordre de leur partie. Deux implémentations conformes rendent
-donc la même liste, dans le même ordre (V-1, V-8).
+donc la même liste, dans le même ordre (V-1, V-8). Complément du
+2026-11-19 : « par identifiant » se lit par famille, dans l'ordre T, O, R,
+N, K, AT, puis par numéro ; c'est l'ordre de deux avertissements de familles
+différentes levés par une même vérification (AV-T-5 et AV-K-2 sur K-7).
 
 **EX-6.17 (`facts.checkpoint`, révision 0.2)** Le rapport porte toujours
 `facts.checkpoint` : `null` sans partie `points-de-controle.json` vérifiée,
@@ -1977,6 +2002,134 @@ vecteur. Elles ne figurent pas dans `checks`.
 | V-9 | (révision 0.2) Sur chacun des cinquante dossiers de `spec/vecteurs/ct-6/dossiers` antérieurs à la révision 0.2, le code de retour, `failed_checks`, les statuts des contrôles, les vérifications non exécutées, les avertissements, l'énoncé et la borne sont ceux de leur `attendu.json`, et `facts.checkpoint` est `null` ; sur les dossiers qui portent la partie (EX-A.16), les K- figurent après A-4, FK et `facts.checkpoint` suivent EX-6.16 et EX-6.17, et les K- non exécutées ne changent aucun statut de contrôle. | EX-5.7, EX-5.8, EX-6.16, EX-6.17, EX-6.18 |
 | V-10 | (révision 0.3) Sur chaque dossier qui porte la partie `attestation-perimetre.json`, le code de retour, le verdict, `failed_checks`, `blocking_unexecuted`, les statuts des huit contrôles et la borne sont égaux à ceux du même dossier sans la partie (sauf un échec de D-2 sur la partie) ; les AT- figurent après K- et avant T- ; FP, `facts.perimeter` et AV-AT- suivent EX-6.19, EX-6.20 et 5.5 ; aucun texte du rapport n'applique « prouvé » ou « vérifié » au périmètre. | EX-5.10, EX-5.11, EX-6.19, EX-6.20, EX-6.21, EX-7.3 |
 
+### 6.10 Pièces d'essai (complément du 2026-11-19)
+
+Complément du 2026-11-19, décision du porteur (pièces d'essai). Jusque-là,
+seul le réseau `regtest` était signalé (AV-O-3) : une autorité
+d'horodatage, un registre, des clés d'enregistreur ou des approbateurs
+d'essai passaient « réussi » sans réserve, et `--exiger` les tenait pour
+satisfaits (ancien texte de 7.5). Ce complément fait signaler chaque pièce
+d'essai que les données désignent avec certitude, et fait qu'un contrôle
+exigé dont la seule preuve est une pièce d'essai donne le verdict
+`incomplet`. Raison : ce qui ne repose que sur des pièces d'essai ne prouve
+rien hors des tests, et une exigence n'est pas remplie par ce qui ne prouve
+rien. Ne changent pas : les vérifications, leurs statuts et ceux des huit
+contrôles, l'énoncé, les schémas, le format du rapport, les codes de retour
+et leur sens ; sans `--exiger`, aucun verdict.
+
+**EX-6.23 (pièces d'essai et leur signe)** Une pièce est une pièce d'essai
+quand une valeur exacte des données la désigne dans cette table, jamais
+d'après un nom, un libellé ou un texte libre (`name`, `label`, `source`,
+`prepared_by`, `key_id`, `commonName` d'un certificat, `chain_id` autre que
+ceux de la table). La table est fermée ; chaque implémentation porte ses
+valeurs telles quelles.
+
+| Sorte | Signe dans les données | Valeurs |
+|---|---|---|
+| Réseau Bitcoin d'essai | `bitcoin.network` du fichier d'ancres | `regtest` (AV-O-3, 10.7, inchangé) |
+| Autorité d'horodatage d'essai | SHA-256 du DER du certificat de l'autorité que T-7 retient (`certificate` de son entrée de `tsa_authorities`) | les seize certificats publiés sous `spec/vecteurs/ct-6/rfc3161/cles/` et l'AC d'exemple de 12.3, ci-dessous |
+| Registre d'essai | `registry.chain_id` du fichier d'ancres, que R-4 compare au `chainId` de chaque certificat de commit | `noortrace-2124-dev`, identifiant BFT du réseau de développement (CT-4 section 4 ; `chain/README.md`, « Identifiants ») |
+| Clé d'enregistreur d'essai | `public_key` de la clé dans `cles.json` | clés de `rec-test-01` et `rec-test-02` (CT-1 §13) et de `rec-test-03` (A.5), dont les graines sont publiées, ci-dessous |
+| Clé de chaîne d'essai | `chain_key` que le fichier d'ancres donne pour la clé du manifeste (N-4) | clés de chaîne de `rec-test-01` à `rec-test-03` (annexe A, A.5), dont les graines sont publiées, ci-dessous |
+| Approbateur d'essai | adresse de `approval.approvers` de l'événement prouvé | les vingt comptes du mnémonique Hardhat par défaut (`test test test test test test test test test test test junk`, chemin `m/44'/60'/0'/0/i`, i = 0 à 19), dont les clés privées sont publiques ; CT-1 §13 emploie les comptes 1 à 3 |
+
+Certificats d'essai (SHA-256 du DER, dans l'ordre des noms de fichier) :
+`ac-test.pem` 0x56ae2b379606d0aee499f5d790f35cc9a41ee6dbc63e511f5f2c5ac73399b568,
+`intermediaire-8200.pem` 0xf9e8f8ac115234297bfd817696c83a4eab398ee1c028931d09b34be6b4335037,
+`tsa-8192.pem` 0xf34bca8cb29c2632ec209abf39fb912c0eaadc7bbf237deaeb41e51310f98739,
+`tsa-8200.pem` 0x77be4a251aa3cdd0ce67e07eb4b3be46b906d9f10a1687a22d8f4a2cc13ef078,
+`tsa-cle-longueur-non-minimale.pem` 0x243795c7795d2372773329da9efba1de71ddf175d0f0d5ec9b744618e62e7327,
+`tsa-cn-utf8-invalide.pem` 0xb3bed2e9b5a52e4a9423dc420194d2c1b0b090bb625fac40e14ed07d3200f597,
+`tsa-critique-faux.pem` 0x8bcda2d914e55fe43e07f96102b2ebfee03cba768c55f18dace7f295a3c93332,
+`tsa-ed25519-auto-signe.pem` 0xa39159bef83a32855479074287e8030987fc103259c63eac85437c860a7f7e6e,
+`tsa-ed25519.pem` 0x3b2070b9e823b69157f06e7ab4c8d2f8d43e6e1e9033b4280a0ac6d57c3580bd,
+`tsa-eku-non-critique.pem` 0xe91135578a497e9f25f34c961e1b860e844f9a15bdf657e08e255c820699d002,
+`tsa-expiree.pem` 0xe1d773f9b29af5614c521969b98ffdcb3a484ec98e2f2ff843f001c637d89d3a,
+`tsa-exposant.pem` 0x08666cf01c0ef9fc7bc5279264c186a414fe5774cb05280931c3ec9e53c66b14,
+`tsa-extension-mal-formee.pem` 0x17b014380b0c82f5a903597ff629c3605625d621588098c62fc48c5f0fee5123,
+`tsa-par-intermediaire-8200.pem` 0x3ac1e377b94a494fabfe27654bec6917ebe83ab5dc75a7642f74ff8966173a9b,
+`tsa-sans-cn.pem` 0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84,
+`tsa-test.pem` 0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9 ;
+AC d'exemple de 12.3 0x89873f3fcb40f2b42c29e5457dea05ef5e41281451afccbec2934a80eb7a5539.
+Clés d'enregistreur : `rec-test-01`
+0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045,
+`rec-test-02` 0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3,
+`rec-test-03` 0x7fcebb9e8efd62d13a17c830ad33739c1de7fe9f1458701cb739ae15e9e62cd6.
+Clés de chaîne : 0xaa2a59656361352e96ef2eed355316ef8b29dab7,
+0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49,
+0xe2bdcef6264103ab6c88fa3c1b5a2ceacd995b22. Approbateurs (comptes 0 à 19) :
+0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266, 0x70997970c51812dc3a010c7d01b50e0d17dc79c8,
+0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc, 0x90f79bf6eb2c4f870365e785982e1f101e93b906,
+0x15d34aaf54267db7d7c367839aaf71a00a2c6a65, 0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc,
+0x976ea74026e726554db657fa54763abd0c3a0aa9, 0x14dc79964da2c08b23698b3d3cc7ca32193d9955,
+0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f, 0xa0ee7a142d267c1f36714e4a8f75612f20a79720,
+0xbcd4042de499d14e55001ccbb24a551f3b954096, 0x71be63f3384f5fb98995898a86b02fb2426c5788,
+0xfabb0ac9d68b0b445fb7357272ff202c5651694a, 0x1cbd3b2770909d4e10f157cabc84c7264073c9ec,
+0xdf3e18d64bc6a983f673ab319ccae4f1a57c7097, 0xcd3b766ccdd6ae721141f452c550ca635964ce71,
+0x2546bcd3c84621e976d8185a91a922ae77ecec30, 0xbda5747bfd65f08deb54cb465eb87d40e51b197e,
+0xdd2fd4581271e230360230f9337d5c0430bf44c0, 0x8626f6940e2eb28930efb4cef49b2d1f2c9c1199.
+
+Sortes pour lesquelles les données ne portent aucun signe sûr, et qui ne
+sont donc pas signalées : le fichier d'ancres lui-même (ni `label`, ni
+`source`, ni `prepared_by` ne sont autre chose que du texte libre ; chacune
+de ses ancres est jugée par la table) ; une autorité d'horodatage, un
+registre ou un jeu de validateurs d'essai créés hors des vecteurs publiés
+(serveur d'horodatage interne de CT-5 §7 dont la clé est créée à
+l'installation, autre réseau de développement, validateurs que
+`chain/scripts/dev-net.sh` crée sur place), dont aucune valeur n'est fixée
+par un texte. Le jeu de validateurs du réseau de développement est couvert
+par son identifiant de chaîne. Proposition pour une version suivante du
+format d'ancres (`ancres-confiance-v1`, non écrite ici) : un membre
+obligatoire `purpose`, `"essai"` ou `"production"`, à la racine du fichier
+et sur chaque entrée de `tsa_authorities` et sur `registry`, que le
+réviseur remplit et que le vérificateur rapporterait ; à `"essai"`, il
+lèverait l'avertissement de la sorte.
+
+**EX-6.24 (avertissements de pièce d'essai)** Sur le modèle d'AV-O-3, le
+vérificateur lève, pour une pièce d'essai qu'emploie un contrôle ou une
+vérification réussis, l'avertissement de cette table. Son détail nomme la
+pièce et dit qu'elle est sans valeur probante hors des tests. Comme tout
+avertissement, il ne change aucun statut (EX-6.1) ; il ne compte que pour
+`--exiger` (EX-6.25).
+
+| Avertissement | Condition | `check` | Détail (français ; anglais) |
+|---|---|---|---|
+| AV-O-3 | inchangé (10.7) : O-5 exécutée sur `regtest` | `O-5` ; `K-9` (EX-10.16) | inchangé |
+| AV-T-5 | contrôle 4 `reussi` avec une autorité retenue d'essai ; K-7 `reussi` avec une autorité retenue d'essai pour le jeton du point (relayé comme les autres AV-T-, EX-9.22) | `T-7` ; `K-7` | « autorité {name} : certificat d'essai {SHA-256}, sans valeur probante hors des tests » ; « authority {name}: test certificate {SHA-256}, no evidential value outside tests » |
+| AV-R-4 | contrôle 8 `reussi` avec le registre d'essai | `R-4` | « registre {chain_id} : réseau de développement, sans valeur probante hors des tests » ; « registry {chain_id}: development network, no evidential value outside tests » |
+| AV-N-1 | contrôle 6 `reussi` : clé de l'événement d'essai (`E-8`), clé du manifeste d'essai si ce n'est pas la clé de l'événement (`P-5`) ; K-3 `reussi` : clé du point d'essai si ce n'est aucune des deux (`K-3`) ; N-4 `reussi` : clé de chaîne d'essai (`N-4`) | celui de la condition | « clé d'enregistreur {key_id} (événement \| manifeste \| point de contrôle) : clé d'essai publiée, sans valeur probante hors des tests » ; « recorder key {key_id} (event \| manifest \| checkpoint): published test key, no evidential value outside tests » ; pour N-4 : « clé de chaîne {chain_key} de {key_id} : clé d'essai publiée, sans valeur probante hors des tests » ; « chain key {chain_key} of {key_id}: published test key, no evidential value outside tests » |
+| AV-N-2 | contrôle 7 `reussi` : un avertissement par adresse d'essai de `approval.approvers`, dans leur ordre | `E-9` | « approbateur {adresse} : compte d'essai publié, sans valeur probante hors des tests » ; « approver {address}: published test account, no evidential value outside tests » |
+
+**EX-6.25 (contrôle sans valeur de preuve ; complète EX-6.7, règle 2)** Un
+contrôle `reussi` est sans valeur de preuve quand ce qu'il établit repose
+sur une pièce d'essai, c'est-à-dire quand le rapport porte : pour le
+contrôle 4, AV-T-5 de `check` T-7 ; pour le 5, AV-O-3 de `check` O-5 ; pour
+le 6, AV-N-1 de `check` E-8 ou P-5 ; pour le 7, au moins un AV-N-2, les
+adresses de `facts.approval.approvers` qui ne sont pas dans la liste
+d'EX-6.23 étant moins nombreuses que `facts.approval.required` ; pour le 8,
+AV-R-4, ou AV-N-1 de `check` N-4. Les contrôles 1, 2 et 3 n'emploient
+aucune pièce de la table. Les mêmes avertissements levés par K-3, K-7 ou K-9
+ne rendent aucun contrôle sans valeur de preuve : ils portent sur le point
+de contrôle du journal (fragment FK), non sur ce que le contrôle établit.
+Un contrôle que `--exiger` nomme et qui est sans valeur de preuve n'est pas
+satisfait : le verdict est `incomplet`, code 3, comme pour un contrôle exigé
+qui n'a pas réussi, sauf si le dossier est invalide. Le statut du contrôle
+reste `reussi` dans `controls` ; la ligne `Résultat` le nomme à part
+(EX-8.6, point 11). Le rapport suffit à le recalculer.
+
+Compatibilité. Aucun format ne change : les identifiants nouveaux suivent
+le motif du schéma du rapport (`AV-(T|O|R|N|K|AT)-n`), et un rapport,
+un énoncé ou un dossier produits avant ce complément se lisent comme avant ;
+un rapport ancien ne porte pas ces avertissements, ce qui ne dit pas que
+ses pièces ne sont pas d'essai. Sans `--exiger`, aucun verdict ni code ne
+change ; avec `--exiger`, un dossier vérifié avec des pièces d'essai passe
+du code 0 au code 3. L'énoncé ne change pas : il nomme une autorité, un
+registre ou des clés d'essai comme les autres (7.1) ; les avertissements et,
+sous `--exiger`, le code 3 les signalent. Proposition hors de ce complément :
+dire aussi dans l'énoncé, comme AV-O-3 le fait pour le contrôle 5
+(« réseau d'essai, sans valeur probante »), chaque pièce d'essai ; cela
+changerait l'énoncé de tous les dossiers d'essai (V-5).
+
 ## 7. Ce que le vérificateur prouve et ne prouve pas
 
 Cette section se lit seule. Elle dit ce qu'un réviseur peut affirmer après
@@ -2011,8 +2164,9 @@ cette section range parmi ce qui n'est pas prouvé.
   de conclure, lisez la borne (ligne `Borne`, champ `bound` ; puce
   « La borne » ci-dessous) et la fin de l'énoncé (« ce dossier ne prouve
   rien sur … »). Ou relancez le vérificateur avec `--exiger` et les
-  contrôles dont vous avez besoin : si l'un d'eux n'a pas réussi, le verdict
-  est « incomplet », code 3, sauf si le dossier est invalide (7.5).
+  contrôles dont vous avez besoin : si l'un d'eux n'a pas réussi, ou ne
+  repose que sur une pièce d'essai (6.10), le verdict est « incomplet »,
+  code 3, sauf si le dossier est invalide (7.5).
 - Le statut de chacun des huit contrôles : réussi, échoué, ou non exécuté avec
   sa raison.
 - (révision 0.2) Le point de contrôle du journal, s'il y en a un : la ligne
@@ -2052,10 +2206,12 @@ cette section range parmi ce qui n'est pas prouvé.
   signale que la chaîne d'en-têtes a été examinée sur `regtest` (O-5) : un
   contrôle 5 réussi sur ce réseau ne prouve rien. L'énoncé le répète par
   « (réseau d'essai, sans valeur probante) », et le résumé du contrôle 5 par
-  « (réseau d'essai) ». Le réseau `regtest` est la seule donnée de test
-  signalée. Une autorité d'horodatage, un registre ou un jeu de validateurs
-  de test que votre fichier d'ancres déclare ne lèvent aucun avertissement.
-  L'énoncé en parle sans réserve (puce « L'énoncé »). L'exemple de 8.5
+  « (réseau d'essai) ». Complément du 2026-11-19 : une autorité
+  d'horodatage, un registre, une clé d'enregistreur ou de chaîne, un
+  approbateur d'essai que les données désignent par une valeur exacte
+  (EX-6.23) lèvent AV-T-5, AV-R-4, AV-N-1 ou AV-N-2 (6.10) ; une pièce
+  d'essai qu'aucune de ces valeurs ne désigne ne lève rien. L'énoncé en
+  parle sans réserve (puce « L'énoncé »). L'exemple de 8.5
   emploie de telles ancres : son verdict n'est pas probant. Que vos ancres
   ne soient pas des ancres de test relève de H3.
 - L'énoncé : c'est la seule phrase du rapport à citer comme affirmation.
@@ -2074,7 +2230,8 @@ cette section range parmi ce qui n'est pas prouvé.
   libellés de votre fichier (`name`, `source`), que le vérificateur ne
   contrôle pas. Il ne vaut qu'avec vos ancres (H3). Une autorité
   d'horodatage, un registre ou un jeu de validateurs de test y paraissent
-  comme les autres, et `--exiger 5` est satisfait sur `regtest` (7.5). Les
+  comme les autres ; les avertissements de 6.10 les signalent, et un
+  contrôle exigé qui ne repose que sur eux rend le code 3 (7.5). Les
   résumés de contrôle, les détails et les avertissements servent à le lire,
   non à être cités comme affirmations. Il dit ce qui est prouvé. Il
   rapporte aussi, chacune avec sa qualification, des heures qui ne le sont
@@ -2362,7 +2519,8 @@ Le vérificateur ne prouve pas :
 - Le contenu des pièces (arguments, résultats, documents), sauf celui des
   pièces fournies à part, dont l'empreinte a été vérifiée (E-6).
 - Que la conclusion a une valeur probante quand vos ancres sont des ancres
-  de test : seul `regtest` est signalé (AV-O-3, 7.1).
+  de test : seules les pièces d'essai qu'EX-6.23 désigne sont signalées
+  (6.10, 7.1).
 
 ### 7.3 Verdict « valide », avec des contrôles non exécutés
 
@@ -2509,11 +2667,19 @@ Le vérificateur ne prouve pas :
 ### 7.5 Verdict « incomplet » (code 3)
 
 - Aucune vérification n'a échoué.
-- Un contrôle que vous avez exigé avec `--exiger` n'a pas réussi.
+- Un contrôle que vous avez exigé avec `--exiger` n'a pas réussi, ou il a
+  réussi mais ce qu'il établit repose sur une pièce d'essai : il est sans
+  valeur de preuve (EX-6.25).
 - L'énoncé reste exact ; il prouve moins que ce que vous exigiez.
-- `--exiger 5` est satisfait par un contrôle 5 réussi sur le réseau que
-  déclare votre fichier d'ancres, `regtest` compris : ne déclarez `regtest`
-  que pour des essais.
+- Complément du 2026-11-19, décision du porteur (pièces d'essai) : jusque-là,
+  `--exiger 5` était satisfait par un contrôle 5 réussi sur `regtest`, et le
+  code était 0. Il ne l'est plus : `--exiger 5` sur `regtest` rend le code
+  3, comme `--exiger 4` avec une autorité d'horodatage d'essai, `--exiger 6`
+  avec une clé d'enregistreur d'essai, `--exiger 7` quand les approbateurs
+  d'essai sont nécessaires au seuil, et `--exiger 8` avec le registre de
+  développement (6.10). Une pièce d'essai qu'aucune valeur d'EX-6.23 ne
+  désigne n'est pas reconnue : ne déclarez d'ancres d'essai que pour des
+  essais.
 
 ### 7.6 Code 2, entrée inutilisable
 
@@ -2919,7 +3085,7 @@ arguments d'EX-18.8 et affiche ses sorties (EX-18.10).
 | `--entetes-bitcoin` | fichier | chaîne d'en-têtes Bitcoin (EX-4.5) | aucune |
 | `--pieces` | répertoire | pièces nommées par leur `sha256` (EX-4.6) | aucune |
 | `--second-manifeste` | fichier | manifeste précédent ou suivant du même journal (EX-4.7) | aucun |
-| `--exiger` | numéros de contrôles de 1 à 8 séparés par `,`, ou `tous` | un contrôle exigé qui n'a pas réussi rend le verdict `incomplet` (code 3) ; `tous` inclut le contrôle 7, non exécuté pour un événement sans approbation | aucun |
+| `--exiger` | numéros de contrôles de 1 à 8 séparés par `,`, ou `tous` | un contrôle exigé qui n'a pas réussi, ou (complément du 2026-11-19) qui est sans valeur de preuve (EX-6.25), rend le verdict `incomplet` (code 3) ; `tous` inclut le contrôle 7, non exécuté pour un événement sans approbation | aucun |
 | `--langue` | `fr` ou `en` | langue de la sortie lisible et des textes du rapport JSON | `fr` |
 | `--json` | — | rapport JSON sur la sortie standard, au lieu du rapport lisible | rapport lisible |
 | `--detail` | — | rapport lisible : toutes les vérifications, pas seulement celles qui n'ont pas réussi | non |
@@ -2957,13 +3123,16 @@ la sortie.
 
 | Code | Verdict | Sens | Affirmation sur le dossier |
 |---|---|---|---|
-| 0 | `valide` | Aucune vérification en échec ; toute non-exécution a une raison admise ; tout contrôle exigé par `--exiger` a réussi. | Oui : l'énoncé. |
+| 0 | `valide` | Aucune vérification en échec ; toute non-exécution a une raison admise ; tout contrôle exigé par `--exiger` a réussi, sans reposer sur une pièce d'essai. | Oui : l'énoncé. |
 | 1 | `invalide` | Au moins une vérification en échec, ou non exécutée sans raison admise. | Oui : ce dossier ne prouve pas l'événement. |
 | 2 | aucun | Entrée inutilisable : usage incorrect, dossier, schémas, fichier d'ancres ou entrée à part illisibles, limite de taille dépassée, erreur interne du vérificateur. | Aucune. |
-| 3 | `incomplet` | Comme 0, mais un contrôle exigé par `--exiger` n'a pas réussi. | Oui : l'énoncé, qui prouve moins que l'exigence. |
+| 3 | `incomplet` | Comme 0, mais un contrôle exigé par `--exiger` n'a pas réussi, ou repose sur une pièce d'essai. | Oui : l'énoncé, qui prouve moins que l'exigence. |
 
 **EX-8.4** Le vérificateur rend les codes de cette table, et seulement eux.
-Les codes 0, 1 et 2 gardent le sens qu'ils ont dans la version CT-1 de
+Complément du 2026-11-19 : « sans reposer sur une pièce d'essai » et « ou
+repose sur une pièce d'essai » renvoient à EX-6.25 ; les codes et leur
+verdict ne changent pas. Les codes 0, 1 et 2 gardent le sens qu'ils ont
+dans la version CT-1 de
 `scripts/verify/dossier.mjs`. Le code 3 n'apparaît qu'avec `--exiger` : un
 réviseur qui a besoin d'une date prouvée obtient un code non nul sans
 confondre « incomplet » et « faux », ce que `ots verify` confond (code 1 dans
@@ -3057,7 +3226,12 @@ CT-1 :
     non exécutée sans raison admise`, `INVALIDE — vérification(s) en échec :
     {ids}` suivi de ` ; vérification(s) non exécutée(s) sans raison admise :
     {ids}` s'il y en a, ou `INCOMPLET — contrôle(s) exigé(s) non réussi(s) :
-    {numéros}` ;
+    {numéros}` ; complément du 2026-11-19 : les contrôles exigés sans
+    valeur de preuve (EX-6.25) suivent, après ` ; `, sous `contrôle(s)
+    exigé(s) sans valeur de preuve (pièce d'essai) : {numéros}` (en anglais,
+    après `; `, `required control(s) without evidential value (test
+    piece): {numbers}`), et ce second membre ouvre seul la ligne quand tous
+    les contrôles exigés ont réussi ;
 12. `Énoncé` : l'énoncé dans la langue de sortie, sauf pour le code 2.
 
 Pour le code 2, le rapport lisible se réduit à la ligne `Erreur : {message}`
@@ -3081,7 +3255,12 @@ verdict. Cet exemple n'emploie que des données de test : une autorité
 d'horodatage de test, le réseau Bitcoin `regtest` (contrôle 5 sans valeur
 probante, AV-O-3), et le registre et le jeu de validateurs du réseau de
 développement, déclarés par une ancre de test. Il montre la forme d'un
-rapport aux huit contrôles réussis, pas un verdict probant. Ce que vaut le
+rapport aux huit contrôles réussis, pas un verdict probant. Complément du
+2026-11-19 : chacune de ces pièces, avec les clés d'enregistreur, la clé de
+chaîne et les approbateurs d'essai de CT-1 §13, lève son avertissement de
+pièce d'essai (6.10) ; avec `--exiger 4,5`, le même dossier rend le code 3,
+et la ligne `Résultat` dit « INCOMPLET — contrôle(s) exigé(s) sans valeur de
+preuve (pièce d'essai) : 4, 5 ». Ce que vaut le
 contrôle 8 dépend du jeu de validateurs que le réviseur déclare (H3, H6).
 
 ```text
@@ -3110,7 +3289,14 @@ Vérifications non réussies :
   [non exécuté] T-11 [4] statut qualifié déclaré par l'ancre
                       l'ancre /tsa_authorities/0 ne déclare aucun statut qualifié (ancre_absente)
 Avertissements :
+  AV-N-1 (E-8) clé d'enregistreur rec-test-01 (événement) : clé d'essai publiée, sans valeur probante hors des tests
+  AV-N-2 (E-9) approbateur 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 : compte d'essai publié, sans valeur probante hors des tests
+  AV-N-2 (E-9) approbateur 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc : compte d'essai publié, sans valeur probante hors des tests
+  AV-N-1 (P-5) clé d'enregistreur rec-test-02 (manifeste) : clé d'essai publiée, sans valeur probante hors des tests
+  AV-T-5 (T-7) autorité AC de test CT-6 : certificat d'essai 0x56ae2b379606d0aee499f5d790f35cc9a41ee6dbc63e511f5f2c5ac73399b568, sans valeur probante hors des tests
   AV-O-3 (O-5) réseau regtest : réseau d'essai, sans valeur probante hors des tests
+  AV-R-4 (R-4) registre noortrace-2124-dev : réseau de développement, sans valeur probante hors des tests
+  AV-N-1 (N-4) clé de chaîne 0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49 de rec-test-02 : clé d'essai publiée, sans valeur probante hors des tests
 Résultat      : VALIDE — aucune vérification en échec, aucune vérification non exécutée sans raison admise
 Énoncé        : L'événement seq 7 (hachage 0x52030a580c0532eeae4a27f821c13a242b213d3732bf83663dd177130db3bd14) du journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164 de l'organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab est bien formé, chaîné à ses voisins seq 6 et 8 et inclus dans la période du 2026-11-05T09:00:00Z au 2026-11-05T10:00:00Z close par le manifeste 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 ; l'événement est signé par la clé d'enregistreur rec-test-01 et le manifeste par la clé rec-test-02, clés fournies par le fichier d'ancres ; l'événement porte l'approbation de la demande 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d (ticket apr-2201), signée par 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 et 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, seuil de 2 sur 3 du jeu déclaré par le dossier) ; selon AC de test CT-6 (unité TSA de test CT-6), le manifeste d'empreinte 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 existait au plus tard le 2026-11-05T10:00:06Z UTC ; le manifeste d'empreinte 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 existait avant la création du bloc Bitcoin 1001 (0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026, réseau regtest), sous 20 blocs dont le travail se rattache au point de contrôle 1000 du réviseur ; heure inscrite par le mineur : 2026-11-05T13:50:00Z UTC, précision non garantie par le protocole ; borne sous hypothèse : 2026-11-05T14:50:00Z UTC (réseau d'essai, sans valeur probante) ; sur le registre noortrace-2124-dev, la clôture de cette période (organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab, journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164) figure au bloc 16668 (heure déclarée par le bloc : 2026-10-22T22:20:56Z UTC), émise par le contrat PeriodRegistry 0x4ee6ecad1c2dae9f525404de8555724e3c35d07b, et son ancre 0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6 au bloc 16660 (heure déclarée 2026-10-22T22:20:49Z UTC), émise par AttestationRegistry 0xf4b146fba71f41e0592668ffbf264f1d186b2ca8 pour l'émetteur 0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49, clé de chaîne inscrite au bloc 16652 pour la clé d'enregistreur rec-test-02, que le réviseur tient pour la clé de chaîne de rec-test-02 ; chacun de ces blocs est signé par 3 des 4 validateurs du jeu 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 que le réviseur déclare (validators.json du réseau de développement, clés publiques seulement).
 $ echo $?
@@ -3145,7 +3331,14 @@ Checks not passed:
   [not run]     T-11 [4] qualified status declared by the anchor
                       the anchor /tsa_authorities/0 declares no qualified status (ancre_absente)
 Warnings:
+  AV-N-1 (E-8) recorder key rec-test-01 (event): published test key, no evidential value outside tests
+  AV-N-2 (E-9) approver 0x70997970c51812dc3a010c7d01b50e0d17dc79c8: published test account, no evidential value outside tests
+  AV-N-2 (E-9) approver 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc: published test account, no evidential value outside tests
+  AV-N-1 (P-5) recorder key rec-test-02 (manifest): published test key, no evidential value outside tests
+  AV-T-5 (T-7) authority AC de test CT-6: test certificate 0x56ae2b379606d0aee499f5d790f35cc9a41ee6dbc63e511f5f2c5ac73399b568, no evidential value outside tests
   AV-O-3 (O-5) regtest network: a test network, no evidential value outside tests
+  AV-R-4 (R-4) registry noortrace-2124-dev: development network, no evidential value outside tests
+  AV-N-1 (N-4) chain key 0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49 of rec-test-02: published test key, no evidential value outside tests
 Result        : VALID — no failed check, no check left unrun without an admitted reason
 Statement     : Event seq 7 (hash 0x52030a580c0532eeae4a27f821c13a242b213d3732bf83663dd177130db3bd14) of journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164 of organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab is well-formed, chained to its neighbours seq 6 and 8 and included in the period from 2026-11-05T09:00:00Z to 2026-11-05T10:00:00Z closed by manifest 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914; the event is signed by recorder key rec-test-01 and the manifest by key rec-test-02, keys given by the anchors file; the event carries the approval of request 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d (ticket apr-2201), signed by 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 and 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, threshold 2 of 3 of the set declared by the dossier); according to AC de test CT-6 (unit TSA de test CT-6), the manifest with digest 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 existed no later than 2026-11-05T10:00:06Z UTC; the manifest with digest 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 existed before Bitcoin block 1001 (0x474467b4a5679ac228b840b99c9943f84f1c439537db877bac325061ac7d3026, regtest network) was created, under 20 blocks whose work connects to the reviewer's checkpoint 1000; time written by the miner: 2026-11-05T13:50:00Z UTC, accuracy not guaranteed by the protocol; bound under assumption: 2026-11-05T14:50:00Z UTC (test network, no evidential value); on registry noortrace-2124-dev, the closing of this period (organisation 0xa581bb78871a286f5e48b72433a4440c04303db610387e877d730ddb0366daab, journal 0x41c240366d993e0f2a4031f7177f26cb33a68f87652b51e0979dd863f21c5164) is in block 16668 (time declared by the block: 2026-10-22T22:20:56Z UTC), emitted by contract PeriodRegistry 0x4ee6ecad1c2dae9f525404de8555724e3c35d07b, and its anchor 0x3690909bba236fc912813a9bfe222ea7cc9606f707b9b1b756a719c8802af8f6 in block 16660 (declared time 2026-10-22T22:20:49Z UTC), emitted by AttestationRegistry 0xf4b146fba71f41e0592668ffbf264f1d186b2ca8 for issuer 0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49, chain key registered in block 16652 for recorder key rec-test-02, which the reviewer holds as the chain key of rec-test-02; each of these blocks is signed by 3 of the 4 validators of set 0xa47d27f6d6b0231de99fb6b587c266ef2ec50ba94a9976506c6ff98f9968b751 declared by the reviewer (validators.json du réseau de développement, clés publiques seulement).
 $ echo $?
@@ -3177,6 +3370,11 @@ Contrôles de l'architecture :
 Vérifications non réussies :
   [non exécuté] A-4  [7] request_hash = hash recalculé de l'événement de demande (status retenue) quand il est dans le dossier
                       événement de demande (request_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d) absent du dossier : non vérifiable (piece_hors_dossier)
+Avertissements :
+  AV-N-1 (E-8) clé d'enregistreur rec-test-01 (événement) : clé d'essai publiée, sans valeur probante hors des tests
+  AV-N-2 (E-9) approbateur 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 : compte d'essai publié, sans valeur probante hors des tests
+  AV-N-2 (E-9) approbateur 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc : compte d'essai publié, sans valeur probante hors des tests
+  AV-N-1 (P-5) clé d'enregistreur rec-test-02 (manifeste) : clé d'essai publiée, sans valeur probante hors des tests
 Parties absentes : jeton-rfc3161.der (hors périmètre CT-1), preuve.ots (hors périmètre CT-1), registre.json (hors périmètre CT-1), certificat-commit.json (hors périmètre CT-1), validateurs.json (hors périmètre CT-1)
 Borne         : verdict borné : contrôle 4 non exécuté (hors_perimetre_version), contrôle 5 non exécuté (hors_perimetre_version), contrôle 8 non exécuté (hors_perimetre_version)
 Résultat      : VALIDE — aucune vérification en échec, aucune vérification non exécutée sans raison admise
@@ -3222,6 +3420,11 @@ Vérifications non réussies :
                       evenement : hash recalculé 0x52030a580c0532eeae4a27f821c13a242b213d3732bf83663dd177130db3bd14 différent de hash 0xdae5709042b9fd82eefadfaa9f2e6095a20d9b0f77b249a082cd286d424b7705 ; voisin précédent : hash 0x097ae3f842959999b67d2ceb971d94c58279b42b04a5fca1bd47d09914080009 ; voisin suivant : hash 0x74f7dd908e35792023f6238ff1bc8999a0a24a7b025d65d58a810ac5701f9eb5 ; approbation[0] : hash 0x097ae3f842959999b67d2ceb971d94c58279b42b04a5fca1bd47d09914080009
   [non exécuté] A-4  [7] request_hash = hash recalculé de l'événement de demande (status retenue) quand il est dans le dossier
                       événement de demande (request_hash 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d) absent du dossier : non vérifiable (piece_hors_dossier)
+Avertissements :
+  AV-N-1 (E-8) clé d'enregistreur rec-test-01 (événement) : clé d'essai publiée, sans valeur probante hors des tests
+  AV-N-2 (E-9) approbateur 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 : compte d'essai publié, sans valeur probante hors des tests
+  AV-N-2 (E-9) approbateur 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc : compte d'essai publié, sans valeur probante hors des tests
+  AV-N-1 (P-5) clé d'enregistreur rec-test-02 (manifeste) : clé d'essai publiée, sans valeur probante hors des tests
 Parties absentes : jeton-rfc3161.der (hors périmètre CT-1), preuve.ots (hors périmètre CT-1), registre.json (hors périmètre CT-1), certificat-commit.json (hors périmètre CT-1), validateurs.json (hors périmètre CT-1)
 Borne         : verdict borné : contrôle 4 non exécuté (hors_perimetre_version), contrôle 5 non exécuté (hors_perimetre_version), contrôle 8 non exécuté (hors_perimetre_version)
 Résultat      : INVALIDE — vérification(s) en échec : E-7
@@ -3446,7 +3649,14 @@ produit l'implémentation de la révision 0.3 :
   "blocking_unexecuted": [],
   "absent_parts": [],
   "warnings": [
-    { "id": "AV-O-3", "check": "O-5", "detail": "réseau regtest : réseau d'essai, sans valeur probante hors des tests" }
+    { "id": "AV-N-1", "check": "E-8", "detail": "clé d'enregistreur rec-test-01 (événement) : clé d'essai publiée, sans valeur probante hors des tests" },
+    { "id": "AV-N-2", "check": "E-9", "detail": "approbateur 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 : compte d'essai publié, sans valeur probante hors des tests" },
+    { "id": "AV-N-2", "check": "E-9", "detail": "approbateur 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc : compte d'essai publié, sans valeur probante hors des tests" },
+    { "id": "AV-N-1", "check": "P-5", "detail": "clé d'enregistreur rec-test-02 (manifeste) : clé d'essai publiée, sans valeur probante hors des tests" },
+    { "id": "AV-T-5", "check": "T-7", "detail": "autorité AC de test CT-6 : certificat d'essai 0x56ae2b379606d0aee499f5d790f35cc9a41ee6dbc63e511f5f2c5ac73399b568, sans valeur probante hors des tests" },
+    { "id": "AV-O-3", "check": "O-5", "detail": "réseau regtest : réseau d'essai, sans valeur probante hors des tests" },
+    { "id": "AV-R-4", "check": "R-4", "detail": "registre noortrace-2124-dev : réseau de développement, sans valeur probante hors des tests" },
+    { "id": "AV-N-1", "check": "N-4", "detail": "clé de chaîne 0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49 de rec-test-02 : clé d'essai publiée, sans valeur probante hors des tests" }
   ],
   "facts": {
     "recorder_keys": {
@@ -4373,6 +4583,7 @@ implémentations le font ; le dossier est invalide dans les deux lectures.
 | AV-T-2 | Champ `tsa` sous une autre forme que `directoryName`, non comparé. |
 | AV-T-3 | CRL écartée : émise pour un certificat du chemin mais à signature invalide, delta ou partielle, ou de `thisUpdate` antérieur à `genTime` ; ou CRL du jeton illisible (EX-9.16). Une CRL d'un autre émetteur n'est pas consultée et ne lève rien. |
 | AV-T-4 | `ts` de l'événement prouvé (CT-1 §5) postérieur à `genTime` + `accuracy` : l'horloge de l'enregistreur avançait sur celle de la TSA, ou `ts` est faux. Avertissement seulement : une dérive d'horloge honnête de quelques secondes suffit à le lever. |
+| AV-T-5 | (complément du 2026-11-19) Contrôle 4 réussi, vérification T-7, avec une autorité d'horodatage d'essai : le certificat de l'autorité retenue est dans la liste d'EX-6.23. Sans valeur probante hors des tests ; rend le contrôle 4 sans valeur de preuve (EX-6.24, EX-6.25). |
 
 Un avertissement n'est jamais un échec et ne change aucun statut.
 
@@ -4761,7 +4972,7 @@ instants UTC.
 |---|---|
 | AV-O-1 | Attestation Bitcoin qui ne concorde pas, à côté d'une attestation qui concorde. |
 | AV-O-2 | Attestation en attente, inconnue, ou hors profil, non exploitée. |
-| AV-O-3 | O-5 exécutée sur le réseau `regtest` : un réseau d'essai, sans valeur probante hors des tests (R2-F22 : l'attestation ne porte pas le réseau, c'est l'ancre qui le fixe). |
+| AV-O-3 | O-5 exécutée sur le réseau `regtest` : un réseau d'essai, sans valeur probante hors des tests (R2-F22 : l'attestation ne porte pas le réseau, c'est l'ancre qui le fixe). Complément du 2026-11-19 : rend un contrôle 5 réussi sans valeur de preuve (EX-6.25). |
 
 **EX-10.14** Pour le contrôle 5, le rapport porte au moins : `file_digest`,
 `network`, `checkpoint` (`{height, hash}`), `attestations` (liste
@@ -5391,6 +5602,7 @@ R- réussissent : le binaire Go le fait, l'implémentation de référence rendai
 | AV-R-1 | Aucune inscription de la clé du manifeste : l'émetteur de l'ancre n'est relié à aucune clé d'enregistreur. |
 | AV-R-2 | Ligne de certificat acceptée sous une forme non canonique (EX-11.6). |
 | AV-R-3 | Inscription de la clé du manifeste sous une autre clé de chaîne que l'émetteur de l'ancre, à côté d'une inscription sous l'émetteur (EX-11.19). |
+| AV-R-4 | (complément du 2026-11-19) Contrôle 8 réussi, vérification R-4, avec le registre d'essai : `registry.chain_id` vaut `noortrace-2124-dev` (EX-6.23). Sans valeur probante hors des tests ; rend le contrôle 8 sans valeur de preuve (EX-6.24, EX-6.25). |
 | AV-K-1, AV-K-3 | (révision 0.2) Référence au registre d'un point de contrôle du journal déclarative ; émetteur de l'ancre d'un point non relié à une inscription (11.9). |
 | AV-K-2, AV-K-4 | (révision 0.2) `checkpoint_ts` postérieur au jeton du point ; jeton du point postérieur de plus de 3600 s à `checkpoint_ts` (9.9). |
 
@@ -5706,7 +5918,9 @@ schéma (`ajv-cli` 5, `--spec=draft2020 --strict=true`).
 | N-4 | Clé de chaîne | chain key | échec du contrôle 8 |
 
 N-1 et N-2 ne figurent pas dans `checks` : réussies, elles ne laissent rien à
-rapporter ; en défaut, elles produisent le rapport d'erreur.
+rapporter ; en défaut, elles produisent le rapport d'erreur. Complément du
+2026-11-19 : AV-N-1 (clé d'enregistreur ou de chaîne d'essai) et AV-N-2
+(approbateur d'essai) sont les avertissements de pièce d'essai de 6.10.
 
 **EX-12.2 (N-1, fichier d'ancres)** Le fichier est lisible, au plus 16 Mio
 (EX-4.13), conforme à son schéma, et cohérent : chaque PEM se décode en un
@@ -6167,7 +6381,12 @@ sortie de `go version -m` de go1.27.3 ne porte pas de ligne `-ldflags`
 apparaît donc pas. La préparation (`scripts/publication/preparer-version.mjs`)
 écrit ces fichiers sans signer ni publier : la signature et la publication
 attendent la décision du porteur sur la clé (qui la détient, où vit sa clé
-publique). Une attestation
+publique). Complément du 2026-11-19, décision du porteur (empreintes
+publiées) : le lieu de publication est la page des versions du dépôt,
+https://github.com/noorfinances-eng/NOORTRACE/releases, à laquelle la page
+de vérification renvoie (EX-18.5) ; la décision sur la clé reste ouverte, et
+tant qu'elle n'est pas prise, aucune version n'y porte de `SHA256SUMS` signé.
+Une attestation
 de provenance (`actions/attest`), vérifiable hors ligne par `gh attestation
 verify --bundle … --custom-trusted-root …` (R4 F4.06 à F4.08), et une
 publication GitHub immuable (étiquette et fichiers verrouillés, attestation
@@ -6698,8 +6917,9 @@ changements de statut sont dits en place. Sections touchées : en-tête, 4.2
   lui-même se dit « Cohérent », l'identité de qui a signé restant non prouvée,
   n'est pas compté parmi les réussis et dit ce qui reste à établir ; un
   contrôle exigé que le rapport dit sans valeur de preuve n'est pas dit
-  satisfait, le vérificateur rendant pourtant 0 (7.5 ; point 15) ; un même
-  identifiant d'avertissement se dit une fois, ses textes exacts restant tous
+  satisfait, le vérificateur rendant pourtant 0 (7.5 ; point 15) (point que le
+  complément du 2026-11-19 remplace : ce contrôle rend désormais le code 3) ;
+  un même identifiant d'avertissement se dit une fois, ses textes exacts restant tous
   affichés (point 16) ; « En résumé » recopie dans des gabarits fixes le
   numéro d'ordre de l'action, le nom de l'outil appelé, la période, les
   signatures de l'approbation et l'instant « au plus tard » de l'autorité,
@@ -6717,6 +6937,29 @@ changements de statut sont dits en place. Sections touchées : en-tête, 4.2
   liste des fichiers de la page (18.3), ses en-têtes, sa politique de sécurité
   de contenu et l'identité d'EX-18.10 ne changent pas ; les empreintes de
   `index.html`, `page.css` et `page.js` changent avec leur contenu.
+- **Complément du 2026-11-19, décision du porteur (pièces d'essai et
+  empreintes publiées)** : jusque-là, seul `regtest` était signalé
+  (AV-O-3), et `--exiger 5` était satisfait sur `regtest` (ancien 7.5).
+  Section 6.10, nouvelle : une pièce d'essai est désignée par une valeur
+  exacte des données que le texte fixe, jamais par un nom (EX-6.23 :
+  certificat de l'autorité retenue, identifiant de chaîne du réseau de
+  développement, clés de `rec-test-01` à `rec-test-03`, leurs clés de chaîne,
+  comptes Hardhat par défaut) ; elle lève AV-T-5, AV-R-4, AV-N-1 ou AV-N-2
+  (EX-6.24), sur le modèle d'AV-O-3 ; un contrôle exigé dont ce qu'il établit
+  repose sur une pièce d'essai n'est pas satisfait et rend le code 3
+  (EX-6.25, EX-6.7, 7.5, 8.3, ligne `Résultat` d'EX-8.6). Sans signe sûr, et
+  donc non signalés : le fichier d'ancres lui-même, et les pièces d'essai
+  créées hors des vecteurs publiés ; un membre `purpose` est proposé pour une
+  version suivante du format d'ancres. L'énoncé, les schémas et les codes ne
+  changent pas ; les `attendu.json` de `ct-6/` reçoivent les avertissements
+  nouveaux, comme le rapport lisible
+  `acceptation-attestation/rapport.txt` de `ct-7/` ; aucun code de retour
+  attendu ne change. La page de vérification
+  ne garde plus le cas « Valide, mais ce que vous avez exigé n'est pas
+  prouvé » (EX-18.9, points 6, 14, 15), dit les pièces d'essai « Sans valeur
+  de preuve » et donne l'adresse des empreintes publiées, la page des
+  versions du dépôt (EX-14.9, EX-18.5), par un lien qu'elle n'ouvre pas
+  elle-même.
 
 | Emplacement | Avant | Attendu par la révision 0.9 | État |
 |---|---|---|---|
@@ -6752,6 +6995,16 @@ Alignement du complément du 2026-11-18 avec le dépôt :
 | `paquets/verification-web` (page) | verdict, code et son sens, contrôles et avertissements dans les mots du vérificateur ; mise en garde d'EX-18.2 seule, toujours en tête | phrase courante par code de retour et par avertissement au-dessus du texte exact, énoncé entier en membres de phrase, « Ce que ce résultat ne dit pas », « Et maintenant ? », noms courants des pièces complémentaires, étapes réduites après un rapport, mise en garde sous le résultat ; mention qui restreint le verdict, à la taille du mot, « Réussi, avec réserve » ou « Sans valeur de preuve », clés et approbateurs du dossier dits « Cohérent », identité non prouvée, contrôle exigé sans valeur de preuve non dit satisfait, réserves regroupées et dites avec leur conséquence, « En résumé » tiré du rapport ; code et son sens en tête de « Pour les spécialistes » ; phrase d'un contrôle non fait d'après les pièces ajoutées à l'étape 2 ; après un refus, « Vérifier » inactif (EX-18.2, EX-18.5, EX-18.7, EX-18.9, points 6 à 19) | fait (`test/verification-page-presentation.test.js` : les tables de la page sont, mot pour mot et dans les deux langues, celles d'EX-18.9 ; les essais existants de la page restent verts) |
 | `verificateur/` (binaire Go), `scripts/lib/verificateur.mjs` (référence) | — | aucun changement : la page n'ajoute rien au rapport, n'en retire rien et ne calcule aucun statut | sans objet |
 | `spec/vecteurs/ct-6/` | — | aucun vecteur ne change | sans objet |
+
+Alignement du complément du 2026-11-19 avec le dépôt :
+
+| Emplacement | Avant | Attendu par le complément | État |
+|---|---|---|---|
+| `scripts/lib/verificateur.mjs` (référence ; `horodatage.mjs` et `registre.mjs` inchangés, la liste des bibliothèques jointes au paquet du réviseur aussi) | AV-O-3 seul ; `--exiger` satisfait par un contrôle réussi | EX-6.23 à EX-6.25, EX-6.7, EX-8.6 | fait |
+| `verificateur/` (binaire Go) | idem ; familles d'avertissements K avant T à vérification égale | idem ; ordre d'EX-6.15 | fait ; référence et binaire confrontés sur les dossiers de `ct-6`, avec et sans `--exiger` |
+| `spec/vecteurs/ct-6/` | `attendu.json` sans les avertissements de pièce d'essai | avertissements posés par construction par le générateur ; aucun dossier, aucune ancre, aucun code attendu ne change | fait (deux générations identiques) |
+| `spec/vecteurs/ct-7/acceptation-attestation/rapport.txt` | rapport lisible d'un dossier de CT-1 sans avertissement | une ligne `AV-N-1` (clé d'essai `rec-test-02`), par `generer-ct7.mjs` | fait (deux générations identiques ; aucun autre fichier de `ct-7` ne change) |
+| `paquets/verification-web` (page) | « Valide, mais ce que vous avez exigé n'est pas prouvé » sous le code 0 ; seul AV-O-3 dit sans valeur de preuve ; adresse des empreintes non donnée | cas retiré, le code 3 le dit ; AV-T-5, AV-R-4, AV-N-1, AV-N-2 dits sans valeur de preuve ; adresse de la page des versions (EX-18.5, EX-18.9) | fait |
 
 ## 17. Ce que cette version ne couvre pas
 
@@ -6878,17 +7131,19 @@ phrase qui la précède est : « Le contrôle est fait par un programme, le
 vérificateur, que cette page fait fonctionner dans votre navigateur : vous
 faites donc confiance au site qui vous fournit la page. Un spécialiste peut
 s'en passer : il compare la page aux empreintes que le projet NOORTRACE publie
-avec chaque version, dans un fichier signé (voir « Pour les spécialistes :
-empreinte du vérificateur », ci-dessous), ou refait la vérification avec le
-programme autonome. » (« The check is made by a program, the verifier, which
-this page runs in your browser: you are therefore trusting the site that gives
-you the page. A specialist can do without it, by comparing the page with the
+avec chaque version, dans un fichier signé, sur la page des versions de son
+dépôt (l'adresse est dans « Pour les spécialistes : empreinte du
+vérificateur », ci-dessous), ou refait la vérification avec le programme
+autonome. » (« The check is made by a program, the verifier, which this page
+runs in your browser: you are therefore trusting the site that gives you the
+page. A specialist can do without it, by comparing the page with the
 fingerprints that the NOORTRACE project publishes with each version, in a
-signed file (see “For specialists: fingerprint of the verifier”, below), or by
-running the same verification with the standalone program. »). Sous le titre
-de la page, la garantie est dite seule : « La vérification se fait sur votre
-ordinateur. Aucun fichier ne quitte votre poste. » (« The verification runs on
-your computer. No file leaves your computer. »). Un bloc replié « Comment ça
+signed file, on the releases page of its repository (the address is in “For
+specialists: fingerprint of the verifier”, below), or by running the same
+verification with the standalone program. »). Sous le titre de la page, la
+garantie est dite seule : « La vérification se fait sur votre ordinateur.
+Aucun fichier ne quitte votre poste. » (« The verification runs on your
+computer. No file leaves your computer. »). Un bloc replié « Comment ça
 marche » (« How it works ») de cinq lignes dit ce qu'est un dossier de preuve,
 ce que la page contrôle, ce que veut dire le résultat et quoi faire ensuite ;
 il ne porte aucune affirmation sur un dossier. Place : à l'ouverture de la
@@ -6999,14 +7254,24 @@ langage courant qui dit ce qui s'est passé et quoi faire, et sous
 l'introduction « Message exact : » (« Exact message: »). Cinquième lecture,
 même date : le bloc replié de l'empreinte dit d'abord qui publie les
 empreintes et dans quel fichier (EX-18.4, EX-14.9) : « Le projet NOORTRACE
-publie avec chaque version un fichier signé, SHA256SUMS, qui donne l'empreinte
-de chaque fichier de cette page et du vérificateur. Comparez l'empreinte
-ci-dessous à la ligne noortrace-verifier.wasm de ce fichier. » (« With each
-version, the NOORTRACE project publishes a signed file, SHA256SUMS, which
-gives the fingerprint of each file of this page and of the verifier. Compare
-the fingerprint below with the noortrace-verifier.wasm line of this file. ») ;
-la mise en garde d'EX-18.2 y renvoie. Ce texte ne fixe pas l'adresse de cette
-publication (EX-14.9) : la page ne la donne pas. Tenu par la page.
+publie avec chaque version, sur la page des versions de son dépôt (adresse
+ci-dessous), un fichier signé, SHA256SUMS, qui donne l'empreinte de chaque
+fichier de cette page et du vérificateur. Comparez l'empreinte ci-dessous à la
+ligne noortrace-verifier.wasm de ce fichier. » (« With each version, the
+NOORTRACE project publishes, on the releases page of its repository (address
+below), a signed file, SHA256SUMS, which gives the fingerprint of each file of
+this page and of the verifier. Compare the fingerprint below with the
+noortrace-verifier.wasm line of this file. ») ; la mise en garde d'EX-18.2 y
+renvoie. Complément du 2026-11-19, décision du porteur (empreintes publiées) :
+l'adresse de cette publication est la page des versions du dépôt du projet,
+https://github.com/noorfinances-eng/NOORTRACE/releases, où chaque version
+porte le `SHA256SUMS` signé d'EX-14.9. La mise en garde courante dit où (la
+page des versions du dépôt) et renvoie au bloc de l'empreinte, qui donne
+l'adresse, en clair et sous « Page des versions du projet NOORTRACE, où se
+trouve le fichier SHA256SUMS : » (« Releases page of the NOORTRACE project,
+where the SHA256SUMS file is found: »), comme un lien que la personne ouvre
+elle-même : la page n'ouvre aucune connexion vers cette adresse et ne charge
+rien d'elle (EX-18.6). Tenu par la page.
 
 ### 18.3 Fichiers de la page
 
@@ -7257,10 +7522,10 @@ donne le sens des codes de la table de 8.3 en ces termes :
 
 | Code | Sens affiché par la page anglaise |
 |---|---|
-| 0 | valid. No failed check; every check not run has an admitted reason; every control required by --exiger passed. Statement about the dossier: the statement. |
+| 0 | valid. No failed check; every check not run has an admitted reason; every control required by --exiger passed, without resting on a test piece. Statement about the dossier: the statement. |
 | 1 | invalid. At least one check failed, or was not run without an admitted reason. Statement about the dossier: this dossier does not prove the event. |
 | 2 | no verdict. Unusable input: incorrect usage, unreadable dossier, schemas, anchors file or separate input, size limit exceeded, internal error of the verifier. Statement about the dossier: none. |
-| 3 | incomplete. As 0, but a control required by --exiger did not pass. Statement about the dossier: the statement, which proves less than required. |
+| 3 | incomplete. As 0, but a control required by --exiger did not pass, or rests on a test piece. Statement about the dossier: the statement, which proves less than required. |
 
 Complément du 2026-11-17, décision du porteur (présentation des écrans). La
 page met en avant ce que le rapport dit, sans rien y ajouter ni en retirer :
@@ -7331,37 +7596,29 @@ ils le disent, ils en remplacent les mots.
 
 6. **Phrase du verdict.** Sous le mot du verdict (point 1), la page écrit une
    phrase en langage courant fixée par code de retour, table ci-dessous. Elle
-   ne se tire que du code de retour, sauf le cas du point 15 qui la restreint,
-   et un code hors de la table n'en reçoit aucune. Elle dit ce que le code
-   veut dire (table de 8.3) et rien de plus : « valide » n'y devient ni
-   « authentique » ni « huit contrôles réussis » (6.4, 7.1, EX-7.1). Le code
-   et son sens restent affichés en entier, jamais repliés, en plus petit,
-   introduits par « Formule exacte du vérificateur : » (« Exact wording of the
-   verifier: ») : en tête de la rubrique des spécialistes (point 12), et non
-   dans le cadre du verdict, qui n'est écrit qu'en langage courant ; aucune
-   exigence de cette section ne les y plaçait (points 1 et 4). Risque admis :
-   qui ne descend pas jusque-là ne lit pas la formule ; il lit le mot, la
-   phrase qui dit ce que le code veut dire, et l'énoncé.
+   ne se tire que du code de retour, et un code hors de la table n'en reçoit
+   aucune. Elle dit ce que le code veut dire (table de 8.3) et rien de plus :
+   « valide » n'y devient ni « authentique » ni « huit contrôles réussis »
+   (6.4, 7.1, EX-7.1). Le code et son sens restent affichés en entier, jamais
+   repliés, en plus petit, introduits par « Formule exacte du vérificateur : »
+   (« Exact wording of the verifier: ») : en tête de la rubrique des
+   spécialistes (point 12), et non dans le cadre du verdict, qui n'est écrit
+   qu'en langage courant ; aucune exigence de cette section ne les y plaçait
+   (points 1 et 4). Risque admis : qui ne descend pas jusque-là ne lit pas la
+   formule ; il lit le mot, la phrase qui dit ce que le code veut dire, et
+   l'énoncé.
 
 | Code de retour | Phrase de la page française | Phrase de la page anglaise |
 |---|---|---|
-| 0 | Ce dossier a passé la vérification : rien n'a échoué. Ce qui n'a pas pu être vérifié a une raison admise, indiquée ci-dessous, et tout contrôle que vous avez exigé a réussi. Ce que le dossier prouve est écrit plus bas, mot pour mot. | This dossier passed the verification: nothing failed. What could not be checked has an admitted reason, given below, and every control you required passed. What the dossier proves is written further down, word for word. |
+| 0 | Ce dossier a passé la vérification : rien n'a échoué. Ce qui n'a pas pu être vérifié a une raison admise, indiquée ci-dessous. Si vous avez exigé des contrôles, chacun a réussi sans reposer sur une pièce d'essai. Ce que le dossier prouve est écrit plus bas, mot pour mot. | This dossier passed the verification: nothing failed. What could not be checked has an admitted reason, given below. If you required controls, each one passed without resting on a test piece. What the dossier proves is written further down, word for word. |
 | 1 | Ce dossier ne prouve pas l'action qu'il présente : au moins une vérification a échoué, ou n'a pas pu être faite sans raison admise. Le détail ci-dessous dit laquelle. | This dossier does not prove the action it presents: at least one check failed, or could not be done without an admitted reason. The detail below says which one. |
 | 2 | Le vérificateur n'a pas pu examiner ce dossier : une pièce fournie est illisible ou trop volumineuse, ou le vérificateur a rencontré une erreur. Il ne dit rien de ce dossier, ni pour ni contre. Le message ci-dessous donne la cause. | The verifier could not examine this dossier: a document you supplied is unreadable or too large, or the verifier met an error. It says nothing about this dossier, neither for nor against. The message below gives the cause. |
-| 3 | Rien n'a échoué, mais un contrôle que vous avez exigé n'a pas réussi : ce dossier prouve moins que ce que vous demandiez. Ce qu'il prouve est écrit plus bas, mot pour mot. | Nothing failed, but a control you required did not pass: this dossier proves less than you asked for. What it proves is written further down, word for word. |
+| 3 | Rien n'a échoué, mais un contrôle que vous avez exigé n'a pas réussi, ou repose sur une pièce d'essai : ce dossier prouve moins que ce que vous demandiez. Ce qu'il prouve est écrit plus bas, mot pour mot. | Nothing failed, but a control you required did not pass, or rests on a test piece: this dossier proves less than you asked for. What it proves is written further down, word for word. |
 
-   Sous le code 0, quand un contrôle exigé est sans valeur de preuve (point
-   15), la phrase du code 0, qui dirait l'exigence remplie, est remplacée par
-   « Rien n'a échoué, et le vérificateur compte comme réussi chaque contrôle
-   que vous avez exigé. Mais l'un d'eux est sans valeur de preuve : ce que
-   vous avez exigé n'est donc pas prouvé. Ce que le dossier prouve est écrit
-   plus bas, mot pour mot. » (« Nothing failed, and the verifier counts every
-   control you required as passed. But one of them has no evidential value:
-   what you required is therefore not proven. What the dossier proves is
-   written further down, word for word. »). Le vérificateur rend 0 dans ce cas
-   (7.5 : « `--exiger 5` est satisfait par un contrôle 5 réussi sur le réseau
-   que déclare votre fichier d'ancres, `regtest` compris ») : la page ne fait
-   que restreindre ce qu'elle en dit.
+   Complément du 2026-11-19, décision du porteur (pièces d'essai) : un
+   contrôle exigé sans valeur de preuve rend le code 3 (EX-6.25) ; la phrase
+   restreinte du code 0 que la cinquième lecture réservait à ce cas est
+   retirée, et la phrase du code 3 le dit.
 
    « vérification non faite » et « aucun rapport » (EX-18.7) gardent leurs
    mots ; chacun est suivi de sa phrase :
@@ -7396,12 +7653,16 @@ ils le disent, ils en remplacent les mots.
 | AV-T-2 | Le nom de l'autorité inscrit dans la preuve de date a une forme que le vérificateur ne compare pas. Conséquence : ce dossier ne prouve pas que ce nom est celui de l'autorité qui a signé la preuve de date. | The name of the authority written in the proof of date has a form the verifier does not compare. Consequence: this dossier does not prove that this name is that of the authority that signed the proof of date. |
 | AV-T-3 | Une liste de révocation (la liste des certificats que leur émetteur a retirés) n'était pas utilisable : le vérificateur l'a écartée. Conséquence : rien, dans ce résultat, ne repose sur cette liste. | A revocation list (the list of certificates withdrawn by their issuer) was not usable: the verifier set it aside. Consequence: nothing in this result rests on this list. |
 | AV-T-4 | L'heure que l'enregistreur a notée pour l'action est postérieure à l'heure attestée par l'autorité d'horodatage : l'horloge de l'enregistreur avançait, ou l'heure notée est fausse. Un écart d'horloge de quelques secondes suffit à déclencher cette réserve. Conséquence : l'heure notée par l'enregistreur ne prouve pas l'heure de l'action. | The time the recorder noted for the action is later than the time attested by the time-stamping authority: the recorder's clock was ahead, or the noted time is false. A clock gap of a few seconds is enough to trigger this reservation. Consequence: the time noted by the recorder does not prove the time of the action. |
+| AV-T-5 | L'autorité d'horodatage employée est une autorité d'essai : son certificat est l'un des certificats d'essai que le projet NOORTRACE publie. Conséquence : en dehors d'un test, cette preuve de date ne prouve rien, même quand le contrôle est dit réussi. | The time-stamping authority used is a test authority: its certificate is one of the test certificates published by the NOORTRACE project. Consequence: outside a test, this proof of date proves nothing, even when the control is said to have passed. |
 | AV-O-1 | La preuve de date par la chaîne Bitcoin contient une attestation qui ne concorde pas, à côté d'une autre qui concorde. Conséquence : l'attestation qui ne concorde pas ne prouve rien. | The proof of date from the Bitcoin chain holds an attestation that does not match, next to another one that does. Consequence: the attestation that does not match proves nothing. |
 | AV-O-2 | La preuve de date par la chaîne Bitcoin contient une attestation dont le vérificateur ne s'est pas servi : elle n'est pas encore confirmée, ou sa forme n'est pas prise en charge. Conséquence : cette attestation ne prouve rien. | The proof of date from the Bitcoin chain holds an attestation the verifier did not use: it is not confirmed yet, or its form is not supported. Consequence: this attestation proves nothing. |
 | AV-O-3 | La preuve de date par la chaîne Bitcoin a été contrôlée sur un réseau d'essai. Conséquence : en dehors d'un test, elle ne prouve rien, même quand le contrôle est dit réussi. | The proof of date from the Bitcoin chain was checked on a test network. Consequence: outside a test, it proves nothing, even when the control is said to have passed. |
 | AV-R-1 | Le dossier ne contient pas l'inscription de la clé de l'enregistreur au registre public : rien ne relie à un enregistreur le compte qui a inscrit la preuve de date. Conséquence : ce dossier ne prouve pas que ce compte est celui de l'enregistreur. | The dossier does not hold the registration of the recorder's key in the public registry: nothing links the account that entered the proof of date to a recorder. Consequence: this dossier does not prove that this account is the recorder's. |
 | AV-R-2 | Une ligne de signature d'un validateur du registre public est écrite d'une façon inhabituelle, mais admise. Conséquence : aucune ; cela ne change aucun contrôle. | A signature line of a validator of the public registry is written in an unusual but accepted way. Consequence: none; this changes no control. |
 | AV-R-3 | La clé de l'enregistreur est inscrite au registre public sous deux comptes ; l'un des deux est celui qui a inscrit la preuve de date. Conséquence : le contrôle s'appuie sur l'inscription faite sous ce compte-là ; l'autre n'y entre pas. | The recorder's key is registered in the public registry under two accounts; one of the two is the account that entered the proof of date. Consequence: the control relies on the registration made under that account; the other one plays no part in it. |
+| AV-R-4 | Le registre public employé est le réseau de développement de NOORTRACE, un registre d'essai. Conséquence : en dehors d'un test, l'inscription au registre ne prouve rien, même quand le contrôle est dit réussi. | The public registry used is the NOORTRACE development network, a test registry. Consequence: outside a test, the registry entry proves nothing, even when the control is said to have passed. |
+| AV-N-1 | Une clé de l'enregistreur employée par ce dossier est une clé d'essai, dont la clé secrète est publiée. Conséquence : n'importe qui peut signer avec elle ; en dehors d'un test, ce qu'elle signe ne prouve rien, même quand le contrôle est dit réussi. | A recorder key used by this dossier is a test key, whose secret key is published. Consequence: anyone can sign with it; outside a test, what it signs proves nothing, even when the control is said to have passed. |
+| AV-N-2 | Un approbateur est un compte d'essai, dont la clé secrète est publique. Conséquence : n'importe qui peut produire sa signature ; en dehors d'un test, elle ne prouve rien. | An approver is a test account, whose secret key is public. Consequence: anyone can produce its signature; outside a test, it proves nothing. |
 | AV-K-1 | Le dossier déclare que la preuve de date d'un relevé intermédiaire du journal est inscrite au registre public, sans le prouver. Conséquence : ce dossier ne prouve pas cette inscription, et le texte exact du vérificateur ne la compte pas parmi ses preuves. | The dossier declares that the proof of date of an intermediate statement of the log is entered in the public registry, without proving it. Consequence: this dossier does not prove this entry, and the exact text of the verifier does not count it among its proofs. |
 | AV-K-2 | L'heure que l'enregistreur a notée sur le relevé intermédiaire du journal est postérieure à l'heure attestée par l'autorité d'horodatage : l'horloge de l'enregistreur avançait, ou l'heure notée est fausse. Conséquence : seule sa preuve de date, et non l'heure notée, date ce relevé. | The time the recorder noted on the intermediate statement of the log is later than the time attested by the time-stamping authority: the recorder's clock was ahead, or the noted time is false. Consequence: only its proof of date, not the noted time, dates this statement. |
 | AV-K-3 | Rien, dans le dossier, ne relie à un enregistreur le compte qui a inscrit au registre public la preuve de date du relevé intermédiaire du journal. Conséquence : ce dossier ne prouve pas que ce compte est celui de l'enregistreur. | Nothing in the dossier links to a recorder the account that entered in the public registry the proof of date of the intermediate statement of the log. Consequence: this dossier does not prove that this account is the recorder's. |
@@ -7568,7 +7829,6 @@ quand le rapport ne se lit pas, la page se tait.
 | un contrôle non réussi, aucun avertissement | , mais tout n'est pas prouvé | , but not everything is proven |
 | huit contrôles réussis, un avertissement | , avec des réserves | , with reservations |
 | un contrôle non réussi, sans valeur de preuve ou réussi avec ce que le dossier déclare, et un avertissement | , mais tout n'est pas prouvé, et avec des réserves | , but not everything is proven, and with reservations |
-| un contrôle exigé sans valeur de preuve (point 15) | , mais ce que vous avez exigé n'est pas prouvé, et avec des réserves | , but what you required is not proven, and with reservations |
 
     Juste sous le titre, en gras et avant toute autre phrase, quand un
     contrôle au moins n'est pas `reussi`, est sans valeur de preuve ou est
@@ -7631,37 +7891,43 @@ quand le rapport ne se lit pas, la page se tait.
     non prouvé au point 14, et sa ligne du point 17 devient « {controle} :
     sans valeur de preuve ({raisons}). Voir les réserves, plus haut. »
     (« {controle}: without evidential value ({raisons}). See the reservations
-    above. »). Seul AV-O-3 y figure : son texte (10.7) dit la preuve « sans
-    valeur probante hors des tests ». Les seize autres ne retirent au contrôle
-    qu'une partie de ce qu'il établit, ou rien : AV-K-1 et AV-K-3 ne visent
-    que le relevé intermédiaire du journal, la clôture de la période restant
-    prouvée par le contrôle 8 ; AV-R-1 et AV-R-3 laissent l'inscription
-    prouvée ; AV-O-1 et AV-O-2 laissent une attestation qui concorde ; dans le
-    doute, la ligne reste « Réussi, avec réserve ». Cinquième lecture, même
-    date. **Contrôle exigé sans valeur de preuve** : quand un contrôle de
-    `inputs.required_controls` est sans valeur de preuve, le vérificateur le
-    compte comme réussi et rend 0 (7.5 : « `--exiger 5` est satisfait par un
-    contrôle 5 réussi sur le réseau que déclare votre fichier d'ancres,
-    `regtest` compris »), et la formule exacte dit « tout contrôle exigé par
-    --exiger a réussi ». C'est une limite du vérificateur ; la page ne fait
-    que restreindre : sous le code 0, la mention du point 14 et la phrase du
-    point 6 disent que ce qui est exigé n'est pas prouvé ; sous les codes 0 et
-    3, « Contrôles que vous avez exigés et qui sont sans valeur de preuve : n°
-    {liste} ({raisons}). Le vérificateur les compte comme réussis, mais ils ne
-    prouvent pas ce que vous demandiez. » (« Controls you required that are
-    without evidential value: no. {liste} ({raisons}). The verifier counts
-    them as passed, but they do not prove what you asked for. ») s'ajoute sous
-    le verdict ; sous le code 0, la troisième ligne de « Et maintenant ? »
-    (point 11) devient « Ne tenez pas pour prouvé ce que le contrôle exigé
-    devait prouver : une réserve le dit sans valeur de preuve. Demandez des
-    explications à l'organisation qui vous a remis le dossier. » (« Do not
-    treat as proven what the required control was meant to prove: a
-    reservation says it has no evidential value. Ask the organisation that
-    gave you the dossier for an explanation. »).
+    above. »). Y figurent AV-O-3 (10.7) et, depuis le complément du
+    2026-11-19, AV-T-5, AV-R-4, AV-N-1 et AV-N-2 (6.10) : leur texte dit la
+    pièce « sans valeur probante hors des tests ». La page applique EX-6.25
+    à la lettre, par couple (avertissement, vérification) : le contrôle 4
+    par AV-T-5 de T-7, le 5 par AV-O-3 de O-5, le 6 par AV-N-1 de E-8 ou P-5,
+    le 8 par AV-R-4 de R-4 ou AV-N-1 de N-4, le 7 par un AV-N-2 quand les
+    adresses de `facts.approval.approvers` hors de la liste d'EX-6.23 sont
+    moins nombreuses que `facts.approval.required` (sous les codes 0 et 3,
+    EX-6.13 ; sans ces faits, jamais). Levés par K-3, K-7 ou K-9, ou rattachés
+    à un autre contrôle par leur vérification (AV-N-1 de P-5 sert aussi le
+    contrôle 3), ils n'y sont qu'une réserve : la page ne dit rien de plus.
+    Les seize autres ne retirent au contrôle qu'une partie de ce qu'il
+    établit, ou rien : AV-K-1 et AV-K-3 ne visent que le relevé intermédiaire
+    du journal, la clôture de la période restant prouvée par le contrôle 8 ;
+    AV-R-1 et AV-R-3 laissent l'inscription prouvée ; AV-O-1 et AV-O-2
+    laissent une attestation qui concorde ; dans le doute, la ligne reste
+    « Réussi, avec réserve ». Cinquième lecture, même date. **Contrôle exigé
+    sans valeur de preuve** : complément du 2026-11-19, décision du porteur
+    (pièces d'essai) : un contrôle de `inputs.required_controls` sans valeur
+    de preuve rend désormais le code 3 (EX-6.25, 7.5), dont le mot est
+    « Incomplet » ; sous ce code, « Contrôles que vous avez exigés et qui
+    reposent sur une pièce d'essai : n° {liste} ({raisons}). Ils sont sans
+    valeur de preuve : c'est pourquoi le résultat est « Incomplet ». »
+    (« Controls you required that rest on a test piece: no. {liste}
+    ({raisons}). They have no evidential value: that is why the result is
+    “Incomplete”. ») s'ajoute sous le verdict. La mention du point 14, la
+    phrase du point 6 et la troisième ligne de « Et maintenant ? » que la
+    cinquième lecture réservait à ce cas sous le code 0 sont retirées : le
+    verdict ne le dit plus satisfait.
 
 | Avertissement | Raison courte, page française | Raison courte, page anglaise |
 |---|---|---|
 | AV-O-3 | réseau d'essai | test network |
+| AV-T-5 | autorité d'horodatage d'essai | test time-stamping authority |
+| AV-R-4 | registre d'essai | test registry |
+| AV-N-1 | clé d'essai | test key |
+| AV-N-2 | approbateur d'essai | test approver |
 
     **Clés du dossier** : sous les codes 0 et 3 (EX-6.13), quand
     `facts.recorder_keys` donne la provenance `dossier` (EX-6.8) à toutes les
@@ -8225,8 +8491,8 @@ de décision, construits à part (dernières lignes de la table) :
 
 | Dossier | Changement | `failed_checks` | Remarque |
 |---|---|---|---|
-| `valide-seq-7-complet/` | — | aucun | ancres `ancres-test.json`, en-têtes `chaine.json` ; les huit contrôles réussissent ; T-11 `non_execute` (`ancre_absente`), l'énoncé ne dit pas « qualifié » ; avertissements : `AV-O-3` |
-| `valide-seq-7-complet-sans-ancres/` | aucun ; vérifié sans ancres, avec `chaine.json` | aucun | contrôles 4, 5, 8 `non_execute` (`ancre_absente`) ; N-3 et N-4 absentes du rapport (EX-5.6) ; aucun avertissement |
+| `valide-seq-7-complet/` | — | aucun | ancres `ancres-test.json`, en-têtes `chaine.json` ; les huit contrôles réussissent ; T-11 `non_execute` (`ancre_absente`), l'énoncé ne dit pas « qualifié » ; avertissements : `AV-O-3` (complément du 2026-11-19 : et ceux de pièce d'essai, 8.6) |
+| `valide-seq-7-complet-sans-ancres/` | aucun ; vérifié sans ancres, avec `chaine.json` | aucun | contrôles 4, 5, 8 `non_execute` (`ancre_absente`) ; N-3 et N-4 absentes du rapport (EX-5.6) ; pas d'`AV-O-3` (complément du 2026-11-19 : `AV-N-1` et `AV-N-2`, clés et approbateurs d'essai) |
 | `valide-seq-7-complet-sans-entetes/` | aucun ; vérifié avec `ancres-test.json`, sans fichier d'en-têtes | aucun | contrôle 5 `non_execute` (`partie_absente`, EX-4.5) |
 | `valide-t11-qualification-declaree/` | ancres `ancres-qualification-declaree.json` | aucun | T-11 réussie ; l'énoncé dit « horodatage qualifié eIDAS selon le réviseur (déclaration de test, sans valeur) » |
 | `invalide-t1-octet-en-trop/` | jeton `t1-octet-en-trop.der` | T-1 | |
@@ -8278,7 +8544,14 @@ de décision, construits à part (dernières lignes de la table) :
 
 Sauf mention, l'ancre est `ancres-test.json` et les en-têtes `chaine.json` ;
 tout dossier où O-5 est exécutée porte `AV-O-3` (réseau `regtest`), dans
-l'ordre de EX-6.15. Les vérifications qui dépendent d'une
+l'ordre de EX-6.15. Complément du 2026-11-19 : tout dossier porte en outre,
+sans que la table le répète, les avertissements de pièce d'essai d'EX-6.24
+que ses entrées appellent : `AV-T-5` quand le contrôle 4 ou K-7 réussit
+(toutes les autorités des fichiers d'ancres des vecteurs sont des certificats
+d'essai), `AV-R-4` quand le contrôle 8 réussit (`noortrace-2124-dev`),
+`AV-N-1` pour les clés de CT-1 §13 et la clé de chaîne de N-4, `AV-N-2` pour
+les comptes Hardhat ; l'`attendu.json` de chaque dossier les liste, et le
+générateur les pose par construction d'après ses entrées. Les vérifications qui dépendent d'une
 vérification en échec sont listées dans `not_executed` avec la raison
 `prerequis_en_echec`. Les dossiers de CT-1 (`spec/vecteurs/ct-1/dossiers/`,
 quarante en version 0.1 de cette spécification, quatre-vingt-dix-sept depuis

@@ -7,6 +7,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { MOTIF_SLUG } from "../../commun/champs.mjs";
 import { dernierPaquet } from "../../commun/paquet.mjs";
+import { etatNotes, FICHIER_NOTES } from "../../commun/notes.mjs";
 import { configuration } from "./serveur.mjs";
 
 const lireJson = (chemin) => {
@@ -125,4 +126,33 @@ export function etatPaquet(slug) {
   const repertoire = dernierPaquet(dir, slug);
   const dernier = travaux({ slug }).find((t) => t.commande === "paquet") ?? null;
   return { present: repertoire !== null, repertoire, dernier: dernier ? { id: dernier.id, etat: dernier.etat, sortie: dernier.sortie ?? null } : null };
+}
+
+/** Lignes du registre des notes internes (`notes-internes.ndjson`), dans l'ordre ; une ligne illisible est ignorée. */
+export function lignesNotes() {
+  let texte = "";
+  try {
+    texte = fs.readFileSync(path.join(racine(), FICHIER_NOTES), "utf8");
+  } catch {
+    return [];
+  }
+  return texte.split("\n").filter(Boolean).map((l) => {
+    try {
+      return JSON.parse(l);
+    } catch {
+      return null;
+    }
+  }).filter(Boolean);
+}
+
+/**
+ * Notes internes d'un client (CT-4 EX-7.23, complément du 2026-11-19) : son nom interne en vigueur, l'historique de
+ * ses noms, et les remises de son paquet avec leurs corrections (`etatNotes` de src/commun/notes.mjs). `lignes` :
+ * celles de `lignesNotes()`, lues une fois pour une liste de clients.
+ */
+export function notes(slug, lignes = null) {
+  const dir = repertoireClient(slug);
+  const d = dir ? lireJson(path.join(dir, "dossier.json")) : null;
+  if (!d) return etatNotes([], null);
+  return etatNotes(lignes ?? lignesNotes(), d.organisation.org_id);
 }

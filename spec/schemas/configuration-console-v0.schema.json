@@ -236,6 +236,20 @@
           }
         }
       ]
+    },
+    "titles": {
+      "description": "Complément du 2026-11-19, décision du porteur (CT-3 EX-9.4, 10.3) : phrases modèles du titre d'un ticket, chacune sous le nom d'une règle de la politique ; chaque champ est le pointeur d'une feuille des arguments entre accolades, sans autre accolade. Au plus 256 phrases : borne contrôlée par le serveur de console, qui refuse au-delà la configuration au pointeur /titles (code schema), et par la page, hors des mots-clés de ce schéma. Transmis à la page par la méthode session (EX-13.48) ; ne change ni le modèle d'affichage ni une décision (EX-10.11). Absent : aucun titre.",
+      "type": "object",
+      "propertyNames": {
+        "minLength": 1,
+        "maxLength": 256
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512,
+        "pattern": "^([^{}]|\\{/([^{}~]|~[01])*\\})*$"
+      }
     }
   },
   "$defs": {

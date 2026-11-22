@@ -70,7 +70,12 @@
       "reason": "ancre_absente"
     }
   ],
-  "warnings": [],
+  "warnings": [
+    "AV-N-1",
+    "AV-N-2",
+    "AV-N-2",
+    "AV-N-1"
+  ],
   "anchors": null,
   "bitcoin_headers": "../../ots/entetes/chaine-points.json",
   "exit_code": 0,
@@ -82,5 +87,5 @@
     "fr": "verdict borné : contrôle 4 non exécuté (ancre_absente), contrôle 5 non exécuté (ancre_absente), contrôle 8 non exécuté (ancre_absente)",
     "en": "bounded verdict: control 4 not run (ancre_absente), control 5 not run (ancre_absente), control 8 not run (ancre_absente)"
   },
-  "description": "Comme valide-point-de-controle-complet, vérifié sans fichier d'ancres (avec chaine-points.json) : K-7, K-8 et K-9 non exécutées (ancre_absente) comme les contrôles 4, 5 et 8 ; pas de FK ; les K- ne changent aucun statut (EX-5.8) ; aucun avertissement (O-5 non exécutée)."
+  "description": "Comme valide-point-de-controle-complet, vérifié sans fichier d'ancres (avec chaine-points.json) : K-7, K-8 et K-9 non exécutées (ancre_absente) comme les contrôles 4, 5 et 8 ; pas de FK ; les K- ne changent aucun statut (EX-5.8) ; pas d'AV-O-3 (O-5 non exécutée) ; complément du 2026-11-19 : AV-N-1 (clés d'essai rec-test-01 et rec-test-02) et AV-N-2 (deux approbateurs d'essai), les contrôles 6 et 7 réussissant avec des pièces d'essai (CT-6 EX-6.24)."
 }

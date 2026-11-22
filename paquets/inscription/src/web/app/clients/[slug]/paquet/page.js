@@ -25,11 +25,19 @@
 // registre réel ne permet pas de le reconnaître, EX-6.2), des adresses, des empreintes, des montants de crédits, et
 // le texte libre qu'un client joint à une clôture de période (`uri`, CT-4 5.7) ; rien de ce qu'ils nous ont transmis
 // hors du registre (le paquet ne prend que le dossier de ce client et les captures de ses étapes).
+//
+// Remise du paquet (complément du 2026-11-19, décision du porteur sur le suivi interne des clients ; CT-4 EX-7.23) :
+// sous le téléchargement, « J'ai remis le paquet au client » note la remise du paquet affiché (son empreinte), avec
+// la date, l'heure et la personne connectée ; c'est une déclaration de cette personne, rien de plus. Une remise
+// notée se lit « Paquet remis le … par … » ; elle ne s'efface pas : « Corriger cette note » ajoute une correction,
+// avec son motif, et la remise reste lisible, barrée d'un « corrigée ». Le titre porte le nom interne du client.
 
 import { notFound } from "next/navigation";
-import { client } from "../../../../lib/donnees.mjs";
+import { client, notes } from "../../../../lib/donnees.mjs";
+import { remiseEnVigueur } from "../../../../../commun/notes.mjs";
 import { exigerSession } from "../../../../lib/page.mjs";
-import { avancement, dateLisible, etatTravail, explicationErreur } from "../../../../lib/parcours.mjs";
+import { avancement, dateLisible, etatTravail, explicationErreur, manifesteDuPaquet, nomDuCompte, phraseRemise } from "../../../../lib/parcours.mjs";
+import { RemisePaquet } from "../../../../composants/NoteInterne.js";
 import FormulaireTravail from "../../../../composants/FormulaireTravail.js";
 import Icone from "../../../../composants/Icone.js";
 import Lexique from "../../../../composants/Lexique.js";
@@ -72,6 +80,10 @@ export default async function PagePaquet({ params }) {
   const code = dernier?.motif?.code ?? sortie?.error?.code ?? "";
   const o = sortie?.result === "reussi" ? sortie.outputs ?? {} : {};
   const x = refuse ? explicationErreur(code) : null;
+  const suivi = notes(slug);
+  const nom = suivi.nom?.valeur ?? null;
+  const manifeste = manifesteDuPaquet(c);
+  const remise = remiseEnVigueur(suivi, manifeste);
   // Exemples fictifs au nom du client de la page, sous le domaine réservé « .example ».
   const console_ = `console.${slug}.example`;
   const annuaire = `idp.${slug}.example`;
@@ -100,7 +112,7 @@ export default async function PagePaquet({ params }) {
       <a className="nt-fil" href={`/clients/${slug}`}><Icone nom="retour" />Fiche du client</a>
       <header className="nt-entete">
         <div className="nt-entete-texte">
-          <p className="nt-sur-titre">Client <Valeur>{slug}</Valeur></p>
+          <p className="nt-sur-titre">Client <Valeur>{nom ?? slug}</Valeur>{nom ? <span className="nt-attenue"> · nom court <Valeur>{slug}</Valeur></span> : null}</p>
           <h1>Paquet du client</h1>
           <p className="nt-sous-titre">Le paquet est l'ensemble des fichiers que nous remettons au client à la fin de l'inscription. Avec lui, le client règle son service d'approbation et son enregistreur, et contrôle lui-même que son inscription est exacte. Il ne contient aucun secret.</p>
         </div>
@@ -157,6 +169,15 @@ export default async function PagePaquet({ params }) {
           <CreditsEnClair />
           <TelechargerPaquet slug={slug} />
           <p className="nt-attenue nt-petit">Le fichier téléchargé est une archive « .tar », que le client sait ouvrir. Le paquet est contrôlé de nouveau à chaque téléchargement.</p>
+          <div className="nt-encart ins-remise" data-remise={remise ? "notee" : "a-noter"} aria-labelledby="remise-titre">
+            <h3 className="ins-groupe" id="remise-titre">Remise au client</h3>
+            {remise ? (
+              <p className="ins-essentiel-texte" data-remise-en-vigueur={remise.id}><Icone nom="coche" />{phraseRemise(remise)}</p>
+            ) : (
+              <p className="ins-essentiel-texte">{suivi.remises.some((r) => r.manifest_sha256 === manifeste) ? "La remise notée pour ce paquet a été corrigée : le paquet n'est plus noté comme remis." : "La remise de ce paquet n'est pas encore notée."}</p>
+            )}
+            {manifeste ? <RemisePaquet slug={slug} manifeste={manifeste} enVigueur={remise ? { id: remise.id } : null} /> : null}
+          </div>
         </section>
       ) : (
         <div className="nt-vide">
@@ -184,6 +205,23 @@ export default async function PagePaquet({ params }) {
           {formulaire}
         </section>
       )}
+
+      {suivi.remises.length > 0 ? (
+        <details className="nt-detail ins-replie" data-historique-remises="">
+          <summary>Remises notées<span className="nt-detail-note">{suivi.remises.length} {suivi.remises.length > 1 ? "notes" : "note"}, les plus anciennes d'abord ; aucune ne s'efface</span></summary>
+          <div className="nt-detail-corps">
+          <ul className="ins-liste">
+            {suivi.remises.map((r) => (
+              <li key={r.id} data-remise-notee={r.id} data-corrigee={r.correction ? "oui" : "non"}>
+                <p>{r.correction ? <s>{phraseRemise(r)}</s> : phraseRemise(r)}{r.manifest_sha256 === manifeste ? " C'est le paquet affiché sur cet écran." : " C'était un paquet produit avant celui-ci."}</p>
+                {r.correction ? <p className="nt-attenue nt-petit" data-correction={r.correction.id}>Corrigée le {dateLisible(r.correction.recu_a)} par {nomDuCompte(r.correction.exploitant)} : « <span data-valeur="">{r.correction.motif}</span> ».</p> : null}
+                <p className="nt-attenue nt-petit">Empreinte du paquet remis : <span className="nt-fixe" data-valeur="">{r.manifest_sha256}</span></p>
+              </li>
+            ))}
+          </ul>
+          </div>
+        </details>
+      ) : null}
 
       {dernier ? (
         <details className="nt-detail ins-replie" data-derniere-production="">

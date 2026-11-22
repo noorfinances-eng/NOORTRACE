@@ -272,6 +272,33 @@ function regleDuTicket(version, t) {
 }
 
 /**
+ * Noms des approbateurs qui ont voté (CT-3 EX-12.15, complément du
+ * 2026-11-19, décision du porteur) : pour chaque adresse d'un vote courant,
+ * une fois et dans l'ordre des votes, le nom affiché et le rôle de l'entrée
+ * de l'annuaire qui porte cette adresse, dans tout état ; `null` et `null`
+ * pour une adresse qu'aucune entrée ne porte. Rien d'autre de l'annuaire :
+ * ni identité de session, ni identifiant externe, ni autre adresse.
+ * @param {object} annuaire document `annuaire-approbateurs-v0`
+ * @param {object} t ticket
+ */
+export function nomsDesVotants(annuaire, t) {
+  const vues = new Set();
+  const noms = [];
+  const admins = Array.isArray(annuaire.administrators) ? annuaire.administrators : [];
+  for (const v of t.votes) {
+    if (v.status !== "courant" || vues.has(v.approver)) continue;
+    vues.add(v.approver);
+    const e = annuaire.entries.find((x) => x.addresses.some((a) => a.address === v.approver)) ?? null;
+    noms.push({
+      approver: v.approver,
+      display_name: e === null ? null : e.display_name,
+      role: e === null ? null : admins.includes(e.session_identity) ? "administrateur" : "approbateur",
+    });
+  }
+  return noms;
+}
+
+/**
  * Vue d'un ticket (EX-12.14, EX-12.15), contrôles faits par l'appelant.
  * @param {{machine: object, annuaire: object, ticket: object, bodyMax: number,
  *   journal?: (type: string, detail: object) => void}} p `journal` : un effet omis
@@ -344,6 +371,7 @@ export function vueTicket(p) {
     added_members: membresAjoutes(t),
     eligible: eligiblesPourLecture(machine, t),
     votes: t.votes.filter((v) => v.status === "courant").map((v) => ({ approver: v.approver, decision: v.decision, reason: v.reason, at: v.at })),
+    approver_names: nomsDesVotants(annuaire, t),
     separation: {
       self_approval: t.self_approval,
       requester_declared: sep.identities.some((x) => x.launched_by === lb),

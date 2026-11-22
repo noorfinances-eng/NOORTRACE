@@ -94,7 +94,7 @@
           "question": "Que vérifiez-vous avant de signer ?",
           "elements": [
             {
-              "element": "Les arguments et leur marque, « vérifié » ou « non vérifiable par la console ».",
+              "element": "Les arguments et leur marque, « inchangé » ou « non vérifiable par la console ».",
               "rules": [
                 "EX-9.4",
                 "EX-9.16"

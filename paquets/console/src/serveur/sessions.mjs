@@ -90,6 +90,8 @@ export class Sessions {
       creeeMs: maintenant,
       echeanceMs: maintenant + this.dureeMs,
       administrator: false,
+      // Complément du 2026-11-19 (CT-3 EX-13.48) : nom affiché de l'entrée de la session, ou null.
+      display_name: null,
       reauthEmployee: false,
       inscriptionCouverte: false,
       systeme,

@@ -21,6 +21,7 @@ import path from "node:path";
 import http from "node:http";
 import * as N from "@noortrace/noyau";
 import * as A from "@noortrace/approbation";
+import { nomsDesVotants } from "../paquets/approbation/src/vues.mjs";
 import { Coeur, HorlogeReglable, ClientServiceApprobation, validerConfiguration as validerConfigurationDemon, validerReponseEvaluer, empreintePolitique, condenseApproval } from "@noortrace/enregistreur";
 import {
   ANNUAIRE_REFERENCE, CONSTANTES, DEMANDEUR, RACINE, SESSIONS, VECTEURS_CT3, attendre, lancerService, messageCharger, politiqueParcours,
@@ -170,6 +171,49 @@ describe("service d'approbation : canal de la console (12.9)", function () {
       });
       expect(v.votes).to.deep.equal([{ approver: adresseDe(2), decision: "refuse", reason: "Bénéficiaire inconnu", at: "2026-11-10T11:00:01.000Z" }]);
       expect(valide(A.IDS.consoleApprobation, "vue_ticket", v).valide).to.equal(true);
+    });
+
+    it("complément du 2026-11-19 (CT-3 EX-12.15) : approver_names porte, pour chaque adresse qui a voté, une fois et dans l'ordre des votes, le nom affiché et le rôle de son entrée, et rien d'autre de l'annuaire ; une session ordinaire la reçoit, et son annuaire reste réduit à sa fiche", async function () {
+      expect((await voter(s, F, 1, "approuve")).statut).to.equal(200);
+      const v = (await s.appel("consulter", { ticket: F.ticket, session_identity: SESSIONS[1] })).corps;
+      expect(valide(A.IDS.consoleApprobation, "vue_ticket", v).valide).to.equal(true);
+      const ordre = v.votes.map((x) => x.approver);
+      expect(ordre).to.have.length(2);
+      const ref = JSON.parse(fs.readFileSync(ANNUAIRE_REFERENCE, "utf8"));
+      const attendu = ordre.map((a) => {
+        const e = ref.entries.find((x) => x.addresses.some((y) => y.address === a));
+        return { approver: a, display_name: e.display_name, role: ref.administrators.includes(e.session_identity) ? "administrateur" : "approbateur" };
+      });
+      expect(v.approver_names).to.deep.equal(attendu);
+      expect(v.approver_names.every((x) => typeof x.display_name === "string")).to.equal(true);
+      for (const x of v.approver_names) expect(Object.keys(x).sort()).to.deep.equal(["approver", "display_name", "role"]);
+      // L'annuaire d'une session ordinaire reste réduit à sa propre fiche (EX-12.17).
+      const a = (await s.appel("annuaire", { session_identity: SESSIONS[1] })).corps;
+      expect(a.entries.map((e) => e.session_identity)).to.deep.equal([SESSIONS[1]]);
+      // La même vue pour l'administrateur.
+      expect((await s.appel("consulter", { ticket: F.ticket, session_identity: SESSIONS.admin })).corps.approver_names).to.deep.equal(attendu);
+    });
+
+    it("complément du 2026-11-19 (CT-3 EX-12.15) : nomsDesVotants : une adresse qu'aucune entrée ne porte, display_name et role nuls ; une entrée sans nom, display_name nul ; un administrateur ; une adresse révoquée nommée par son entrée ; un vote remplacé ne compte pas ; une adresse une fois", function () {
+      const doc = {
+        administrators: ["oidc https://idp.example adm"],
+        entries: [
+          { session_identity: "oidc https://idp.example a", display_name: "Luc Rochat", addresses: [{ address: "0x" + "1".repeat(40), state: "revoquee" }] },
+          { session_identity: "oidc https://idp.example adm", display_name: null, addresses: [{ address: "0x" + "2".repeat(40), state: "active" }] },
+        ],
+      };
+      const t = { votes: [
+        { approver: "0x" + "1".repeat(40), status: "courant" },
+        { approver: "0x" + "3".repeat(40), status: "remplace" },
+        { approver: "0x" + "2".repeat(40), status: "courant" },
+        { approver: "0x" + "4".repeat(40), status: "courant" },
+        { approver: "0x" + "1".repeat(40), status: "courant" },
+      ] };
+      expect(nomsDesVotants(doc, t)).to.deep.equal([
+        { approver: "0x" + "1".repeat(40), display_name: "Luc Rochat", role: "approbateur" },
+        { approver: "0x" + "2".repeat(40), display_name: null, role: "administrateur" },
+        { approver: "0x" + "4".repeat(40), display_name: null, role: null },
+      ]);
     });
 
     it("ordre des refus de consulter (EX-12.14) : forme, identité, session hors de l'organisation, ticket inconnu, arguments non visibles, ticket_non_ouvert", async function () {

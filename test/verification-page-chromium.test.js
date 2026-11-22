@@ -397,7 +397,8 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         await choisirOptions(o.page, { ancres: true, entetes: true, exiger: [4, 5, 8], detail: true });
         await choisirRepertoire(o.page, path.join(VECTEURS, "ct-6/dossiers/valide-seq-7-complet"));
         await lancerVerification(o.page);
-        expect(await o.page.textContent("#code")).to.match(/^Code de retour 0 /);
+        // Contrôles 4, 5 et 8 exigés avec les pièces d'essai des vecteurs : code 3 (CT-6 EX-6.25, complément du 2026-11-19).
+        expect(await o.page.textContent("#code")).to.match(/^Code de retour 3 /);
         await o.page.waitForTimeout(2000);
         expect(o.requetesDepuisMarque(), "requêtes après le chargement").to.deep.equal([]);
         expect(o.requetes.every((r) => r.methode === "GET" && r.corps === null)).to.equal(true);

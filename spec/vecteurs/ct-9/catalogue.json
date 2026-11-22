@@ -4929,7 +4929,14 @@
         "CT-6 EX-5.20",
         "CT-6 EX-6.22",
         "CT-6 EX-A.23",
-        "CT-6 EX-A.24"
+        "CT-6 EX-A.24",
+        "CT-6 EX-6.23",
+        "CT-6 EX-6.24",
+        "CT-6 EX-6.25",
+        "CT-6 AV-T-5",
+        "CT-6 AV-R-4",
+        "CT-6 AV-N-1",
+        "CT-6 AV-N-2"
       ],
       "preconditions": [
         "Vecteurs `ct-6/dossiers` présents au commit éprouvé, régénérés sans différence (TV- de génération déterministe de la même famille).",
@@ -4937,7 +4944,8 @@
       ],
       "steps": [
         "Lancer `scripts/verify/dossier.mjs` sur chaque dossier, en français et en anglais, avec et sans `--json` ; comparer deux exécutions ; reconstruire l'énoncé fragment par fragment ; vérifier V-10 sur chaque dossier avec la partie d'attestation ; aucun « prouvé » sur le périmètre.",
-        "Révision 0.4 de CT-6 : les seize dossiers d'EX-A.23 et les deux d'EX-A.24 sont rejoués comme les autres, `--exiger 4` compris (`exit_code_exiger_4`) ; événement prouvé inexploitable (EX-5.14, EX-5.15) : D-1, P-1, T-2, O-2, R-9 et R-10 non exécutées (`prerequis_en_echec`), contrôles 4, 5 et 8 non exécutés, N-4 absente, `event`, `org_id` et `journal_id` nuls (EX-6.22) ; entrées éprouvées sur une copie de `valide-seq-7-complet` : partie imbriquée au-delà de 128 niveaux (EX-4.16, point 3), `dossier.json` sans forme canonique (E-2, EX-5.20) ou contraire à son schéma (D-1), lien symbolique pour `dossier.json`, une partie, `--ancres`, `--entetes-bitcoin`, `--second-manifeste` ou une pièce (EX-4.17)."
+        "Révision 0.4 de CT-6 : les seize dossiers d'EX-A.23 et les deux d'EX-A.24 sont rejoués comme les autres, `--exiger 4` compris (`exit_code_exiger_4`) ; événement prouvé inexploitable (EX-5.14, EX-5.15) : D-1, P-1, T-2, O-2, R-9 et R-10 non exécutées (`prerequis_en_echec`), contrôles 4, 5 et 8 non exécutés, N-4 absente, `event`, `org_id` et `journal_id` nuls (EX-6.22) ; entrées éprouvées sur une copie de `valide-seq-7-complet` : partie imbriquée au-delà de 128 niveaux (EX-4.16, point 3), `dossier.json` sans forme canonique (E-2, EX-5.20) ou contraire à son schéma (D-1), lien symbolique pour `dossier.json`, une partie, `--ancres`, `--entetes-bitcoin`, `--second-manifeste` ou une pièce (EX-4.17).",
+        "Complément du 2026-11-19 de CT-6 (section 6.10) : les valeurs d'EX-6.23 sont, mot pour mot, celles du texte, de la référence et du binaire, et chaque certificat de `rfc3161/cles` en est ; aucune pièce n'est reconnue d'après un nom (`noortrace-9999-test`) ; sur le dossier complet de pièces d'essai, AV-T-5, AV-R-4, AV-N-1 et AV-N-2 levés comme EX-6.24 le dit, et `--exiger` d'un contrôle sans valeur de preuve rend le code 3, la ligne `Résultat` le nommant à part (EX-6.25, EX-8.6 point 11) ; sans `--exiger`, aucun code ne change."
       ],
       "oracle": "Code, vérifications en échec, statuts, non-exécutions, avertissements, énoncé et borne égaux à `attendu.json` ; rapports JSON identiques octet pour octet (V-8).",
       "status": {
@@ -4966,6 +4974,10 @@
           {
             "file": "test/verificateur.test.js",
             "describe": "CT-6 révision 0.3 : attestation de périmètre (section 5.5, EX-6.19 à EX-6.21, V-10)"
+          },
+          {
+            "file": "test/verificateur.test.js",
+            "describe": "CT-6 complément du 2026-11-19 : pièces d'essai (section 6.10, EX-6.23 à EX-6.25)"
           }
         ],
         "command": "npx hardhat --config hardhat.config.mjs test test/verificateur.test.js"
@@ -18822,7 +18834,7 @@
       "status": {
         "state": "a_ecrire",
         "phase2_step": 8,
-        "blocking": "Épreuve humaine ; le réseau de développement et l'outil existent ; CT-4 l'a déjà rejouée deux fois sans consignation publiée (CT-4 l. 190-193, R10-NV4)."
+        "blocking": "Épreuve humaine ; le réseau de développement et l'outil existent ; CT-4 l'a déjà rejouée deux fois sans consignation publiée (CT-4 l. 195-198, R10-NV4)."
       },
       "threats": [],
       "replay": {
@@ -21228,63 +21240,63 @@
     {
       "id": "TC-11",
       "key": "CT-3 §0",
-      "line": 56,
+      "line": 58,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-12",
       "key": "CT-3 §1",
-      "line": 718,
+      "line": 745,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-13",
       "key": "CT-3 §1",
-      "line": 747,
+      "line": 774,
       "delegated": "EX-, AP-, TK-, SG-, AN-, CS-, vecteurs `ct-3`, épreuve à trois relecteurs, épreuve de lecture de la console.",
       "response": "TR-1 (A.5, trois relecteurs) et TR-2 (A.11, console) en §12 ; EX-, AP-, TK-, SG-, AN-, CS- et vecteurs ct-3 : TU-, TV- (§6, §7)."
     },
     {
       "id": "TC-14",
       "key": "CT-3 §7.12",
-      "line": 2657,
+      "line": 2684,
       "delegated": "Rattachement des TK-1 à TK-13 aux tests.",
       "response": "TV- `ct-3/tickets/` et TU- tickets (§6, §7) : `covers` CT-3 TK-1 à TK-13."
     },
     {
       "id": "TC-15",
       "key": "CT-4 §0",
-      "line": 110,
+      "line": 115,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-16",
       "key": "CT-4 §1",
-      "line": 326,
+      "line": 331,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-17",
       "key": "CT-4 §1",
-      "line": 354,
+      "line": 359,
       "delegated": "EX-, RG-, vecteurs `ct-4`, épreuve d'acceptation sur le réseau de développement.",
       "response": "TR-3 (§7.12, relecteur sur le réseau de développement) en §12 ; EX-, RG- et vecteurs ct-4 : TV- (§7), TE- (§9)."
     },
     {
       "id": "TC-18",
       "key": "CT-4 §9.2",
-      "line": 3871,
+      "line": 3902,
       "delegated": "Taille du certificat et de la capture d'une transaction d'un bloc plein de 64 ancres : mesure TM-31 de CT-9 du 2026-11-02 (certificat 32 587 octets ; capture 109 479 octets, 123 761 avec son index) ; bloc plein qui mêle des clôtures non mesuré.",
       "response": "TM-31 (§11, rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json`, ligne `b_cap_bloc_plein` ; index et certificat relevés dans `notes`) ; bloc plein qui mêle des clôtures : TM-44 (§11, rapport de campagne `mesures/rapport-2026-11-13-capture-bloc-plein-clotures.json`)."
     },
     {
       "id": "TC-19",
       "key": "CT-4 §B.1",
-      "line": 4955,
+      "line": 4987,
       "delegated": "Point non vérifié 14 de R1 (taille d'un certificat de bloc plein) clos par la mesure TM-31 de CT-9 et son rapport.",
       "response": "TM-31 (§11) : rapport du 2026-11-02, certificat de 32 587 octets pour 64 transactions d'ancre (`notes`)."
     },
@@ -21361,21 +21373,21 @@
     {
       "id": "TC-30",
       "key": "CT-6 §0",
-      "line": 121,
+      "line": 132,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-31",
       "key": "CT-6 §1",
-      "line": 287,
+      "line": 304,
       "delegated": "EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`.",
       "response": "§6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10)."
     },
     {
       "id": "TC-32",
       "key": "CT-6 §6.9",
-      "line": 1963,
+      "line": 1988,
       "delegated": "Exécution des V- par comparaison du rapport à `attendu.json`.",
       "response": "TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`."
     },

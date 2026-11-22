@@ -215,11 +215,11 @@ pour l'affichage seulement).
 | Chemin | Contenu |
 |---|---|
 | `/connexion` | nom et mot de passe |
-| `/clients` | clients connus : slug, `org_id`, état de chaque étape (EX-7.16), dernier travail |
+| `/clients` | clients connus : slug, `org_id`, état de chaque étape (EX-7.16), dernier travail ; complément du 2026-11-19 : le nom interne en premier (2.6) |
 | `/clients/nouveau` | pas 1 : les options de `inscrire-client --preparer` (CT-4 7.5) ; en développement, choix des clés d'essai ou des références |
-| `/clients/<slug>` | dossier : étapes et leurs états, sorties des travaux, actions offertes selon l'état (pas 2 à 5 ; `approvisionner` ; `condense inscription` ; relais d'une demande signée ; `capturer` ; `exporter` ; `verifier` ; préparation et relais d'une demande d'administration du jeu) |
+| `/clients/<slug>` | complément du 2026-11-19 : le nom interne en titre, son changement, la remise du paquet (2.6) ; dossier : étapes et leurs états, sorties des travaux, actions offertes selon l'état (pas 2 à 5 ; `approvisionner` ; `condense inscription` ; relais d'une demande signée ; `capturer` ; `exporter` ; `verifier` ; préparation et relais d'une demande d'administration du jeu) |
 | `/clients/<slug>/confirmations` | registre des confirmations hors bande (EX-7.26), chacune avec le travail qui l'a consommée, et formulaire d'ajout |
-| `/clients/<slug>/paquet` | production du paquet client (sortie `paquet-client`), son contrôle, et le gabarit (`console_origin` et `administrators` donnés par écrit par le client, ou `null`) |
+| `/clients/<slug>/paquet` | production du paquet client (sortie `paquet-client`), son contrôle, et le gabarit (`console_origin` et `administrators` donnés par écrit par le client, ou `null`) ; complément du 2026-11-19 : la remise du paquet notée, et sa correction (2.6) |
 
 Le contenu de chaque page est celui de cette table ; sa présentation est
 celle de 2.4.
@@ -238,6 +238,7 @@ toutes sous session sauf `POST /api/connexion` :
 | `POST` | `/api/travaux` | un travail typé (3.3), sans identité | remet le travail à l'agent avec l'identité de la session | `{ id }` ; 400 (forme) ; 503 (agent injoignable) |
 | `GET` | `/api/travaux/<id>` | — | lit l'état du travail | `$defs/travail` (3.3) |
 | `POST` | `/api/clients/<slug>/confirmations` | une confirmation (3.5) | la remet à l'agent | `{ id }` |
+| `POST` | `/api/clients/<slug>/notes` | une note interne, sans l'organisation (2.6) : `{ sorte: "nom_interne", nom }` (`nom` : texte de 1 à 80 caractères, ou `null`), `{ sorte: "remise_paquet", manifest_sha256 }`, `{ sorte: "correction_remise", remise, motif }` (`motif` : texte de 1 à 300 caractères) | la remet à l'agent avec l'organisation du client et l'identité de la session (complément du 2026-11-19) | `{ id }` ; 400 (forme, ou refus de l'agent) ; 404 ; 503 |
 | `GET` | `/api/clients/<slug>/paquet` | — | archive `tar` (POSIX `ustar`) du dernier paquet produit, produite à la demande après le contrôle d'EX-7.22 | `application/x-tar` ; 409 avec la sortie de `paquet-client controler` si le contrôle refuse |
 
 Une requête d'une autre méthode que `GET` exige l'en-tête `Origin` égal à
@@ -721,6 +722,39 @@ un envoi est resté sans réponse ; le reste de 2.4 tient.
     dit l'autre cas et où il est rangé. Sur téléphone, la note d'un bloc
     replié passe sous son titre.
 
+### 2.6 Suivi interne des clients
+
+Complément du 2026-11-19, décision du porteur (suivi interne des clients ;
+CT-4 EX-7.23, complément de même date). Deux notes internes, qu'aucun pas
+ni aucune commande ne lit (`src/commun/notes.mjs`) :
+
+- **Nom interne.** L'équipe donne à un client un nom pour le reconnaître
+  (« Assurances du Léman »), le change ou le retire (`nom: null`) ; le
+  dernier en date vaut. La liste et la fiche le montrent en premier, le
+  nom court (le slug) à côté, en petit ; sans nom interne, le nom court
+  reste le titre. Il se donne dans « Le client en bref », bloc replié (il
+  n'engage rien). Champ de type texte (EX-7.25), 80 caractères au plus.
+- **Remise du paquet.** Sur l'écran du paquet, sous le téléchargement, le
+  bouton « J'ai remis le paquet au client » envoie l'empreinte du paquet
+  affiché ; l'agent y joint l'exploitant de la session et l'instant. La
+  fiche lit alors « remis le … par … » et la consigne devient « Le paquet
+  a été remis au client » (`paquet_remis`). C'est une déclaration de
+  l'exploitant, rien de plus. Elle ne s'efface pas : « Corriger cette
+  note » (replié) envoie un motif ; la remise corrigée reste lisible,
+  barrée, dans « Remises notées », et le paquet redevient à remettre.
+  L'agent refuse la remise d'un paquet qu'il n'a pas produit pour ce
+  client (`paquet_inconnu`), une seconde remise en vigueur du même paquet
+  (`remise_deja_notee`), et la correction de ce qui n'est pas une remise
+  non corrigée de ce client (`remise_inconnue`).
+
+Aucun bouton n'est enfoncé d'avance ; chaque note part d'un clic. Une note
+ne part jamais vers le registre public : l'agent la garde dans
+`notes-internes.ndjson` (3.6), hors du répertoire des clients ; elle
+n'entre ni dans le dossier, ni dans une sortie, une partie ou le paquet,
+et le journal de l'agent n'en garde que l'identifiant, la sorte,
+l'organisation et l'exploitant. Les corps envoyés aux autres routes ne
+changent pas.
+
 ## 3. Agent (`src/agent/`, `bin/noortrace-inscription-agent`)
 
 ### 3.1 Configuration et ligne de commande
@@ -784,8 +818,11 @@ standard ; SIGTERM l'arrête après le travail en cours.
 |---|---|
 | `{ "version": 0, "kind": "travail", "exploitant": "<identité>", "travail": <travail typé> }` | `{ "accepte": true, "id": "trv-<32 chiffres hexadécimaux>" }` ou `{ "accepte": false, "code", "message" }` |
 | `{ "version": 0, "kind": "confirmation", "exploitant": "<identité>", "confirmation": <confirmation> }` | `{ "accepte": true, "id": "cnf-<32 chiffres hexadécimaux>" }` ou refus |
+| `{ "version": 0, "kind": "note", "exploitant": "<identité>", "note": { "sorte", "org_id", … } }` (complément du 2026-11-19, 2.6) | `{ "accepte": true, "id": "not-<32 chiffres hexadécimaux>" }` ou refus (`client_inconnu`, `paquet_inconnu`, `remise_deja_notee`, `remise_inconnue`) |
 
-Rien d'autre ne passe sur la prise : l'état se lit dans les fichiers de 3.6.
+Rien d'autre ne passe sur la prise (un travail, une confirmation ou, depuis le
+complément du 2026-11-19, une note interne de 2.6) : l'état se lit dans les
+fichiers de 3.6.
 Codes de refus : `requete_invalide` (forme), `reference_refusee` (EX-7.3,
 EX-7.25 ; une référence de travail hors du répertoire de clés ou d'un alias
 inconnu rend le message unique de 2.1), `confirmation_absente` (EX-7.26),
@@ -881,6 +918,8 @@ EX-8.21, revue de l'étape 8).
   journal-agent.ndjson              ajout seul : démarrage, pairs refusés, travaux reçus (identité), fins, sorties ; tourné à 16 Mio
   journal-agent.ndjson.1            génération précédente du journal (une seule gardée)
   confirmations.ndjson              ajout seul (EX-7.26), jamais tourné
+  notes-internes.ndjson             ajout seul (2.6, complément du 2026-11-19) : nom interne, remise du paquet et correction, jamais tourné ;
+                                    aucun travail ne le lit, il n'entre pas dans le paquet
   travaux/<id>.json                 $defs/travail, réécrit par renommage
   clients/<slug>/
     dossier.json                    inscription-client-v0 (EX-7.16)
@@ -933,7 +972,7 @@ client, et jeton.
 
 `GET /api/clients/<slug>/paquet` rend l'archive du dernier paquet produit
 après le contrôle de 4.3 ; le registre des confirmations n'entre pas dans le
-paquet.
+paquet, ni le registre des notes internes (2.6).
 
 ### 4.3 Contrôle de réception (EX-7.22)
 
@@ -984,7 +1023,15 @@ attendue et les heures des données fictives dans l'ordre des étapes ;
 `test/fixtures/inscription/langage.mjs` publie la liste des mots. Les
 essais dans Chromium se jouent aussi avec les polices d'un poste qui n'a
 pas Inter (une configuration de fontconfig qui la retire) : la mise en page
-doit tenir avec l'une comme avec l'autre.
+doit tenir avec l'une comme avec l'autre. Complément du 2026-11-19 (2.6) :
+`test/inscription-presentation.test.js` lit les formes exactes des notes et
+ce que le registre en dit ; `test/inscription-presentation-chromium.test.js`
+lit le nom interne sur la liste et la fiche, la remise, sa correction et
+les corps exacts des notes ; `test/inscription-application.test.js`, sur
+l'agent réel, donne un nom interne avant les pas 2 à 10 et ne le retrouve
+dans aucune requête faite au nœud, aucun fichier des données de l'agent
+hors des notes (journal, dossier, captures, sorties, parties, paquet), ni
+l'archive du paquet.
 
 ## 6. Précisions de la construction (étape 6)
 
@@ -1025,7 +1072,9 @@ l'étape. Le détail est dans `LISEZMOI.md`.
   `references` : forme et rôle de chaque référence de clé du travail, jamais
   une valeur), `travail_refuse` (`code`), `travail_debut`, `travail_fin`
   (`result`, `exit_code`), `travail_abandonne`,
-  `confirmation_recue`, `confirmation_refusee`, `envoi_ecrit`,
+  `confirmation_recue`, `confirmation_refusee`, `note_recue` (`id`,
+  `sorte`, `org_id`, `exploitant` : jamais le nom interne ni le motif),
+  `note_refusee` (`sorte`, `code`), `envoi_ecrit`,
   `paquet_secret_trouve` (`fichiers`), `travail_erreur_noeud`,
   `travail_erreur_interne`, `reference_employee` (`role`, `reference`
   effective, `alias`), `reference_non_resolue` (`role`, `forme`, `detail` :

@@ -321,11 +321,23 @@ func Lisible(r *Rapport, info InfosLisibles, detail bool) string {
 		}
 		ligne(etiquette("Résultat", "Result", l) + commun.T(fr, eng).Langue(l))
 	case "incomplet":
-		var n []string
+		var n, sv []string
 		for _, c := range r.Lisible.ExigesNonReussis {
 			n = append(n, fmt.Sprint(c))
 		}
-		ligne(etiquette("Résultat", "Result", l) + commun.T("INCOMPLET — contrôle(s) exigé(s) non réussi(s) : "+strings.Join(n, ", "), "INCOMPLETE — required control(s) not passed: "+strings.Join(n, ", ")).Langue(l))
+		for _, c := range r.Lisible.ExigesSansValeur {
+			sv = append(sv, fmt.Sprint(c))
+		}
+		// EX-8.6, point 11 (complément du 2026-11-19) : les contrôles exigés
+		// sans valeur de preuve sont nommés à part, après les non réussis.
+		var fr, eng []string
+		if len(n) > 0 {
+			fr, eng = append(fr, "contrôle(s) exigé(s) non réussi(s) : "+strings.Join(n, ", ")), append(eng, "required control(s) not passed: "+strings.Join(n, ", "))
+		}
+		if len(sv) > 0 {
+			fr, eng = append(fr, "contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : "+strings.Join(sv, ", ")), append(eng, "required control(s) without evidential value (test piece): "+strings.Join(sv, ", "))
+		}
+		ligne(etiquette("Résultat", "Result", l) + commun.T("INCOMPLET — "+strings.Join(fr, " ; "), "INCOMPLETE — "+strings.Join(eng, "; ")).Langue(l))
 	}
 	if en {
 		ligne(etiquette("", "Statement", l) + r.Statement.En)

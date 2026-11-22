@@ -61,6 +61,11 @@ affichée mot pour mot, sous une phrase en langage courant (EX-7.26), et
 trois aides de saisie remplissent un champ, ou affichent l'empreinte
 qu'elles calculent, sans rien envoyer (EX-7.25) ; ni les routes, ni
 l'agent, ni aucun schéma, ni aucun vecteur ne changent ;
+complément du 2026-11-19, décision du porteur (suivi interne des clients) :
+l'application d'exploitant garde, hors du dossier, un nom interne de chaque
+client et la remise de son paquet, déclarée par l'exploitant et corrigée
+sans effacement ; ces notes ne sortent pas de l'application (EX-7.23) ;
+aucun schéma ni aucun vecteur ne change ;
 version 0.7 du 2026-11-11,
 révision 0.7 : commande `paquet-client` de l'outil
 de référence, codes de refus du paquet, reprise d'une étape en échec déjà
@@ -3237,7 +3242,33 @@ canal local et authentifié d'EX-7.28 ;
 chaque travail porte l'identité de l'exploitant authentifié qui l'a demandé,
 que l'agent consigne avec la sortie, en ajout seul. L'agent ne croit pas
 l'interface : il refait lui-même chaque vérification OP- et CP- avant
-d'écrire. Tenu par l'exploitant qui déploie l'application.
+d'écrire. Complément du 2026-11-19, décision du porteur (suivi interne des
+clients) : sur le même canal, l'interface remet aussi à l'agent des **notes
+internes**, qu'aucun pas de 7.1 ni aucune commande de la section 8 ne lit,
+pour que l'équipe reconnaisse un client dont le slug, tiré au hasard
+(EX-6.2), ne dit rien, et sache si son paquet a été remis. Le **nom
+interne** d'un client est un texte libre (champ de type texte, 80
+caractères au plus) qu'un exploitant lui donne, change ou retire par une
+note nouvelle ; il n'est ni le slug ni l'`org_id` et n'engage rien. La
+**remise du paquet** est la déclaration, par l'exploitant authentifié,
+qu'il a remis au client le paquet dont il nomme le SHA-256 du manifeste
+(EX-7.19) ; elle prouve cette déclaration, avec son auteur et son instant,
+et rien de plus : ni que le client a reçu le paquet, ni qu'il l'a contrôlé
+(EX-7.22). Elle ne s'efface pas ; une erreur se corrige par une note de
+correction, qui nomme la remise et son motif et la laisse lisible.
+L'agent refuse la remise d'un paquet qu'il n'a pas produit pour ce client,
+une seconde remise du même paquet tant que la première n'est pas corrigée,
+et la correction de ce qui n'est pas une remise non corrigée de ce client.
+Il garde les notes, en ajout seul, avec le registre des confirmations
+(EX-7.26), hors du répertoire des clients, avec l'exploitant et l'instant
+de réception ; son journal n'en garde que l'identifiant, la sorte,
+l'organisation et l'exploitant. Une note ne part jamais vers le registre
+public et n'entre dans aucun dossier, aucune demande, aucune capture,
+aucune partie, aucune sortie ni le paquet (EX-7.18) ; les travaux, leurs
+sorties, les schémas et les vecteurs ne changent pas. Épreuve : le nom
+interne donné avant les pas 2 à 10 ne se trouve dans aucune requête faite
+au nœud, aucun fichier des données de l'agent hors des notes, ni dans le
+paquet et son archive. Tenu par l'exploitant qui déploie l'application.
 
 **EX-7.24** **Mêmes sorties.** Pour chaque pas, l'application produit ce que
 produit l'outil de référence, sous les mêmes formes : le dossier
@@ -4525,6 +4556,7 @@ appliqué.
 | `spec/schemas/operations-registre-v0.schema.json`, `inscription-client-v0.schema.json` (révision 0.7) | `command` sans `paquet-client` ; aucun code de refus du paquet ; `funding` toujours une transaction | `paquet-client` ; `paquet_manifeste` à `paquet_captures`, `secret_present`, `dossier_inacheve` ; `funding` nul admis (extensions compatibles) | fait |
 | Application d'exploitant (révision 0.6) | absente | interface web et agent séparé et privilégié d'EX-7.23 à EX-7.28 ; canal local par prise Unix, compte du pair vérifié (EX-7.28) ; épreuves d'EX-7.24 et d'EX-7.28 | construite à l'étape 6 (`paquets/inscription`) ; à faire (révision 0.7) : sortie `paquet-client` du travail de paquet et codes d'EX-7.30, recherche d'EX-7.21 sur chaque référence employée, travail `administrer-jeu` avec la confirmation d'EX-7.26, reprise d'EX-7.29 |
 | Complément du 2026-11-18, décision du porteur (langage des écrans) : EX-7.25, EX-7.26 | interface écrite pour un technicien ; empreinte de la pièce et instant d'une confirmation saisis à la main | libellés en langage courant ; mention « confirmation hors bande absente » gardée mot pour mot sous une phrase courante ; trois aides de saisie qui remplissent un champ sans rien envoyer (pièce, date et heure, slug tiré au hasard), l'empreinte d'une pièce se calculant aussi hors du formulaire, sans rien remplir ni noter | fait : interface de `paquets/inscription` (`src/web/`) ; les routes, l'agent, les schémas et les vecteurs ne changent pas |
+| Complément du 2026-11-19, décision du porteur (suivi interne des clients) : EX-7.23 | un client ne se reconnaît qu'à son slug ; rien ne dit si son paquet a été remis | nom interne et remise du paquet, notes internes de l'agent hors du dossier, en ajout seul, qui ne sortent pas de l'application | fait : interface et agent de `paquets/inscription` ; les travaux, les schémas et les vecteurs ne changent pas |
 | `test/registreCt4.test.js` (révision 0.6) | six exemples annotés, liste fermée | annoter l'exemple de manifeste et l'exemple de gabarit de 7.13, les ajouter à la liste, et charger `paquet-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` dans le registre des schémas du test | fait autrement : les deux exemples portent l'annotation `<!-- exemple: … -->` (celle des exemples de la révision 0.5 de CT-3), que la liste fermée des annotations `<!-- schema: … -->` (EX-A.6) ne lit pas ; un essai de ce fichier les valide contre `paquet-client-v0` chargé avec ces schémas et recalcule les SHA-256 et longueurs du manifeste |
 | `spec/README.md` (révision 0.6) | CT-4 version 0.5 ; table des schémas sans `paquet-client-v0` | CT-4 version 0.6 ; ligne `paquet-client-v0` (CT-4 §7.13), chargé avec `inscription-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` | fait |
 | Révision 0.8 (2026-11-14), revue de sécurité interne de l'étape 8 : EX-4.12, EX-6.8, EX-7.1 (`--rpc`), EX-7.3, OP-4, EX-7.25, EX-7.26, EX-7.28, 7.11 (`compte_inattendu`, `provision_excessive`, `nonce_incoherent`), EX-8.4, EX-8.6, EX-8.10, EX-8.14, EX-8.16, 8.7, EX-8.20, EX-8.21, 9.3, CP-4, CP-6, EX-9.3, EX-10.1 (d) | textes de la version 0.7 ; outil de référence, bibliothèque et composant d'ancrage corrigés à l'étape 8 d'après ces constats, module Go de `ct-4` à aligner | texte : fait ; schéma `operations-registre-v0` : `nonce_incoherent` ajouté à `error.code` (extension compatible) ; outil de référence, bibliothèque et composant d'ancrage : faits à l'étape 8 pour `--confirmation`, la provision, l'URI, les index relus, le code du jeu, les deux points, l'écriture après CP-2 à CP-6 (les deux points d'EX-8.14 : composant d'ancrage seul ; outil de référence et agent d'inscription : complément du 2026-11-17, ci-dessous) ; à faire : module Go de `ct-4` (provision, repli de 9.3), vecteurs `ct-4/capture` (fichier présent faux, certificat gonflé), garde d'admission d'EX-10.8 (décision du porteur du 2026-11-16 : livrable dû avant la production, EX-10.8, section 14) ; révision 0.8, complément du 2026-11-15 (décision du porteur) : CP-6, fichiers et index de capture lisibles du groupe (0644 avant le masque), composant d'ancrage aligné ; révision 0.8, demandée après sa première rédaction : EX-A.5 (plancher du module Go : code 1 sans famille, sans cas ou sur un cas absent de l'`INDEX.md`) ; module Go de `ct-4` : provision d'OP-4, nom de capture contrôlé avant lecture et plancher faits (revue de sécurité de l'étape 8, aucune discordance sur les vecteurs régénérés), repli de 9.3 non établi ; révision 0.8, complément du 2026-11-17 : EX-8.14, plancher du nonce (suivant du plus grand nonce des envois de l'expéditeur dont l'issue d'inclusion est écrite ; signé au plancher quand il dépasse de 1 la valeur des points, `nonce_incoherent` au-delà) ; outil de référence (envois et déploiement du jeu, dont l'adresse CREATE dépend du nonce), composant d'ancrage et agent d'inscription : faits ; aucun schéma ni aucun vecteur ne change ; module Go de `ct-4` : à aligner s'il lit le nonce ; révision 0.8, complément du 2026-11-17 (recoupement) : l'outil de référence lisait le nonce au premier point qui répond et l'agent d'inscription prenait la plus grande valeur de tous les points, sans le recoupement d'EX-8.14 que la mention « les deux points » ci-dessus disait fait ; valeur des points précisée dans EX-8.14 ; outil de référence (recoupement sur chaque point de `--rpc`, bibliothèque des conventions) et agent d'inscription (même règle que le composant d'ancrage, déploiement du jeu signé au nonce de son adresse CREATE) : faits ; aucun schéma ni aucun vecteur ne change ; module Go de `ct-4` : à aligner s'il lit le nonce |

@@ -131,7 +131,7 @@ describe("TE-18 : noortrace-ctl dossier exporter sur le démon réel à horloge 
     if (dir) fs.rmSync(dir, { recursive: true, force: true });
   });
 
-  it("--ticket d'un appel approuvé : le premier executee qui porte l'approbation, jamais sa continuation MRTR ; code 0, ligne { pid, configuration, event, data } aux membres d'EX-15.14 ; dossier.json, parties présentes et rien d'autre, 0750 et 0640 ; les deux vérificateurs de CT-6 rendent 0 avec --exiger 7 (contrôle 7 réussi)", async function () {
+  it("--ticket d'un appel approuvé : le premier executee qui porte l'approbation, jamais sa continuation MRTR ; code 0, ligne { pid, configuration, event, data } aux membres d'EX-15.14 ; dossier.json, parties présentes et rien d'autre, 0750 et 0640 ; les deux vérificateurs de CT-6 : contrôle 7 réussi, et, avec --exiger 7, code 3 parce que les approbateurs du banc sont des comptes d'essai (CT-6 EX-6.25)", async function () {
     const destination = path.join(j.exports, "ticket-approuve");
     const r = await reussite(["--ticket", j.tickets.approuve, "--vers", destination]);
     expect(r.ligne.pid).to.equal(demon.pid);
@@ -165,9 +165,12 @@ describe("TE-18 : noortrace-ctl dossier exporter sur le démon réel à horloge 
     expect(approbations.events.map((e) => e.seq)).to.deep.equal([j.seqs.decisionApprouve]);
     // Vérificateur JavaScript de référence (boîte noire).
     const js = verifier(destination);
-    expect(js.code, js.stderr).to.equal(0);
-    expect(js.rapport.verdict).to.equal("valide");
+    // Complément du 2026-11-19 de CT-6 (EX-6.24, EX-6.25) : les approbateurs du banc sont des comptes Hardhat, pièces
+    // d'essai (AV-N-2) ; le contrôle 7 réussit, mais, exigé, il est sans valeur de preuve : incomplet, code 3.
+    expect(js.code, js.stderr).to.equal(3);
+    expect(js.rapport.verdict).to.equal("incomplet");
     expect(controle(js.rapport, 7).status).to.equal("reussi");
+    expect(js.rapport.warnings.some((w) => w.id === "AV-N-2" && w.check === "E-9")).to.equal(true);
     for (const a of ["A-1", "A-2", "A-3"]) expect(statut(js.rapport, a).status, a).to.equal("reussi");
     // A-4 : la demande (retenue) précède la décision, qui précède l'appel : elle n'est jamais voisine de l'appel exécuté ;
     // non exécutée pour une raison admise (événement de demande hors du dossier, CT-1 §11.4), comme au vecteur
@@ -176,24 +179,25 @@ describe("TE-18 : noortrace-ctl dossier exporter sur le démon réel à horloge 
     const bin = binaireGo();
     if (!bin) return enAttente(this, "vérificateur Go de CT-6 (NOORTRACE_VERIFIER_BIN, NOORTRACE_GO_BIN ou verificateur/dist/noortrace-verifier-linux-amd64) : vérification JavaScript faite, vérification Go non faite");
     const go = verifier(destination, bin);
-    expect(go.code, go.stderr).to.equal(0);
-    expect(go.rapport.verdict).to.equal("valide");
+    expect(go.code, go.stderr).to.equal(3);
+    expect(go.rapport.verdict).to.equal("incomplet");
+    expect(go.rapport.warnings.map((w) => [w.id, w.check])).to.deep.equal(js.rapport.warnings.map((w) => [w.id, w.check]));
     expect(controle(go.rapport, 7).status).to.equal("reussi");
     expect(Object.fromEntries(go.rapport.checks.map((c) => [c.id, c.status]))).to.deep.equal(Object.fromEntries(js.rapport.checks.map((c) => [c.id, c.status])));
     expect(go.rapport.statement).to.deep.equal(js.rapport.statement);
   });
 
-  it("--seq de la décision du ticket : A-1 à A-4 réussis par les deux vérificateurs (--exiger 7) ; --dernier : le plus grand seq d'une période close ; destination répertoire vide admise (remplacé par rename(2)) ; --vers relatif résolu contre le répertoire de travail ; --seq d'un appel au jeu introuvable : dossier écrit, partie approbations absente (« jeu d'approbateurs introuvable »)", async function () {
+  it("--seq de la décision du ticket : A-1 à A-4 réussis par les deux vérificateurs (--exiger 7, code 3 : approbateurs d'essai) ; --dernier : le plus grand seq d'une période close ; destination répertoire vide admise (remplacé par rename(2)) ; --vers relatif résolu contre le répertoire de travail ; --seq d'un appel au jeu introuvable : dossier écrit, partie approbations absente (« jeu d'approbateurs introuvable »)", async function () {
     const decision = path.join(j.exports, "decision");
     const r = await reussite(["--seq", String(j.seqs.decisionApprouve), "--vers", decision]);
     expect(r.ligne.data).to.include({ selection: "seq", ticket: null, seq: j.seqs.decisionApprouve });
     const js = verifier(decision);
-    expect(js.code, js.stderr).to.equal(0);
+    expect(js.code, js.stderr).to.equal(3);
     for (const a of ["A-1", "A-2", "A-3", "A-4"]) expect(statut(js.rapport, a).status, a).to.equal("reussi");
     const bin = binaireGo();
     if (bin) {
       const go = verifier(decision, bin);
-      expect(go.code, go.stderr).to.equal(0);
+      expect(go.code, go.stderr).to.equal(3);
       for (const a of ["A-1", "A-2", "A-3", "A-4"]) expect(statut(go.rapport, a).status, a).to.equal("reussi");
     }
     const vide = path.join(j.exports, "vide");

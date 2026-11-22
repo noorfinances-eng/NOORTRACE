@@ -18,11 +18,11 @@
       },
       {
         "file": "spec/CT-3-approbations.md",
-        "sha256": "4ff43774165899f5e5902f89f94d81fe8d85e7bedf2c393e3317a862667e46ec"
+        "sha256": "df184a11a837fc9a68f654a57f6319c49884833d371f137f18013464d347278d"
       },
       {
         "file": "spec/CT-4-registre.md",
-        "sha256": "1d137b79bcccf2ba385c0ccdb98caed617051f185a63a7ba1c0bfcf7336999aa"
+        "sha256": "6fc9afd8097e49d26004ab9a28893a2ad64e3080c9a654ac9cb6ec1ac3625def"
       },
       {
         "file": "spec/CT-5-ancrage.md",
@@ -30,20 +30,20 @@
       },
       {
         "file": "spec/CT-6-verificateur.md",
-        "sha256": "33550cccc43fec9e8ddd4fbafb2fe058c25189240e8f0655308f03881deb18ca"
+        "sha256": "f50d6a64638d3440725606a1cbb315bc40d7ba6f13cb70db31f72b4463864690"
       },
       {
         "file": "spec/CT-7-securite-et-conformite.md",
-        "sha256": "1d5f225b52d12203407eca3698965677348d86425dc6cbcb865fbcb175c7e1f6"
+        "sha256": "aa334d8257f44c7e63db33f8898ed614e483e31017993d05b32a9014842a31ef"
       },
       {
         "file": "spec/CT-8-deploiement-et-exploitation.md",
-        "sha256": "47b61852c53ae6945cc6c491ccefa7fbbdac856e67a5396eefc13ce3da539305"
+        "sha256": "816c916c8883b3f2180afafb18be992ca56fde5e19e7617bfc652b728b2e794c"
       }
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "5016bfc5700eb8163f47bd29d0340c6b31af79c26f4ef6c51b68d35e25dacae5"
+      "sha256": "9f2e1d94d105dddfda0fd20817ae143dbe4b99711e839351c937fab79cb73e5e"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -336,7 +336,7 @@
       },
       {
         "file": "test/approbation-service-console.test.js",
-        "sha256": "165e06c2883561f01dbf1c3f85cd4443c17f7d14bbfb85497a2b7916d7d9bc40"
+        "sha256": "0c28f642b712aec181d4d00df5ed418fea62ae59a3eab886af0ce82fae1abf8d"
       },
       {
         "file": "test/approbation-service-exigences.test.js",
@@ -420,7 +420,7 @@
       },
       {
         "file": "test/console.test.js",
-        "sha256": "13cc9e08feaedebe954b5f27c65ca539c9577171a5cc8e7e9ebae9fa9d8bba71"
+        "sha256": "f58f3f60ce8f6fba51690cd2534648ffb606d4ee4e0d7ceccbb7e32fb571403f"
       },
       {
         "file": "test/demonstration-composition.test.js",
@@ -544,7 +544,7 @@
       },
       {
         "file": "test/enregistreur-export-dossier.test.js",
-        "sha256": "38a43be7a0e6391eadd6f046bae4acba68e99050d0a6bc9dbcf6c9b5a5745361"
+        "sha256": "1dda6413bb59598f81994da51f88af643327552fc760c5b4f76e3311c9747950"
       },
       {
         "file": "test/enregistreur-ha-bascule.test.js",
@@ -776,23 +776,23 @@
       },
       {
         "file": "test/exploitation-console-langage-chromium.test.js",
-        "sha256": "fc13e797bc123ddaa8a976eb409244acf743fa3b167f63dceca3a540a3b3baa5"
+        "sha256": "4fb9c93b821f585d3000278f03891eb7f55a17b6aeb26fc7f2dea4ed865f2e5f"
       },
       {
         "file": "test/exploitation-console-pages-chromium.test.js",
-        "sha256": "6fe0af434daafd3bd9feadf204babd25dd6e97865e2a04d157ec935957bde89e"
+        "sha256": "2bcd3c53e5009bfc8a5f9bd1bdfd1d9acb70497c3d4f663de058d62e9ad746e5"
       },
       {
         "file": "test/exploitation-console-pages.test.js",
-        "sha256": "b5383d5513e7ab48dd50ddf36004e1f8bc5ceddb80e034e2655bec8e651b7e74"
+        "sha256": "a8cce1d751ad739f74e59846f64121f27239a890f2b36177381225f6eb015d5f"
       },
       {
         "file": "test/exploitation-console-parcours.test.js",
-        "sha256": "9f7cd58c8d5a5b84beb279766d9c35a53dc4f47847ec2ed566382147fe054bb4"
+        "sha256": "790aa181d867e34031e20e4c57f4bfe5a89975df6ac6bbb717e6b5e579f5cf4a"
       },
       {
         "file": "test/exploitation-console-presentation-chromium.test.js",
-        "sha256": "691ddd93396afdf38532c8165d69c14f9188a27aaa1e73644986fa7d546a8e02"
+        "sha256": "44a6c90e1ff23496f838eceba25abaf8484af9195659d8b7c8a3aa9e8e5215ce"
       },
       {
         "file": "test/exploitation-console-prises-unix.test.js",
@@ -808,15 +808,15 @@
       },
       {
         "file": "test/exploitation-console-serveur-configuration.test.js",
-        "sha256": "6985500f26406cff626dbcd933d9318bf73426115ff7b8d236224750aaddbd68"
+        "sha256": "ebac391e84ea127e9cad2f853581407040c1086b42fbe8671179cbf522757bb5"
       },
       {
         "file": "test/exploitation-console-serveur-http.test.js",
-        "sha256": "e8d3a8bf1bb6697bf9be9c7adc29d91265c34fc42d69d27217ba6f4f80a342e9"
+        "sha256": "f6bf7d1a75a41fd3cdb9df6debefc9d4e618ebe6fe4538e35eed90b70938b197"
       },
       {
         "file": "test/exploitation-console-serveur-oidc.test.js",
-        "sha256": "9174bd4b14530dc582c379693161bf1d620ac48ec9845d1c3fca62f2fdb15696"
+        "sha256": "0ff23f3d8d6b18baff20cbd8a8445dd34c2f780740371c06fce4e0be1e135642"
       },
       {
         "file": "test/exploitation-reference-revue.test.js",
@@ -852,7 +852,7 @@
       },
       {
         "file": "test/inscription-application.test.js",
-        "sha256": "f2880299d19e908c22943a6132efe8f8ca8f40ff7ad0173f082fc92f73579d5a"
+        "sha256": "0f98780d76b19f9082e5c30db9ccc8c50c8936c7d0cbda352dc633b34425f689"
       },
       {
         "file": "test/inscription-paquet.test.js",
@@ -860,11 +860,11 @@
       },
       {
         "file": "test/inscription-presentation-chromium.test.js",
-        "sha256": "411151ced42b3405094ef92bb6b01698357061664beb86fbeed14defbd9c9c3d"
+        "sha256": "103ab5c5246df8d683e043d6449fb156bc04ae59a4fd1433f957d9c7a758f7a7"
       },
       {
         "file": "test/inscription-presentation.test.js",
-        "sha256": "6a788d849ea909f267c4cf652e00b5d6eaa071bf913c60b82075179cfb08b694"
+        "sha256": "7abc9581a4dbf6d52045db86e4c871f05b9b7e4ea22da998acbf6a92d2306c0a"
       },
       {
         "file": "test/inscription-prises-unix.test.js",
@@ -956,7 +956,7 @@
       },
       {
         "file": "test/plan-de-tests.test.js",
-        "sha256": "8a162db9cf3a42354002b72c3e70b915cdf0df98111239a5af627ec57d1ddae2"
+        "sha256": "be352cc866de50bf17dea062dc912ef08c288969351141a66f48de47fcc36cd9"
       },
       {
         "file": "test/pont-stdio-revue.test.js",
@@ -1056,15 +1056,15 @@
       },
       {
         "file": "test/verificateur.test.js",
-        "sha256": "aa1bd803e5fb852f23f8a98bc2b6648719b33e1449d1a39929e0c4fca8a35a83"
+        "sha256": "9839958ccd999587ddae32cccaa3bcf63e78121bf54e8a76e9512cdbf98bbd6e"
       },
       {
         "file": "test/verification-page-chromium.test.js",
-        "sha256": "220d634688748886d21cc0a3390b1c3dc88fb88f86246a80ed0feeabd525cc80"
+        "sha256": "b9bb05712e0a5bd85b7a9935603460cc8bed66fbf7f71afabe319f42edc4ef04"
       },
       {
         "file": "test/verification-page-construction.test.js",
-        "sha256": "6f1044cb48d5e9c806af8c3da3728bcded5fb3f0ad0fb17576474637af70fe25"
+        "sha256": "180d11fdbed8e26589f04c3491ba0db08d73d69e83e0ccd2bbe7f3269f1c4e79"
       },
       {
         "file": "test/verification-page-identite.test.js",
@@ -1072,7 +1072,7 @@
       },
       {
         "file": "test/verification-page-presentation.test.js",
-        "sha256": "5dd833ef77445ac628912e06c61713ac4e877faa023333e5dd996eae59746532"
+        "sha256": "19d8b23758f2e660606eb93bef5e7057c05ce7b0395f9aa31ab66735216d03ef"
       },
       {
         "file": "test/verification-page-revue-navigateurs.test.js",
@@ -1093,8 +1093,8 @@
     ]
   },
   "identifiers": {
-    "total": 2494,
-    "covered_by_tests": 2338,
+    "total": 2501,
+    "covered_by_tests": 2345,
     "covered_by_nc": 156,
     "uncovered": 0,
     "unknown_cited": [],
@@ -1225,8 +1225,8 @@
       },
       {
         "spec": "CT-6",
-        "total": 293,
-        "covered_by_tests": 293,
+        "total": 300,
+        "covered_by_tests": 300,
         "covered_by_nc": 0,
         "uncovered": 0,
         "uncovered_ids": [],
@@ -1234,7 +1234,7 @@
           "EX-3": 8,
           "EX-4": 17,
           "EX-5": 20,
-          "EX-6": 22,
+          "EX-6": 25,
           "EX-7": 3,
           "EX-8": 11,
           "EX-9": 24,
@@ -1250,13 +1250,14 @@
           "AT": 7,
           "AV-AT": 3,
           "V": 10,
+          "AV-O": 3,
+          "AV-T": 5,
+          "AV-R": 4,
+          "AV-N": 2,
           "T": 11,
-          "AV-T": 4,
           "AV-K": 4,
           "O": 7,
-          "AV-O": 3,
           "R": 11,
-          "AV-R": 3,
           "N": 4
         }
       },
@@ -1349,7 +1350,7 @@
   },
   "executable": {
     "total": 302,
-    "titles_checked": 747,
+    "titles_checked": 748,
     "titles_missing": []
   },
   "text_tables": {

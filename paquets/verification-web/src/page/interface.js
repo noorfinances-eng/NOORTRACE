@@ -895,7 +895,6 @@ function partiesHorsPerimetre(rapport) {
 const LIMITES = Object.freeze({ 0: ["limite_1", "limite_2", "limite_3", "limite_4", "limite_5"], 1: ["limite_invalide"], 3: ["limite_1", "limite_2", "limite_3", "limite_4", "limite_5"] });
 const SUITES = Object.freeze({
   0: ["suite_0_1", "suite_0_2", "suite_0_3"],
-  "0_exige_sans_valeur": ["suite_0_1", "suite_0_2", "suite_exige_sans_valeur"],
   1: ["suite_1_1", "suite_1_2", "suite_1_3"],
   2: ["suite_2_1", "suite_2_2", "suite_2_3"],
   3: ["suite_3_1", "suite_3_2", "suite_3_3"],
@@ -941,18 +940,14 @@ function aDesReserves(avertissements) {
  * le rapport dit sans valeur de preuve compte comme non prouvé, comme un
  * contrôle réussi avec les seules clés ou les seuls approbateurs que le dossier
  * déclare (`duDossier`, numéros des contrôles) ; un contrôle exigé
- * (`exiges`) sans valeur de preuve a sa mention à lui. Si le rapport ne se lit
- * pas exactement, la teinte est neutre, sans mention. Les autres codes gardent
+ * Si le rapport ne se lit pas exactement, la teinte est neutre, sans mention. Les autres codes gardent
  * leur présentation.
  */
-function presentationVerdict(code, controles, avertissements, duDossier = [], exiges = null) {
+function presentationVerdict(code, controles, avertissements, duDossier = []) {
   if (code !== 0) return { teinte: "pleine", mention: null };
   if (controles === null || avertissements === null) return { teinte: "neutre", mention: null };
   const nonProuve = controles.some((c) => c.statut !== "reussi" || sansValeurDuControle(c.numero, controles, avertissements).length > 0 || duDossier.includes(c.numero));
   const reserves = avertissements.length > 0;
-  // Un contrôle exigé que le rapport dit sans valeur de preuve : le titre dit que l'exigence n'est pas prouvée (elle
-  // vient d'un avertissement, donc le rapport en porte au moins un).
-  if (exigesSansValeur(controles, avertissements, exiges).length > 0) return { teinte: "reserve", mention: "mention_exige_sans_valeur" };
   if (nonProuve && reserves) return { teinte: "reserve", mention: "mention_les_deux" };
   if (nonProuve) return { teinte: "reserve", mention: "mention_non_prouve" };
   if (reserves) return { teinte: "reserve", mention: "mention_reserves" };
@@ -1004,21 +999,77 @@ function reservesDuControle(numero, controles, avertissements) {
 }
 
 // Avertissements dont le texte dit que le contrôle auquel le rapport les rattache est sans valeur de preuve (table de
-// CT-6 §18, point 15), et la clé de la raison courte de chacun. AV-O-3 : « réseau d'essai, sans valeur probante hors
-// des tests » (CT-6 §10.7). Aucun autre : les seize autres limitent une partie de ce que le contrôle établit, ou rien.
-const SANS_VALEUR = Object.freeze({ "AV-O-3": "sans_valeur_av_o_3" });
+// CT-6 §18, point 15), et la clé de la raison courte de chacun : les avertissements de pièce d'essai, dont le texte dit
+// « sans valeur probante hors des tests » (AV-O-3, CT-6 §10.7 ; AV-T-5, AV-R-4, AV-N-1, AV-N-2, CT-6 §6.10, complément
+// du 2026-11-19). Aucun autre : les seize autres limitent une partie de ce que le contrôle établit, ou rien.
+const SANS_VALEUR = Object.freeze({ "AV-O-3": "sans_valeur_av_o_3", "AV-T-5": "sans_valeur_av_t_5", "AV-R-4": "sans_valeur_av_r_4", "AV-N-1": "sans_valeur_av_n_1", "AV-N-2": "sans_valeur_av_n_2" });
+// Couples (avertissement, vérification) qui rendent chaque contrôle sans valeur de preuve, tels qu'EX-6.25 de CT-6 les
+// nomme, et eux seuls : le contrôle 4 par AV-T-5 de T-7 ; le 5 par AV-O-3 de O-5 ; le 6 par AV-N-1 de E-8 ou de P-5 ;
+// le 7 par AV-N-2 de E-9, avec la règle de nombre (approbationSansValeur) ; le 8 par AV-R-4 de R-4 ou AV-N-1 de N-4.
+// Les mêmes avertissements levés par K-3, K-7 ou K-9 (point de contrôle du journal), ou rattachés par leur vérification
+// à un autre contrôle (AV-N-1 de P-5 sert aussi le contrôle 3), n'y sont qu'une réserve. Table fixée par le texte.
+const SANS_VALEUR_PAR_CONTROLE = Object.freeze({
+  4: Object.freeze([["AV-T-5", "T-7"]]),
+  5: Object.freeze([["AV-O-3", "O-5"]]),
+  6: Object.freeze([["AV-N-1", "E-8"], ["AV-N-1", "P-5"]]),
+  7: Object.freeze([["AV-N-2", "E-9"]]),
+  8: Object.freeze([["AV-R-4", "R-4"], ["AV-N-1", "N-4"]]),
+});
+
+// Adresses d'approbateur d'essai de CT-6 EX-6.23 : les vingt comptes du mnémonique Hardhat par défaut. Table fixée par
+// le texte, recopiée telle quelle ; elle ne sert qu'à la règle de nombre du contrôle 7 (EX-6.25).
+const APPROBATEURS_ESSAI = Object.freeze([
+  "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266", "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+  "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc", "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+  "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65", "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+  "0x976ea74026e726554db657fa54763abd0c3a0aa9", "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+  "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f", "0xa0ee7a142d267c1f36714e4a8f75612f20a79720",
+  "0xbcd4042de499d14e55001ccbb24a551f3b954096", "0x71be63f3384f5fb98995898a86b02fb2426c5788",
+  "0xfabb0ac9d68b0b445fb7357272ff202c5651694a", "0x1cbd3b2770909d4e10f157cabc84c7264073c9ec",
+  "0xdf3e18d64bc6a983f673ab319ccae4f1a57c7097", "0xcd3b766ccdd6ae721141f452c550ca635964ce71",
+  "0x2546bcd3c84621e976d8185a91a922ae77ecec30", "0xbda5747bfd65f08deb54cb465eb87d40e51b197e",
+  "0xdd2fd4581271e230360230f9337d5c0430bf44c0", "0x8626f6940e2eb28930efb4cef49b2d1f2c9c1199",
+]);
 
 /**
- * Clés des raisons courtes qui rendent le contrôle `numero` sans valeur de preuve : celles des avertissements de la
- * table SANS_VALEUR que le rapport rattache à ce contrôle (reservesDuControle), chacune une fois. Vide si le contrôle
- * n'est pas réussi : un contrôle non fait ou échoué garde sa ligne. Ce n'est pas un statut calculé : le statut reste
- * celui du rapport, et la page ne fait que restreindre ce qu'elle en dit.
+ * Règle de nombre du contrôle 7 (CT-6 EX-6.25) : vrai si les adresses de `facts.approval.approvers` qui ne sont pas
+ * dans la liste d'EX-6.23 sont moins nombreuses que `facts.approval.required`. `approbation` est ce que la lecture du
+ * rapport a gardé de `facts.approval` (lireControles) ; sans ces faits lisibles, faux : la page ne dit pas le contrôle
+ * 7 sans valeur de preuve au-delà de ce que le code de retour dit.
+ */
+function approbationSansValeur(approbation) {
+  if (approbation === null || approbation === undefined) return false;
+  const hors = new Set(approbation.approvers.map((x) => x.toLowerCase()).filter((x) => !APPROBATEURS_ESSAI.includes(x)));
+  return hors.size < approbation.required;
+}
+
+/**
+ * Avertissements du rapport qui rendent le contrôle `numero` sans valeur de preuve (CT-6 EX-6.25), chacun une fois,
+ * dans l'ordre du rapport : ceux que le rapport rattache à ce contrôle par leur vérification (8.6) et dont le couple
+ * (identifiant, vérification) est dans la table SANS_VALEUR_PAR_CONTROLE, avec, pour le contrôle 7, la règle de nombre.
+ * Vide si le contrôle n'est pas réussi : un contrôle non fait ou échoué garde sa ligne.
+ */
+function avertissementsSansValeur(numero, controles, avertissements) {
+  const c = controles.find((x) => x.numero === numero);
+  if (c === undefined || c.statut !== "reussi" || !Array.isArray(avertissements)) return [];
+  const couples = Object.hasOwn(SANS_VALEUR_PAR_CONTROLE, numero) ? SANS_VALEUR_PAR_CONTROLE[numero] : [];
+  if (numero === 7 && !approbationSansValeur(c.approbation)) return [];
+  const ids = [];
+  for (const a of avertissements) {
+    if (a.verification === null || !c.verifications.includes(a.verification)) continue;
+    if (couples.some(([id, v]) => a.id === id && a.verification === v) && !ids.includes(a.id)) ids.push(a.id);
+  }
+  return ids;
+}
+
+/**
+ * Clés des raisons courtes qui rendent le contrôle `numero` sans valeur de preuve : celles des avertissements
+ * qu'avertissementsSansValeur retient, chacune une fois. Ce n'est pas un statut calculé : le statut reste celui du
+ * rapport ; la page dit sans valeur de preuve ce qu'EX-6.25 dit tel, et rien d'autre.
  */
 function sansValeurDuControle(numero, controles, avertissements) {
-  const c = controles.find((x) => x.numero === numero);
-  if (c === undefined || c.statut !== "reussi") return [];
   const cles = [];
-  for (const id of reservesDuControle(numero, controles, avertissements)) {
+  for (const id of avertissementsSansValeur(numero, controles, avertissements)) {
     if (Object.hasOwn(SANS_VALEUR, id) && !cles.includes(SANS_VALEUR[id])) cles.push(SANS_VALEUR[id]);
   }
   return cles;
@@ -1026,8 +1077,8 @@ function sansValeurDuControle(numero, controles, avertissements) {
 
 /**
  * Numéros des contrôles exigés (`inputs.required_controls`) que le rapport dit sans valeur de preuve
- * (sansValeurDuControle), dans l'ordre des numéros ; vide sans exigence lisible. Le vérificateur les compte comme
- * réussis (CT-6 7.5) ; la page ne fait que restreindre ce qu'elle en dit.
+ * (sansValeurDuControle), dans l'ordre des numéros ; vide sans exigence lisible. Depuis le complément du 2026-11-19
+ * (CT-6 EX-6.25), un tel contrôle rend le code 3 : la page dit lesquels sous « Incomplet ».
  */
 function exigesSansValeur(controles, avertissements, exiges) {
   if (controles === null || avertissements === null || exiges === null) return [];
@@ -1229,9 +1280,21 @@ function lireControles(rapport, code) {
     if (c === null || typeof c !== "object" || c.number !== i + 1 || !STATUTS_CONNUS.includes(c.status)) return null;
     if (c.status === "non_execute" ? typeof c.reason !== "string" : c.reason !== null && c.reason !== undefined) return null;
     if ((code === 0 || code === 3) && (c.status === "echoue" || c.reason === "prerequis_en_echec")) return null;
-    controles.push({ numero: c.number, statut: c.status, raison: c.status === "non_execute" ? c.reason : null, resume: typeof c.summary === "string" ? c.summary : "", verifications: listeDeChaines(c.checks) ?? [] });
+    controles.push({ numero: c.number, statut: c.status, raison: c.status === "non_execute" ? c.reason : null, resume: typeof c.summary === "string" ? c.summary : "", verifications: listeDeChaines(c.checks) ?? [], approbation: c.number === 7 ? approbationLue(rapport, code) : null });
   }
   return controles;
+}
+
+/**
+ * Ce que la règle de nombre du contrôle 7 lit du rapport (CT-6 EX-6.25) : `facts.approval.approvers` (adresses) et
+ * `facts.approval.required` (entier), sous les codes 0 et 3 seulement (EX-6.13) ; null s'ils ne se lisent pas exactement.
+ */
+function approbationLue(rapport, code) {
+  if (code !== 0 && code !== 3) return null;
+  const faits = rapport.facts !== null && typeof rapport.facts === "object" && !Array.isArray(rapport.facts) ? rapport.facts : null;
+  const a = faits !== null && faits.approval !== null && typeof faits.approval === "object" && !Array.isArray(faits.approval) ? faits.approval : null;
+  if (a === null || !Array.isArray(a.approvers) || !a.approvers.every((x) => typeof x === "string" && /^0x[0-9a-fA-F]{40}$/.test(x)) || !Number.isSafeInteger(a.required) || a.required < 1) return null;
+  return { approvers: [...a.approvers], required: a.required };
 }
 
 /** Liste de chaînes du rapport, ou null si ce n'en est pas une. */
@@ -1598,8 +1661,9 @@ function carteControles(resume, noms) {
     if (cleDossier !== null) texte.append(element("span", "pv-controle-dossier", libelle(cleDossier)));
     if (ids.length > 0) {
       // Les avertissements qui rendent le contrôle sans valeur de preuve, puis les autres, chacun avec son renvoi.
-      const sansValeurIds = ids.filter((id) => Object.hasOwn(SANS_VALEUR, id));
-      const autres = ids.filter((id) => !Object.hasOwn(SANS_VALEUR, id));
+      const retenus = avertissementsSansValeur(c.numero, resume.controles, resume.avertissements);
+      const sansValeurIds = ids.filter((id) => retenus.includes(id));
+      const autres = ids.filter((id) => !retenus.includes(id));
       for (const [liste, cleLigne] of [[sansValeurIds, "controle_sans_valeur"], [autres, "controle_reserve"]]) {
         if (liste.length === 0) continue;
         const renvoi = element("a", null, libelle("renvoi_reserves"));
@@ -1812,7 +1876,7 @@ function ecrireVue() {
   // restent que si le rapport, lu exactement, donne huit contrôles réussis et aucun avertissement.
   const duDossier = v.code === 2 ? [] : numerosDuDossier(v.resume);
   const exigesSv = v.code === 2 ? [] : exigesSansValeur(v.resume.controles, v.resume.avertissements, v.resume.exiges);
-  const presentation = presentationVerdict(v.code, v.code === 2 ? null : v.resume.controles, v.code === 2 ? null : v.resume.avertissements, duDossier, v.code === 2 ? null : v.resume.exiges);
+  const presentation = presentationVerdict(v.code, v.code === 2 ? null : v.resume.controles, v.code === 2 ? null : v.resume.avertissements, duDossier);
   const [variante, signe] = presentation.teinte === "pleine" ? variantes[v.code] : [null, presentation.teinte === "reserve" ? "alerte" : "question"];
   const verdict = blocVerdict(variante, signe);
   if (presentation.teinte !== "pleine") verdict.classList.add(`pv-verdict-${presentation.teinte}`);
@@ -1839,8 +1903,7 @@ function ecrireVue() {
       verdict.append(p);
     }
   }
-  // Sous le code 0, un contrôle exigé sans valeur de preuve : la phrase ne dit plus que l'exigence est remplie.
-  const courante = v.code === 0 && exigesSv.length > 0 ? "phrase_0_exige_sans_valeur" : clePhraseCourante(v.code);
+  const courante = clePhraseCourante(v.code);
   if (courante !== null) verdict.append(phraseCourante(courante));
   const suite = element("div", "pv-verdict-suite");
   suite.id = "verdict-suite";
@@ -1887,11 +1950,11 @@ function ecrireVue() {
         p.id = "tous-reussis";
         suite.append(p);
       } else if (v.code === 0) suite.append(ligneBorne("verdict-borne", "valide_borne", { liste: nonReussis.join(", ") }));
-      else if (v.code === 3 && r.exiges !== null) {
+      else if (v.code === 3 && r.exiges !== null && r.exiges.some((n) => nonReussis.includes(n))) {
         suite.append(ligneBorne("exiges-non-reussis", "exiges_non_reussis", { liste: r.exiges.filter((n) => nonReussis.includes(n)).join(", ") }));
       }
-      // Contrôles exigés que le rapport dit sans valeur de preuve : le vérificateur les compte comme réussis (CT-6 7.5).
-      if ((v.code === 0 || v.code === 3) && exigesSv.length > 0) {
+      // Contrôles exigés que le rapport dit sans valeur de preuve : ils rendent le code 3 (CT-6 EX-6.25).
+      if (v.code === 3 && exigesSv.length > 0) {
         suite.append(ligneBorne("exiges-sans-valeur", "exiges_sans_valeur", { liste: exigesSv.join(", ") }, { raisons: raisonsEnMots(exigesSv.flatMap((n) => sansValeurDuControle(n, r.controles, r.avertissements))) }));
       }
       // Sous un « Valide » borné ou un « Incomplet », les contrôles sans valeur de preuve sont dits à part.
@@ -1942,7 +2005,7 @@ function ecrireVue() {
   const duo = element("div", "pv-duo");
   const limites = v.code === 2 ? null : carteLimites(v.code);
   if (limites) duo.append(limites);
-  const suiteCarte = carteSuite(v.code === 0 && exigesSv.length > 0 ? "0_exige_sans_valeur" : v.code, true);
+  const suiteCarte = carteSuite(v.code, true);
   if (suiteCarte) duo.append(suiteCarte);
   contenu.append(duo);
 

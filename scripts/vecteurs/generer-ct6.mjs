@@ -161,7 +161,7 @@ export function conceptionDossiers() {
     fichiers["certificat-commit.json"] = Buffer.from(JSON.stringify(cc, null, 2) + "\n");
   };
   ajouter("valide-seq-7-complet", { description: "Dossier valide-seq-7 de CT-1, ses sept parties inchangées, complété du jeton de la période 1 (rfc3161/jetons/periode-1.der), de sa preuve OpenTimestamps (ots/preuves/periode-1.ots) et des trois parties du registre de la période 1 (registre/periode-1/ : inscriptions de rec-test-01 et rec-test-02, ancre et clôture). Les huit contrôles réussissent ; T-11 n'est pas exécutée (aucun statut qualifié déclaré), l'énoncé ne dit pas « qualifié »." });
-  ajouter("valide-seq-7-complet-sans-ancres", { ancres: null, statuts: { 4: "non_execute", 5: "non_execute", 8: "non_execute" }, raisons: { 4: "ancre_absente", 5: "ancre_absente", 8: "ancre_absente" }, avertissements: [], description: "Le même dossier, vérifié sans fichier d'ancres (avec chaine.json) : les contrôles 4, 5 et 8 ne sont pas exécutés (ancre_absente) ; N-3 et N-4 ne figurent pas au rapport ; aucun avertissement (AV-O-3 exige O-5 exécutée)." });
+  ajouter("valide-seq-7-complet-sans-ancres", { ancres: null, statuts: { 4: "non_execute", 5: "non_execute", 8: "non_execute" }, raisons: { 4: "ancre_absente", 5: "ancre_absente", 8: "ancre_absente" }, avertissements: [], description: "Le même dossier, vérifié sans fichier d'ancres (avec chaine.json) : les contrôles 4, 5 et 8 ne sont pas exécutés (ancre_absente) ; N-3 et N-4 ne figurent pas au rapport ; pas d'AV-O-3 (il exige O-5 exécutée) ; complément du 2026-11-19 : AV-N-1 (clés d'essai rec-test-01 et rec-test-02) et AV-N-2 (deux approbateurs d'essai), les contrôles 6 et 7 réussissant avec des pièces d'essai (CT-6 EX-6.24)." });
   ajouter("valide-seq-7-complet-sans-entetes", { entetes: null, statuts: { 5: "non_execute" }, raisons: { 5: "partie_absente" }, avertissements: [], description: "Le même dossier, vérifié avec ancres-test.json et sans fichier d'en-têtes : contrôle 5 non exécuté (partie_absente, EX-4.5)." });
   ajouter("valide-t11-qualification-declaree", { ancres: "ancres-qualification-declaree.json", description: "Le même dossier, vérifié avec ancres-qualification-declaree.json : T-11 réussie ; l'énoncé dit « horodatage qualifié eIDAS selon le réviseur (déclaration de test, sans valeur) »." });
   ajouter("valide-t7-deux-autorites", { ancres: "ancres-deux-autorites.json", description: "Le même dossier, vérifié avec ancres-deux-autorites.json (l'unité tsa-test.pem épinglée, statut qualifié déclaré, puis ac-test.pem) : T-7 retient la première autorité du fichier pour laquelle un chemin existe, par l'identité (EX-9.13) ; T-10 n'a rien à prouver ; T-11 réussie ; l'énoncé nomme « Unité TSA épinglée de test CT-6 »." });
@@ -255,7 +255,7 @@ export function conceptionDossiers() {
   avecPoint("valide-point-de-controle-sans-ancre", { jeton: null, preuve: null, registre: false }, { partiesRegistre: "periode-1", description: "Même partie avec les trois ancres nulles : K-7 à K-9 non exécutées (partie_absente) ; pas de FK ; facts.checkpoint non nul à timestamp, bitcoin et registry nuls ; énoncé égal à celui de valide-seq-7-complet." });
   avecPoint("valide-point-de-controle-declare-absent", { absent: true }, { partiesRegistre: "periode-1", description: "Treize parties déclarées, la treizième absente avec la raison « aucun point de contrôle » : aucune vérification K- au rapport, absent_parts la porte ; énoncé, statuts et borne égaux à ceux de valide-seq-7-complet (EX-6.18)." });
   avecPoint("invalide-r7-r11-non-executee", {}, { cible: "R-7", mutation: (fichiers) => { const reg = J.analyserJSONStrict(fichiers["registre.json"]); const e = reg.entries[0]; const j = e.receipts[e.transaction_index].logs[e.log_index]; j.data = j.data.slice(0, 4) + (j.data[4] === "0" ? "1" : "0") + j.data.slice(5); fichiers["registre.json"] = Buffer.from(JSON.stringify(reg, null, 2) + "\n"); }, avertissements: DEUX_AV_O3, description: "valide-point-de-controle-complet dont le journal prouvé de l'entrée 0 (inscription de rec-test-01) a un chiffre de data changé (SHA-256 de l'index reporté) : R-7 échoue pour cette entrée ; R-10 non exécutée (prerequis_en_echec) ; R-11 non exécutée (prerequis_en_echec, règle 3 : R-10 non réussie pour une autre raison que l'absence d'entrée inscription), sans AV-K-3 ; K-8 réussie, inclusion déclarative sans AV-K-1 (EX-11.25 : la raison de R-11 n'est pas admise) ; contrôle 8 en échec, code 1 (EX-11.24, révision 0.9 : la référence appliquait la règle 3 sans R-10 réussie et levait AV-K-3)." });
-  avecPoint("valide-point-de-controle-sans-ancres-reviseur", {}, { ancres: null, statuts: { 4: "non_execute", 5: "non_execute", 8: "non_execute" }, raisons: { 4: "ancre_absente", 5: "ancre_absente", 8: "ancre_absente" }, avertissements: [], description: "Comme valide-point-de-controle-complet, vérifié sans fichier d'ancres (avec chaine-points.json) : K-7, K-8 et K-9 non exécutées (ancre_absente) comme les contrôles 4, 5 et 8 ; pas de FK ; les K- ne changent aucun statut (EX-5.8) ; aucun avertissement (O-5 non exécutée)." });
+  avecPoint("valide-point-de-controle-sans-ancres-reviseur", {}, { ancres: null, statuts: { 4: "non_execute", 5: "non_execute", 8: "non_execute" }, raisons: { 4: "ancre_absente", 5: "ancre_absente", 8: "ancre_absente" }, avertissements: [], description: "Comme valide-point-de-controle-complet, vérifié sans fichier d'ancres (avec chaine-points.json) : K-7, K-8 et K-9 non exécutées (ancre_absente) comme les contrôles 4, 5 et 8 ; pas de FK ; les K- ne changent aucun statut (EX-5.8) ; pas d'AV-O-3 (O-5 non exécutée) ; complément du 2026-11-19 : AV-N-1 (clés d'essai rec-test-01 et rec-test-02) et AV-N-2 (deux approbateurs d'essai), les contrôles 6 et 7 réussissant avec des pièces d'essai (CT-6 EX-6.24)." });
   avecPoint("valide-point-de-controle-reference-declarative", {}, { partiesRegistre: "periode-1", avertissements: ["AV-K-1", "AV-O-3", "AV-O-3"], description: "Comme valide-point-de-controle-complet, parties du registre de periode-1/ (sans l'entrée ancre_point_de_controle) : K-8 réussie, inclusion declarative, AV-K-1 ; R-11 non exécutée (partie_absente) ; FK sans clause registre." });
   // Choix du point couvrant (CT-5 EX-10.2, AN-51 ; CT-1 §11.2 ; CT-6 EX-13.18) : un point plus tardif
   // de la série, porteur d'un jeton construit par le générateur avec la TSA de test (rfc3161/cles).
@@ -683,6 +683,57 @@ function controlesRevision04(nom, corps) {
 }
 
 /** Confronte les attendus posés par construction au vérificateur de référence. */
+/**
+ * Avertissements de pièce d'essai attendus (CT-6 EX-6.23, EX-6.24, complément
+ * du 2026-11-19), posés par construction d'après les entrées du dossier et les
+ * statuts attendus des contrôles ; seuls les statuts de K-3, K-7 et N-4, que la
+ * conception ne pose pas, sont lus dans le rapport. Rend des identifiants, sans
+ * ordre : l'ordre d'EX-6.15 est confronté au binaire Go par les essais.
+ */
+function piecesEssaiAttendues(c, fichiers, cheminAncres, corps) {
+  const json = (f) => (fichiers[f] ? JSON.parse(Buffer.from(fichiers[f]).toString("utf8")) : null);
+  const ancres = cheminAncres ? JSON.parse(fs.readFileSync(cheminAncres, "utf8")) : null;
+  const statut = (n) => c.control_statuses[String(n)] ?? c.control_statuses[n];
+  const verif = (id) => corps.checks.find((x) => x.id === id)?.status ?? null;
+  const out = [];
+  if (ancres) {
+    // Toutes les autorités des fichiers d'ancres des vecteurs sont des certificats d'essai : on l'exige.
+    for (const a of ancres.tsa_authorities) {
+      const der = Buffer.from(a.certificate.replace(/-----[^-]+-----/g, "").replace(/\s+/g, ""), "base64");
+      exiger(V.estCertificatEssai("0x" + crypto.createHash("sha256").update(der).digest("hex")), `${cheminAncres} : autorité ${a.name} hors de la liste des certificats d'essai`);
+    }
+    if (statut(4) === "reussi") out.push("AV-T-5");
+    if (verif("K-7") === "reussi") out.push("AV-T-5");
+    if (statut(8) === "reussi" && V.estChaineEssai(ancres.registry?.chain_id)) out.push("AV-R-4");
+    if (verif("N-4") === "reussi") {
+      const man = json("manifeste.json");
+      const rec = ancres.recorders.find((x) => x.key_id === man?.recorder_key_id && x.chain_key !== null);
+      if (rec && V.estCleChaineEssai(rec.chain_key)) out.push("AV-N-1");
+    }
+  }
+  const cles = json("cles.json");
+  const ev = json("evenement.json");
+  const man = json("manifeste.json");
+  const point = json("points-de-controle.json");
+  const pub = (k) => cles?.keys?.find((x) => x.key_id === k)?.public_key ?? null;
+  const dites = new Set();
+  const cle = (k) => {
+    if (typeof k !== "string" || dites.has(k)) return;
+    dites.add(k);
+    if (V.estCleEnregistreurEssai(pub(k))) out.push("AV-N-1");
+  };
+  if (statut(6) === "reussi") {
+    cle(ev?.recorder_key_id);
+    cle(man?.recorder_key_id);
+  } else dites.add(ev?.recorder_key_id).add(man?.recorder_key_id);
+  if (point && verif("K-3") === "reussi") cle(point.checkpoint?.key_id ?? point.key_id);
+  if (statut(7) === "reussi") for (const a of ev.approval.approvers) if (V.estApprobateurEssai(a)) out.push("AV-N-2");
+  return out;
+}
+
+/** Même multiensemble d'identifiants (EX-6.24 ne fixe que l'ensemble ; EX-6.15 l'ordre, confronté ailleurs). */
+const memesIdentifiants = (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
+
 function confronter(nom, attendu, corps) {
   const obtenu = {
     failed_checks: corps.failed_checks,
@@ -734,6 +785,8 @@ function index({ rfc, ots, attenduRegistre, ancres, dossiers }) {
   L.push("Révision 0.5 (EX-A.25, EX-A.26 ; relecture adversariale de l'étape 5) : `rfc3161/` reçoit les certificats `tsa-cle-longueur-non-minimale.pem` (RSAPublicKey à longueur longue non minimale) et `tsa-extension-mal-formee.pem` (valeur de `keyUsage` en `INTEGER`), construits sur la clé de `tsa-test`, et les jetons `t1-cle-longueur-non-minimale.der` et `t1-extension-mal-formee.der` qui les portent (T-1 en échec, EX-9.4, EX-9.7 : la lecture selon §9.3 d'un certificat comprend son `SubjectPublicKeyInfo` et ses extensions connues) ; `ots/` reçoit `o1-attestation-en-double.ots` (l'attestation à 1001 écrite deux fois sous le même nœud : forme non canonique, O-1 en échec, raison `doublon`, §10.2 ; `python-opentimestamps` la relit en écrasant le doublon, `attendu.json` le note `acceptee_en_ecrasant`). Les quatre-vingt-treize dossiers ne changent pas.");
   L.push("");
   L.push("## dossiers/");
+  L.push("");
+  L.push("Complément du 2026-11-19 de CT-6, décision du porteur (pièces d'essai, section 6.10, EX-6.23 à EX-6.25) : aucun dossier, aucune ancre ni aucun jeton ne change ; les avertissements de pièce d'essai s'ajoutent aux attendus, posés par construction d'après les entrées (toutes les autorités des fichiers d'ancres sont des certificats d'essai, le registre est `noortrace-2124-dev`, les clés sont celles de CT-1 §13, les approbateurs des comptes Hardhat) : AV-T-5 (contrôle 4 réussi, ou K-7 réussie), AV-R-4 (contrôle 8 réussi), AV-N-1 (clé d'enregistreur de l'événement, du manifeste ou du point, clé de chaîne de N-4), AV-N-2 (un par approbateur d'essai). Aucun code de retour attendu ne change (les attendus sont pris sans `--exiger`, et `exit_code_exiger_4` ne porte que sur des dossiers dont le contrôle 4 ne réussit pas).");
   L.push("");
   L.push("| Dossier | Ancres | En-têtes | Visée | En échec | Contrôles non exécutés | Avertissements | Code |");
   L.push("|---|---|---|---|---|---|---|---|");
@@ -832,6 +885,13 @@ export function genererCt6({ racine = REPERTOIRE_CT6 } = {}) {
     const invalide = c.failed_checks.length > 0 || Object.values(c.control_reasons).includes("prerequis_en_echec");
     const attenduConstruction = { failed_checks: c.failed_checks, control_statuses: c.control_statuses, control_reasons: Object.fromEntries(Object.entries(c.control_reasons).map(([n, r]) => [String(n), r])), warnings: c.warnings, exit_code: invalide ? 1 : 0 };
     const corps = verifierRepertoire(rep, { ancres: cheminAncres, entetes: cheminEntetes, schemas });
+    // Complément du 2026-11-19 : les avertissements de pièce d'essai s'ajoutent à ceux de la conception ;
+    // l'ensemble est confronté, et l'ordre est celui du rapport (EX-6.15).
+    const attendusAvecEssai = [...c.warnings, ...piecesEssaiAttendues(c, fichiers, cheminAncres, corps)];
+    const obtenus = corps.warnings.map((w) => w.id);
+    exiger(memesIdentifiants(attendusAvecEssai, obtenus), `dossier ${c.nom} : avertissements attendus ${JSON.stringify(attendusAvecEssai)}, obtenus ${JSON.stringify(obtenus)}`);
+    attenduConstruction.warnings = obtenus;
+    c.warnings = obtenus;
     confronter(c.nom, attenduConstruction, corps);
     // Révision 0.3 (EX-A.19) : statuts des AT- et rétention de l'attestation, posés par la conception.
     const perimeter_checks = corps.checks.filter((x) => x.id.startsWith("AT-")).map((x) => ({ id: x.id, status: x.status, reason: x.reason }));

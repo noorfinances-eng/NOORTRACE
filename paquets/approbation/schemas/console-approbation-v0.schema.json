@@ -579,6 +579,44 @@
               "$ref": "#/$defs/hex32"
             }
           }
+        },
+        "approver_names": {
+          "description": "Complément du 2026-11-19, décision du porteur (CT-3 EX-12.15) : pour chaque adresse qui a un vote dans votes, une fois et dans l'ordre de votes, le nom affiché et le rôle de l'entrée de l'annuaire qui porte cette adresse, dans tout état ; display_name et role nuls pour une adresse qu'aucune entrée ne porte. Facultatif : une vue antérieure ne le porte pas. Hors des contrôles d'EX-9.15 et du modèle d'affichage.",
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "approver",
+              "display_name",
+              "role"
+            ],
+            "properties": {
+              "approver": {
+                "$ref": "#/$defs/adresse"
+              },
+              "display_name": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                ]
+              },
+              "role": {
+                "enum": [
+                  null,
+                  "approbateur",
+                  "administrateur"
+                ]
+              }
+            }
+          }
         }
       }
     },

@@ -162,8 +162,15 @@ func TestExemplesLisibles(t *testing.T) {
 	if code != 3 || !strings.Contains(o, "4, 5, 7, 8") && !strings.Contains(o, "4, 5, 8") {
 		t.Errorf("--exiger tous : code %d", code)
 	}
-	if code, _, _ := executer(ct1+"valide-seq-7", "--exiger", "1,2,3,6,7"); code != 0 {
-		t.Errorf("--exiger 1,2,3,6,7 : code %d", code)
+	if code, _, _ := executer(ct1+"valide-seq-7", "--exiger", "1,2,3"); code != 0 {
+		t.Errorf("--exiger 1,2,3 : code %d", code)
+	}
+	// Complément du 2026-11-19 (CT-6 EX-6.25) : les contrôles 6 et 7 réussis
+	// avec les clés et les approbateurs d'essai de CT-1 §13 ne satisfont pas
+	// l'exigence : code 3, nommés à part sur la ligne « Résultat ».
+	code, o, _ = executer(ct1+"valide-seq-7", "--exiger", "1,2,3,6,7")
+	if code != 3 || !strings.Contains(o, "\nRésultat      : INCOMPLET — contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : 6, 7\n") {
+		t.Errorf("--exiger 1,2,3,6,7 : code %d\n%s", code, o)
 	}
 	code, o, _ = executer(ct1+"valide-seq-7", "--langue", "en", "--detail")
 	if code != 0 || !strings.Contains(o, "Offline verification") || !strings.Contains(o, "\nChecks:\n") || !strings.Contains(o, "Statement     : Event seq 7") {

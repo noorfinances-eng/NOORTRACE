@@ -33,7 +33,7 @@ const AIDE_ORG_ESSAI = " En mode essai seulement, vous pouvez aussi écrire un n
 const ORG = {
   nom: "org", libelle: "Nom court du client", type: "slug", tirage: "Tirer un nom au hasard",
   aide: AIDE_ORG,
-  apres: "Ce nom ne dit pas qui est le client : notez-le dans votre fichier des clients, à côté de son vrai nom.",
+  apres: "Ce nom ne dit pas qui est le client : une fois le dossier préparé, donnez-lui sur sa fiche un nom interne, que seule notre équipe voit.",
 };
 /** En mode essai, l'aide dit aussi qu'un nom libre est admis, et l'exemple en montre un. */
 const ORG_ESSAI = { ...ORG, aide: AIDE_ORG + AIDE_ORG_ESSAI, exemple: "assureur-demo" };

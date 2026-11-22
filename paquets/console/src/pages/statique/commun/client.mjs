@@ -8,6 +8,7 @@
 // `/connexion?retour=<chemin de l'écran>`.
 
 import { analyserJsonStrict, analyserIdentite, estInstant, METHODES_REAUTHENTIFICATION } from "noortrace-console/index.mjs";
+import { titresValides } from "./lisible.mjs";
 
 /** Erreur d'un appel : code de la réponse (12.8, `$defs/code_serveur_console`) ou code propre à la page. */
 export class ErreurAppel extends Error {
@@ -166,7 +167,10 @@ export async function lireSession() {
     !estInstant(s.auth_time) ||
     typeof s.administrator !== "boolean" ||
     !entierDans(s.reauth_max_age_s, 0, 3600) ||
-    (s.delai_signature_ms !== undefined && !entierDans(s.delai_signature_ms, 30000, 1800000))
+    (s.delai_signature_ms !== undefined && !entierDans(s.delai_signature_ms, 30000, 1800000)) ||
+    // Complément du 2026-11-19 (CT-3 EX-13.48) : nom affiché de la session et phrases modèles, facultatifs.
+    (s.display_name !== undefined && s.display_name !== null && (typeof s.display_name !== "string" || s.display_name === "" || [...s.display_name].length > 256)) ||
+    (s.titles !== undefined && !titresValides(s.titles))
   ) {
     return { etat: "erreur", erreur: new ErreurAppel("reponse_service_invalide") };
   }
@@ -179,6 +183,9 @@ export async function lireSession() {
       reauth_max_age_s: s.reauth_max_age_s,
       // EX-13.48, point 4 : sans `delai_signature_ms`, 300 000 ms.
       delai_signature_ms: s.delai_signature_ms === undefined ? 300000 : s.delai_signature_ms,
+      // Sans ces membres (serveur antérieur) : la personne est nommée par son identité, et le titre d'avant reste.
+      display_name: typeof s.display_name === "string" ? s.display_name : null,
+      titles: s.titles === undefined ? null : s.titles,
     },
   };
 }

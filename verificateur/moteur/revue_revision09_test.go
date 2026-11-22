@@ -7,6 +7,7 @@ package moteur
 
 import (
 	"encoding/json"
+	"fmt"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -45,7 +46,10 @@ func TestN3CleEmployeeSansAncreP(t *testing.T) {
 		}
 	}
 	temoin := Verifier(Options{Repertoire: seq7, Ancres: ancresTestP, Langue: "fr", Version: "0.0.0", Exiger: []int{6}})
-	if temoin.Code != 0 || verifs(temoin)["N-3"].Statut != commun.Reussi || temoin.Controles[6].Statut != commun.Reussi {
+	// Témoin : N-3 réussie, contrôle 6 réussi. Depuis le complément du
+	// 2026-11-19 (EX-6.25), les clés rec-test-01 et rec-test-02 sont des clés
+	// d'essai : le contrôle 6 exigé est sans valeur de preuve, code 3.
+	if temoin.Code != 3 || verifs(temoin)["N-3"].Statut != commun.Reussi || temoin.Controles[6].Statut != commun.Reussi || fmt.Sprint(temoin.Rapport.Lisible.ExigesSansValeur) != "[6]" {
 		t.Fatalf("témoin : code %d, N-3 %s", temoin.Code, verifs(temoin)["N-3"].Statut)
 	}
 }

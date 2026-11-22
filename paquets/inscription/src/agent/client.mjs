@@ -81,3 +81,6 @@ export const remettreTravail = (prise, exploitant, travail, options) => remettre
 
 /** Remet une confirmation hors bande au nom d'un exploitant. */
 export const remettreConfirmation = (prise, exploitant, confirmation, options) => remettre(prise, { version: 0, kind: "confirmation", exploitant, confirmation }, options);
+
+/** Remet une note interne (nom interne, remise du paquet, correction d'une remise) au nom d'un exploitant (CT-4 EX-7.23, complément du 2026-11-19). */
+export const remettreNote = (prise, exploitant, note, options) => remettre(prise, { version: 0, kind: "note", exploitant, note }, options);

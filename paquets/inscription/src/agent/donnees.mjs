@@ -1,6 +1,6 @@
 // Données de l'agent (INTERFACES.md 3.6) : répertoire du compte de l'agent,
 // groupe de l'interface, mode 0750 ; journaux en ajout seul
-// (`journal-agent.ndjson`, `confirmations.ndjson`), état des travaux
+// (`journal-agent.ndjson`, `confirmations.ndjson`, `notes-internes.ndjson`), état des travaux
 // (`travaux/<id>.json`, réécrit par renommage), et, par client, le dossier,
 // les captures, les demandes, les sorties, les parties et le paquet.
 //
@@ -83,7 +83,7 @@ export const JOURNAL_MAX_OCTETS = 16 * 1024 * 1024;
  * renommé en `<chemin>.1` (la génération précédente est remplacée) et un
  * journal neuf commence ; le total tenu par un journal borné est donc d'au
  * plus deux fois `tailleMax` et une ligne. Sans `tailleMax` (registre des
- * confirmations), le journal n'est jamais tourné.
+ * confirmations, registre des notes), le journal n'est jamais tourné.
  */
 export function ajouterLigne(chemin, objet, { tailleMax = null } = {}) {
   creerRepertoire(path.dirname(chemin));
@@ -131,6 +131,9 @@ export function chemins(donnees) {
     racine: donnees,
     journal: path.join(donnees, "journal-agent.ndjson"),
     confirmations: path.join(donnees, "confirmations.ndjson"),
+    // Notes internes (CT-4 EX-7.23, complément du 2026-11-19) : nom interne et remise du paquet, en ajout seul, hors
+    // du répertoire des clients, que le paquet et les parties ne lisent pas.
+    notes: path.join(donnees, "notes-internes.ndjson"),
     travaux: path.join(donnees, "travaux"),
     travail: (id) => path.join(donnees, "travaux", `${id}.json`),
     clients: path.join(donnees, "clients"),

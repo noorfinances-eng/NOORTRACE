@@ -220,8 +220,8 @@ service simulés par interception, en-têtes de 2.6, espions du stockage).
   du navigateur se jouent avec les polices de la machine et avec celles
   d'un poste sans Inter (`FONTCONFIG_FILE` qui écarte Inter : DejaVu Sans).
   Mutant vu : la hauteur supposée de 5 rem.
-- **« vérifié ».** Sous les valeurs vérifiées, et dans la liste dès qu'un
-  montant vérifié y paraît, une légende bien visible dit ce que la marque
+- **« inchangé ».** Sous les valeurs inchangées, et dans la liste dès qu'un
+  montant inchangé y paraît, une légende bien visible dit ce que la marque
   veut dire et ne veut pas dire, et invite à comparer aux pièces. Mutant
   vu : la légende retirée.
 - **Récusation et retrait.** Au pied des cartes « Qui décide » et « Qui
@@ -246,3 +246,28 @@ service simulés par interception, en-têtes de 2.6, espions du stockage).
   (la réponse `tickets` ne porte pas les arguments). Les autres approbateurs restent des adresses
   pour une session ordinaire, dont l'annuaire ne porte que sa propre fiche.
   Le décalage d'un instant reste écrit « UTC+1 ».
+
+## Décisions du porteur du 2026-11-19
+
+Éprouvées par `test/exploitation-console-langage-chromium.test.js`, les
+essais des pages, du serveur (`session`) et du service (`consulter`). Elles
+remplacent ce qui précède là où elles le contredisent ; le détail est au
+complément du 2026-11-19 de `INTERFACES.md`, 3.4.
+
+- **« inchangé ».** La marque d'une valeur `verifie` se dit « inchangé » ;
+  la légende et le groupe à contrôler le disent avec ce mot.
+- **Titre.** Une phrase modèle de l'organisation (`titles`, configuration
+  du serveur de console, transmise par `session`) donne le titre d'une
+  demande, rempli des seules valeurs « inchangé » (`titreDemande`) ; sinon,
+  la phrase d'avant. Mutant vu : une valeur non contrôlée admise.
+- **Un seul code.** L'écran de signature montre en grand le code de
+  contrôle en entier ; l'autre forme est derrière le lien « Mon
+  application affiche un autre code ». Mutant vu : l'autre forme ouverte
+  d'emblée.
+- **Refus dans l'application.** Plus de « Réessayer » : « Prévenez votre
+  administrateur : ne réessayez pas. », puis un lien discret pour qui a
+  refusé par erreur. Mutant vu : « Réessayer » de nouveau offert.
+- **Noms.** Chaque décision donnée porte le nom que la vue tire de
+  l'annuaire (`approver_names`), ou « adresse inconnue de l'annuaire » ; la
+  personne connectée porte le même nom en haut et dans la demande.
+

@@ -34,7 +34,7 @@ import { el, ajouter, code, detail, icone, marque, message, pastille, remplacer 
 import { t } from "../commun/libelles.mjs";
 import { appeler, maintenant } from "../commun/client.mjs";
 import { afficherErreur, demarrerEcran, entete, estIdentifiantTicket, expliquerContestation, instant, legendeVerifie, lienTicket, paragrapheCode, pastilleEtat, pluriel, principal, texteDuree, texteDureeCourte, texteRestant } from "../commun/cadre.mjs";
-import { montantVerifie } from "../commun/lisible.mjs";
+import { montantDuResume, resumeVerifie, titreDemande } from "../commun/lisible.mjs";
 
 const estObjet = (v) => v !== null && typeof v === "object" && !Array.isArray(v);
 
@@ -131,7 +131,7 @@ const MONTANTS_MAX = 10;
  * d'une autre demande, un montant que la console n'a pas vérifié : la ligne
  * reste sans montant, et rien d'autre n'est affiché.
  */
-async function lireMontants(identite, enCours) {
+async function lireMontants(identite, enCours, titres = null) {
   const cibles = enCours.filter((tk) => estIdentifiantTicket(tk.ticket) && zonesMontant.has(String(tk.ticket))).slice(0, MONTANTS_MAX);
   if (cibles.length === 0) return;
   let annuaire;
@@ -150,7 +150,18 @@ async function lireMontants(identite, enCours) {
       // La vue porte déjà la décision de la personne connectée : la demande n'attend plus sa décision.
       const mien = approver !== null && vue.state === "ouvert" && Array.isArray(vue.votes) ? vue.votes.find((v) => estObjet(v) && v.approver === approver && (v.decision === "approuve" || v.decision === "refuse")) : undefined;
       if (mien !== undefined) rangerDejaDecidee(String(tk.ticket), mien.decision);
-      const m = montantVerifie(modeleAffichage(vue, { session: sessionDuModele(annuaire, identite, vue), decision: null, approver, reason: null, now: maintenant() }));
+      const modele = modeleAffichage(vue, { session: sessionDuModele(annuaire, identite, vue), decision: null, approver, reason: null, now: maintenant() });
+      // Complément du 2026-11-19 (CT-3 EX-9.4) : le titre que l'organisation a écrit pour la règle, rempli des seules
+      // valeurs « inchangé » ; le nom de l'outil reste, en petit.
+      const titre = titreDemande(modele, titres);
+      const nom = document.querySelector(`#liste-tickets li[data-ticket="${CSS.escape(String(tk.ticket))}"] .carte-ticket-nom`);
+      if (titre !== null && nom !== null) {
+        const outil = el("p", { classe: "carte-ticket-outil nt-petit nt-attenue", attributs: { "data-champ": "outil" } }, el("span", { texte: t("tickets.carte.titre") }), " ", code(String(tk.tool_announced)));
+        remplacer(nom, ...titre.map((x) => (x.pointeur === null ? document.createTextNode(x.texte) : el("span", { classe: "titre-valeur", texte: x.texte, attributs: { "data-pointeur": x.pointeur, "data-valeur": "" } }))));
+        nom.setAttribute("data-champ", "titre");
+        nom.after(outil);
+      }
+      const m = montantDuResume(resumeVerifie(modele));
       if (m === null) continue;
       montrerLegende();
       remplacer(
@@ -166,7 +177,7 @@ async function lireMontants(identite, enCours) {
 }
 
 /**
- * Ce que « vérifié » veut dire, dès qu'un montant vérifié paraît dans la
+ * Ce que « inchangé » veut dire, dès qu’un montant inchangé paraît dans la
  * liste : sous l'intertitre « À décider », une fois.
  */
 function montrerLegende() {
@@ -336,7 +347,7 @@ async function demarrer() {
     const r = await appeler("tickets", { session_identity: s.session_identity });
     const enCours = rendre(contenu, r.valeur);
     // La liste est affichée ; les montants vérifiés arrivent ensuite, sans la retarder.
-    void lireMontants(s.session_identity, enCours);
+    void lireMontants(s.session_identity, enCours, s.titles);
   } catch (e) {
     remplacer(contenu);
     afficherErreur(contenu, e);

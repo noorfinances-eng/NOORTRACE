@@ -26,6 +26,7 @@ pour être confrontée à elle et aux vérificateurs indépendants des vecteurs.
 | Contrôle 4 (T-1 à T-11, cœur de K-7), paquet `horodatage` | fait ; voir `horodatage/LISEZMOI.md` |
 | Contrôle 5 (O-1 à O-7, cœur de K-9), paquet `ots` | fait ; voir `ots/LISEZMOI.md` |
 | Contrôle 8 (R-1 à R-11, N-4, K-8), paquet `registre` | fait ; voir `registre/LISEZMOI.md` |
+| Pièces d'essai (CT-6 6.10, complément du 2026-11-19) : valeurs d'EX-6.23 et EX-6.25 dans `commun/essai.go` ; AV-T-5, AV-R-4, AV-N-1 et AV-N-2 levés par `moteur` d'après les résultats des paquets, qui ne changent pas ; contrôle exigé sans valeur de preuve : code 3 | fait ; `commun/essai_test.go`, oracles des paquets |
 
 Les huit contrôles sont construits et alignés sur CT-6 révision 0.4 et CT-1
 révision 0.5 (voir « Règles des révisions », plus bas) : chaque dossier de
@@ -56,7 +57,7 @@ noortrace-verifier --aide
 | `--entetes-bitcoin` | chaîne d'en-têtes Bitcoin (`entetes-bitcoin-v0`, §10.3) |
 | `--pieces` | répertoire des pièces nommées par leur `sha256` (E-6, EX-4.6) |
 | `--second-manifeste` | manifeste précédent ou suivant du même journal (P-5, EX-4.7) |
-| `--exiger` | numéros de 1 à 8, distincts, séparés par `,`, ou `tous` : un contrôle exigé non réussi rend `incomplet` |
+| `--exiger` | numéros de 1 à 8, distincts, séparés par `,`, ou `tous` : un contrôle exigé non réussi, ou qui ne repose que sur une pièce d'essai (CT-6 EX-6.25), rend `incomplet` |
 | `--langue` | `fr` (défaut) ou `en` : textes seulement, jamais statuts, raisons, verdict ni code |
 | `--json` | rapport JSON sur la sortie standard (y compris pour le code 2) |
 | `--detail` | rapport lisible : toutes les vérifications |
@@ -75,7 +76,7 @@ Codes de retour (§8.3) :
 | 0 | `valide` | aucune vérification en échec ; toute non-exécution a une raison admise |
 | 1 | `invalide` | au moins une vérification en échec ou non exécutée sans raison admise |
 | 2 | aucun | entrée inutilisable : usage, dossier, schémas, fichier d'ancres ou entrée à part illisibles, taille dépassée, erreur interne |
-| 3 | `incomplet` | comme 0, mais un contrôle exigé par `--exiger` n'a pas réussi |
+| 3 | `incomplet` | comme 0, mais un contrôle exigé par `--exiger` n'a pas réussi, ou repose sur une pièce d'essai (CT-6 6.10) |
 
 Le rapport (lisible ou JSON) va sur la sortie standard ; les messages
 d'erreur sur la sortie d'erreur, ainsi que l'avertissement de binaire

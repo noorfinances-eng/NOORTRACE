@@ -106,7 +106,7 @@ const LIBELLES_INSCRIPTION = {
   identite_desactivee: "votre entrée de l'annuaire est désactivée : prévenez l'administrateur",
   organisation_differente: "le message nomme une autre organisation : prévenez l'administrateur",
 };
-const STATUTS = { verifie: "vérifié", non_verifiable: "non vérifiable par la console", different: "différent de la pièce" };
+const STATUTS = { verifie: "inchangé", non_verifiable: "non vérifiable par la console", different: "différent de la pièce" };
 /** Marque de l'intention (EX-9.4, contrôle 4 d'EX-9.15), selon intent_status du modèle. */
 const MARQUES_INTENTION = { en_clair: "déclarée par l'agent, non vérifiée", reference_non_verifiable: "non vérifiable par la console : l'événement retenu la porte par une référence" };
 
@@ -538,7 +538,7 @@ async function confirmerDecision() {
  */
 function consignesSignature(origine) {
   return [
-    "Lire la demande : outil, chaque argument et sa marque (« vérifié », « non vérifiable par la console »), effets prévus (« connu après exécution » pour une valeur tirée du résultat), règle, délégation, intention marquée « déclarée par l'agent, non vérifiée », ou « non vérifiable par la console » quand l'événement la porte par une référence, jeu et votes.",
+    "Lire la demande : outil, chaque argument et sa marque (« inchangé », « non vérifiable par la console »), effets prévus (« connu après exécution » pour une valeur tirée du résultat), règle, délégation, intention marquée « déclarée par l'agent, non vérifiée », ou « non vérifiable par la console » quand l'événement la porte par une référence, jeu et votes.",
     "Choisir sa décision et son adresse ; la console affiche alors l'empreinte du condensé de cette décision, et elle seule.",
     "Sur l'écran du portefeuille, retrouver les 64 chiffres hexadécimaux du message (avec ou sans 0x, ou entre « hex( » et « ) ») et comparer les 8 premiers et les 8 derniers à l'empreinte affichée sous l'intitulé « empreinte du condensé à signer » ; pour une objection ou un montant élevé (CT-3 n'en fixe pas le seuil : l'organisation le dit), comparer les huit groupes. Sur un appareil qui montre aussi « Message hash », comparer cette valeur à l'empreinte affichée à part, sous l'intitulé « condensé EIP-191, montré par certains appareils sous « Message hash » » (H), et jamais à l'empreinte du condensé à signer (D_A).",
     "Si tout concorde, confirmer dans le portefeuille.",

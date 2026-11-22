@@ -2498,7 +2498,7 @@ html[data-barre="12"] { scroll-padding-top: 12.25rem; }
 }
 
 /*
- * Ce que « vérifié » veut dire, sous les valeurs qui portent cette marque :
+ * Ce que « inchangé » veut dire, sous les valeurs qui portent cette marque :
  * dans le texte courant, pas en note grise, pour qu'on ne le manque pas.
  */
 .legende-verifie {
@@ -3159,6 +3159,13 @@ html[data-barre="12"] { scroll-padding-top: 12.25rem; }
   flex: 1 1 100%;
 }
 
+/* Dans le rappel, le groupe des valeurs à contrôler se resserre, sans rien replier : avec deux valeurs, le bouton de
+   signature reste dans le premier écran d'un poste. */
+.rappel .groupe-valeurs {
+  gap: var(--nt-e-1);
+  padding: var(--nt-e-2) var(--nt-e-3);
+}
+
 .intitule-clair {
   color: var(--nt-encre-titre);
   font-size: var(--nt-t-m);
@@ -3247,7 +3254,7 @@ html[data-barre="12"] { scroll-padding-top: 12.25rem; }
     padding: var(--nt-e-3) var(--nt-e-4);
   }
 
-  /* Sur un téléphone, la légende de « vérifié » prend toute la largeur : son trait de gauche suffit à la signaler. */
+  /* Sur un téléphone, la légende de « inchangé » prend toute la largeur : son trait de gauche suffit à la signaler. */
   .legende-verifie svg {
     display: none;
   }
@@ -3302,13 +3309,8 @@ html[data-barre="12"] { scroll-padding-top: 12.25rem; }
     align-content: start;
   }
 
-  /* La décision signée, l'adresse et le portefeuille : une rangée de trois, l'intitulé à gauche de la valeur. */
-  .faits-signature {
-    display: grid;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.9fr) minmax(0, 1fr);
-    gap: 0 var(--nt-e-5);
-  }
-
+  /* La décision signée, l'adresse et le portefeuille, sous les consignes courantes : une ligne chacun, l'intitulé à
+     gauche de la valeur. */
   .faits-signature > .ligne {
     display: flex;
     flex-wrap: wrap;
@@ -3427,4 +3429,76 @@ html[data-barre="12"] { scroll-padding-top: 12.25rem; }
 .inscription-attente {
   margin: 0;
   font-weight: 600;
+}
+
+/* Titre d'une demande (complément du 2026-11-19) : la phrase modèle de l'organisation, remplie des valeurs inchangées ;
+   la phrase d'avant suit, en petit, avec le nom de l'outil. */
+.titre-demande {
+  margin: 0;
+  color: var(--nt-encre-titre);
+  font-size: var(--nt-t-l);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.titre-valeur {
+  overflow-wrap: anywhere;
+}
+
+.phrase-sous-titre {
+  margin: var(--nt-e-1) 0 0;
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+}
+
+.carte-ticket-outil {
+  margin: 0;
+}
+
+/* Écran de signature (complément du 2026-11-19) : un seul code, en entier, par groupes de huit, qui passent à la ligne
+   entre deux groupes, jamais au milieu d'un groupe. */
+.code-groupes {
+  white-space: normal;
+  letter-spacing: 0;
+  word-spacing: 0.1em;
+  font-size: clamp(1.05rem, 4.2vw, 1.35rem);
+  line-height: 1.5;
+}
+
+.code-groupes .groupe {
+  white-space: nowrap;
+}
+
+.autre-code > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  list-style: none;
+  cursor: pointer;
+  color: var(--nt-lien, var(--nt-encre));
+  text-decoration: underline;
+  font-size: var(--nt-t-s);
+}
+
+.lien-discret {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+}
+
+/* Un seul code (complément du 2026-11-19) : le code de contrôle sur toute la largeur, ses huit groupes sur une ligne
+   quand la place le permet ; le lien de l'autre forme dessous. */
+@media (min-width: 56rem) {
+  .codes-signature.un-code {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+    row-gap: var(--nt-e-1);
+  }
+
+  .codes-signature.un-code > .encart-empreinte {
+    display: flex;
+    grid-row: auto;
+  }
 }

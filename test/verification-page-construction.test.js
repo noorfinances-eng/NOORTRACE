@@ -193,7 +193,11 @@ describe("page de vérification : construction reproductible et fichiers produit
     expect(html).to.not.match(/<style/i);
     expect(html).to.not.match(/\sstyle\s*=/i);
     expect(html).to.not.match(/\son[a-z]+\s*=/i);
-    expect(html).to.not.match(/(?:src|href|action)\s*=\s*"(?:[a-z]+:|\/\/)/i);
+    // Décisions du 2026-11-19 (CT-6 EX-14.9, EX-18.5) : un seul lien vers une autre origine, la page des versions du
+    // dépôt, que la personne ouvre elle-même ; ce n'est pas une ressource, rien n'est chargé. Aucune autre adresse.
+    const LIEN = '<a id="adresse-versions" href="https://github.com/noorfinances-eng/NOORTRACE/releases" target="_blank" rel="noopener noreferrer">';
+    expect(html.split(LIEN)).to.have.length(2);
+    expect(html.replace(LIEN, "")).to.not.match(/(?:src|href|action)\s*=\s*"(?:[a-z]+:|\/\/)/i);
     const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)];
     expect(scripts.map((s) => s[2])).to.deep.equal(["", ""]);
     const ressources = [...html.matchAll(/<(link|script)\b([^>]*)>/gi)].map((m) => m[0]);

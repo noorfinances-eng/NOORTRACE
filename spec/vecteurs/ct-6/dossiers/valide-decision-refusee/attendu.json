@@ -13,7 +13,11 @@
     "8": "non_execute"
   },
   "not_executed": [],
-  "warnings": [],
+  "warnings": [
+    "AV-N-1",
+    "AV-N-2",
+    "AV-N-2"
+  ],
   "anchors": null,
   "bitcoin_headers": null,
   "exit_code": 0,

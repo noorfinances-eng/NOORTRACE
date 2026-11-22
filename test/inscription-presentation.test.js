@@ -755,7 +755,8 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         const fini = dossierFictif("client-fini", ["capturee", "capturee", "faite", "capturee", "capturee", "capturee", "capturee"]);
         a = M.prochaineAction(vue(fini, { periodes: ["p"], parties: ["x"], paquet: { present: true } }));
         expect(a.code).to.equal("remettre_paquet");
-        expect(a.phrase).to.equal("L'inscription est faite et le paquet est produit. Si ce n'est pas déjà fait, téléchargez le paquet et remettez-le au client, avec son empreinte : une suite de 66 caractères, donnée sur l'écran du paquet, qui permet au client de vérifier qu'il a reçu exactement ce paquet.");
+        // Complément du 2026-11-19 : l'outil sait si la remise est notée ; la consigne ne dit plus « si ce n'est pas déjà fait ».
+        expect(a.phrase).to.equal("L'inscription est faite et le paquet est produit. Téléchargez le paquet et remettez-le au client, avec son empreinte : une suite de 66 caractères, donnée sur l'écran du paquet, qui permet au client de vérifier qu'il a reçu exactement ce paquet. Puis notez la remise sur ce même écran.");
         // 4. Un champ requis vide a sa phrase ; le nom court refusé renvoie d'abord au tirage.
         expect(M.CHAMP_VIDE).to.equal("Ce champ est vide. Remplissez-le en suivant l'aide écrite dessous.");
         expect(M.explicationSaisie("slug")).to.match(/^Le nom court n'a pas la bonne forme\. Servez-vous du bouton « Tirer un nom au hasard »/);
@@ -795,6 +796,95 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       let tue = false;
       try { lire(await import(pathToFileURL(f).href)); } catch { tue = true; }
       expect(tue, "mutant « première zone seulement » tué").to.equal(true);
+    });
+  });
+
+  describe("suivi interne des clients (complément du 2026-11-19 ; src/commun/notes.mjs)", function () {
+    it("décisions du 2026-11-19 : nom interne et remise du paquet ; formes exactes des corps de note, refus sans la valeur, nom en vigueur, remise corrigée sans effacement, consigne « paquet remis » ; mutants : tués", async function () {
+      const N = await import(pathToFileURL(path.join(RACINE, "paquets", "inscription", "src", "commun", "notes.mjs")).href);
+      const org = `0x${"ab".repeat(32)}`;
+      const autre = `0x${"cd".repeat(32)}`;
+      const manifeste = `0x${"12".repeat(32)}`;
+      // Corps de la route : trois formes exactes, rien d'autre.
+      expect(N.lireCorpsNote({ sorte: "nom_interne", nom: "Assurances du Léman" })).to.deep.equal({ sorte: "nom_interne", nom: "Assurances du Léman" });
+      expect(N.lireCorpsNote({ sorte: "nom_interne", nom: null })).to.deep.equal({ sorte: "nom_interne", nom: null });
+      expect(N.lireCorpsNote({ sorte: "remise_paquet", manifest_sha256: manifeste.toUpperCase().replace("0X", "0x") })).to.deep.equal({ sorte: "remise_paquet", manifest_sha256: manifeste });
+      expect(N.lireCorpsNote({ sorte: "correction_remise", remise: `not-${"0".repeat(32)}`, motif: "cliqué par erreur" })).to.deep.equal({ sorte: "correction_remise", remise: `not-${"0".repeat(32)}`, motif: "cliqué par erreur" });
+      expect(N.lireNote({ sorte: "nom_interne", org_id: org, nom: "Assurances du Léman" })).to.deep.equal({ sorte: "nom_interne", org_id: org, nom: "Assurances du Léman" });
+      const secret = "f".repeat(64);
+      const refus = [
+        {}, { sorte: "autre" }, { sorte: "nom_interne" }, { sorte: "nom_interne", nom: "" }, { sorte: "nom_interne", nom: " espace" }, { sorte: "nom_interne", nom: "x".repeat(81) },
+        { sorte: "nom_interne", nom: "a\nb" }, { sorte: "nom_interne", nom: secret }, { sorte: "nom_interne", nom: "x", org_id: org }, { sorte: "remise_paquet", manifest_sha256: "0x12" },
+        { sorte: "remise_paquet", manifest_sha256: manifeste, nom: "x" }, { sorte: "correction_remise", remise: "trv-" + "0".repeat(32), motif: "x" }, { sorte: "correction_remise", remise: `not-${"0".repeat(32)}`, motif: " " },
+      ];
+      for (const r of refus) {
+        let e = null;
+        try { N.lireCorpsNote(r); } catch (x) { e = x; }
+        expect(e?.code, JSON.stringify(r)).to.equal("requete_invalide");
+        expect(e.message).to.not.contain(secret);
+      }
+      expect(() => N.lireNote({ sorte: "nom_interne", nom: "x" }), "note de l'agent sans organisation").to.throw(/org_id/);
+      expect(N.lireCorpsNote({ sorte: "nom_interne", nom: "x".repeat(80) }).nom.length).to.equal(80);
+      // Ce que le registre des notes dit d'un client.
+      const l = (id, sorte, plus, quand = "2026-11-19T10:00:00.000Z", qui = "exploitant operateur-1") => ({ id: `not-${String(id).padStart(32, "0")}`, sorte, org_id: org, ...plus, exploitant: qui, recu_a: quand });
+      const lignes = [
+        l(1, "nom_interne", { nom: "Assurances du Léman" }),
+        { ...l(2, "nom_interne", { nom: "Autre client" }), org_id: autre },
+        l(3, "remise_paquet", { manifest_sha256: manifeste }, "2026-11-19T10:30:00.000Z"),
+        l(4, "correction_remise", { remise: `not-${"0".repeat(31)}3`, motif: "cliqué par erreur" }, "2026-11-19T11:00:00.000Z", "exploitant operateur-2"),
+        l(5, "correction_remise", { remise: `not-${"0".repeat(31)}3`, motif: "seconde correction, ignorée" }),
+        l(6, "remise_paquet", { manifest_sha256: manifeste }, "2026-11-20T09:15:00.000Z"),
+        l(7, "nom_interne", { nom: "Assurances du Léman SA" }, "2026-11-20T09:00:00.000Z"),
+      ];
+      const etat = (M) => {
+        const e = M.etatNotes(lignes, org);
+        expect(e.nom).to.include({ valeur: "Assurances du Léman SA", id: `not-${"0".repeat(31)}7` });
+        expect(e.noms.map((x) => x.valeur), "historique des noms, celui d'un autre client exclu").to.deep.equal(["Assurances du Léman", "Assurances du Léman SA"]);
+        expect(e.remises.map((r) => [r.id.slice(-1), r.correction ? r.correction.motif : null])).to.deep.equal([["3", "cliqué par erreur"], ["6", null]]);
+        expect(e.remises[0].correction).to.include({ exploitant: "exploitant operateur-2", recu_a: "2026-11-19T11:00:00.000Z" });
+        expect(M.remiseEnVigueur(e, manifeste)?.id).to.equal(`not-${"0".repeat(31)}6`);
+        expect(M.remiseEnVigueur(M.etatNotes(lignes.slice(0, 4), org), manifeste), "remise corrigée : plus en vigueur").to.equal(null);
+        expect(M.remiseEnVigueur(e, `0x${"99".repeat(32)}`), "autre paquet").to.equal(null);
+        expect(M.etatNotes([...lignes, l(8, "nom_interne", { nom: null })], org).nom, "nom retiré").to.equal(null);
+      };
+      etat(N);
+      // Consigne : remise en vigueur du paquet affiché → « Le paquet a été remis au client ».
+      const fini = dossierFictif("client-fini", ["capturee", "capturee", "faite", "capturee", "capturee", "capturee", "capturee"]);
+      const vue = { slug: "client-fini", dossier: fini, confirmations: [], demandes: [], periodes: [], parties: [], travaux: [travailFictif(1, { slug: "client-fini", commande: "paquet", recu_a: "2026-11-13T10:00:00.000Z", outputs: { manifest_sha256: manifeste } })], paquet: { present: true, dernier: null } };
+      expect(P.manifesteDuPaquet(vue)).to.equal(manifeste);
+      expect(P.manifesteDuPaquet({ ...vue, paquet: { present: false } })).to.equal(null);
+      const remise = N.remiseEnVigueur(N.etatNotes(lignes, org), manifeste);
+      const a = P.prochaineAction({ ...vue, remise });
+      expect(a).to.include({ code: "paquet_remis", surTitre: "Inscription terminée", titre: "Le paquet a été remis au client", bouton: "Voir le paquet", lien: "/clients/client-fini/paquet" });
+      expect(a.phrase).to.equal("Paquet remis le 20 novembre 2026 à 09:15 UTC par operateur-1. Vous n'avez plus rien à faire pour ce client.");
+      expect(P.prochaineAction(vue).code, "sans remise").to.equal("remettre_paquet");
+      expect(P.phraseRemise({ recu_a: "2026-11-19T10:30:00.000Z", exploitant: "exploitant operateur-1" })).to.equal("Paquet remis le 19 novembre 2026 à 10:30 UTC par operateur-1.");
+      // Refus de l'agent en clair, sans mot de technicien ; le lexique dit ce qu'est le nom interne.
+      for (const code of ["paquet_inconnu", "remise_deja_notee", "remise_inconnue"]) {
+        const x = P.explicationErreur(code);
+        expect(x.connu, code).to.equal(true);
+        expect(x.effet).to.equal("Rien n'a été noté, et rien n'a été envoyé au registre public.");
+        for (const t of [x.phrase, x.effet, x.quoiFaire]) expect(motsTechniquesDans(t), t).to.deep.equal([]);
+      }
+      const lex = P.LEXIQUE.find((x) => x.terme === "nom interne");
+      expect(lex.explication).to.match(/seule notre équipe le voit : il ne part jamais vers le registre public ni dans le paquet du client$/);
+      for (const t of [a.phrase, a.titre, a.apres, P.prochaineAction(vue).phrase, P.prochaineAction(vue).apres, lex.explication]) expect(motsTechniquesDans(t), t).to.deep.equal([]);
+      // Mutants du module des notes (copie, imports rendus absolus) : la correction n'efface plus rien de visible / est ignorée ; le nom retiré reste.
+      const NOTES = path.join(RACINE, "paquets", "inscription", "src", "commun", "notes.mjs");
+      const texte = fs.readFileSync(NOTES, "utf8").replace(/from "\.\/champs\.mjs"/g, `from "${pathToFileURL(path.join(RACINE, "paquets", "inscription", "src", "commun", "champs.mjs")).href}"`);
+      const mutants = [
+        ["correction ignorée", "if (r) r.correction = { ...auteur, motif: l.motif };", "void r;"],
+        ["correction qui efface la remise", "if (r) r.correction = { ...auteur, motif: l.motif };", "if (r) remises.splice(remises.indexOf(r), 1);"],
+        ["nom retiré gardé", "return { nom: dernier && dernier.valeur !== null ? dernier : null, noms, remises };", "return { nom: noms.filter((x) => x.valeur !== null).pop() ?? null, noms, remises };"],
+      ];
+      for (const [nom, ancien, nouveau] of mutants) {
+        expect(texte.split(ancien).length - 1, nom).to.equal(1);
+        const f = path.join(dir, `notes-${nom.replace(/[^a-z]/g, "-")}.mjs`);
+        fs.writeFileSync(f, texte.replace(ancien, () => nouveau));
+        let tue = false;
+        try { etat(await import(pathToFileURL(f).href)); } catch { tue = true; }
+        expect(tue, `mutant « ${nom} » tué`).to.equal(true);
+      }
     });
   });
 

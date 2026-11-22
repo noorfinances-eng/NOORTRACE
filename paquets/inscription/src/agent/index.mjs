@@ -6,8 +6,10 @@
 // auxiliaire `python3 -I` à qui le descripteur est passé sans être lu) et
 // ferme la connexion d'un autre compte que celui de l'interface, en
 // consignant le refus. Une requête par connexion, un objet JSON strict sur
-// une ligne d'au plus 65 536 octets ; seules la remise d'un travail et celle
-// d'une confirmation passent : l'état se lit dans les fichiers (3.6). La file
+// une ligne d'au plus 65 536 octets ; seules la remise d'un travail, celle
+// d'une confirmation et celle d'une note interne (nom interne d'un client,
+// remise de son paquet : CT-4 EX-7.23, complément du 2026-11-19) passent :
+// l'état se lit dans les fichiers (3.6). La file
 // est unique et ordonnée, un travail à la fois ; l'agent refait chaque
 // vérification avant d'écrire et ne croit pas l'interface.
 //
@@ -23,13 +25,15 @@ import net from "node:net";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { lireJsonStrict } from "@noortrace/approbation";
-import { ecrireHorodatage } from "@noortrace/noyau";
+import { ecrireHorodatage, sha256Hex } from "@noortrace/noyau";
 import { ErreurChamp } from "../commun/champs.mjs";
 import { lireReference, motifRefusReference } from "../commun/references.mjs";
 import { lireConfirmation, lireIdentite, lireTravail } from "../commun/travaux.mjs";
+import { etatNotes, lireNote, remiseEnVigueur } from "../commun/notes.mjs";
+import { MANIFESTE_PAQUET, nomPaquet } from "../commun/paquet.mjs";
 import { controlerComptes, controlerReferences, controlerRepertoires, ErreurConfiguration, lireConfiguration, prisesIp } from "./configuration.mjs";
 import { chargerInstance, ErreurInstance } from "./instance.mjs";
-import { ajouterLigne, chemins, creerRepertoire, ecrireAtomique, JOURNAL_MAX_OCTETS, serialiser } from "./donnees.mjs";
+import { ajouterLigne, chemins, creerRepertoire, ecrireAtomique, JOURNAL_MAX_OCTETS, lireLignes, serialiser } from "./donnees.mjs";
 import { clientRpc } from "./reseau.mjs";
 import { lireDossier } from "./dossier.mjs";
 import { FinCommande, Sortie } from "./sortie.mjs";
@@ -61,7 +65,7 @@ export const REFUS_PAR_PERIODE = 8;
 /** Période du comptage des refus. */
 export const PERIODE_REFUS_MS = 60000;
 /** Événements du journal que le compte de l'interface peut provoquer sans limite : consignés avec borne. */
-export const EVENEMENTS_REFUS = Object.freeze(["pair_refuse", "requete_refusee", "requete_erreur", "travail_refuse", "confirmation_refusee"]);
+export const EVENEMENTS_REFUS = Object.freeze(["pair_refuse", "requete_refusee", "requete_erreur", "travail_refuse", "confirmation_refusee", "note_refusee"]);
 
 /** Auxiliaire `python3 -I` : compte du pair par `SO_PEERCRED` sur le descripteur 3, sans le lire, puis `detach()`. */
 export const AUXILIAIRE_PAIR = [
@@ -318,6 +322,38 @@ export async function demarrerAgent(source, options = {}) {
     return { travail: t, references: referencesDuTravail(t) };
   };
 
+  /**
+   * Contrôles d'une note interne (CT-4 EX-7.23, complément du 2026-11-19) : rend null (admise) ou `{ code, message }`.
+   * Le client est celui de l'organisation de la note ; une remise nomme un paquet que l'agent a produit pour lui et
+   * qu'aucune remise en vigueur ne nomme déjà ; une correction vise une remise de ce client, non encore corrigée.
+   */
+  const admettreNote = (n) => {
+    const clients = fs.existsSync(D.clients) ? fs.readdirSync(D.clients) : [];
+    const slug = clients.find((s) => {
+      const l = lireDossier(D.client(s).dossier);
+      return !l.erreur && l.dossier.organisation.org_id === n.org_id;
+    });
+    if (!slug) return { code: "client_inconnu", message: `aucun client d'org_id ${n.org_id}` };
+    if (n.sorte === "nom_interne") return null;
+    const etat = etatNotes(lireLignes(D.notes), n.org_id);
+    if (n.sorte === "remise_paquet") {
+      const base = D.client(slug).paquets;
+      const produits = (fs.existsSync(base) ? fs.readdirSync(base) : []).filter((x) => /^[1-9][0-9]*$/.test(x)).map((x) => {
+        try {
+          return sha256Hex(fs.readFileSync(path.join(base, x, nomPaquet(slug), MANIFESTE_PAQUET)));
+        } catch {
+          return null;
+        }
+      });
+      if (!produits.includes(n.manifest_sha256)) return { code: "paquet_inconnu", message: `aucun paquet de manifeste ${n.manifest_sha256} produit pour le client ${slug}` };
+      const r = remiseEnVigueur(etat, n.manifest_sha256);
+      if (r) return { code: "remise_deja_notee", message: `remise de ce paquet déjà notée (${r.id}) ; une erreur se corrige par une note de correction` };
+      return null;
+    }
+    if (!etat.remises.some((r) => r.id === n.remise && r.correction === null)) return { code: "remise_inconnue", message: `aucune remise ${n.remise} non corrigée pour ce client` };
+    return null;
+  };
+
   /** Exécute un travail de la file : `element` = `{ enreg, travail }` ; l'enregistrement ne porte jamais les paramètres. */
   const executer = async ({ enreg: t, travail: commande }) => {
     t.etat = "en_cours";
@@ -454,7 +490,29 @@ export async function demarrerAgent(source, options = {}) {
       consigner("confirmation_recue", { id, operation: c.operation, org_id: c.objet.org_id, cle_chaine: c.objet.cle_chaine, exploitant: requete.exploitant });
       return repondre(socket, { accepte: true, id });
     }
-    return repondre(socket, { accepte: false, code: "requete_invalide", message: "kind travail ou confirmation attendu" });
+    if (requete.kind === "note") {
+      const cles = Object.keys(requete);
+      if (cles.some((k) => !["version", "kind", "exploitant", "note"].includes(k))) return repondre(socket, { accepte: false, code: "requete_invalide", message: "membre inconnu" });
+      let n;
+      try {
+        lireIdentite(requete.exploitant);
+        n = lireNote(requete.note);
+      } catch (e) {
+        if (e instanceof ErreurChamp) return repondre(socket, { accepte: false, code: e.code, message: e.message });
+        throw e;
+      }
+      const a = admettreNote(n);
+      if (a) {
+        consigner("note_refusee", { exploitant: requete.exploitant, sorte: n.sorte, code: a.code });
+        return repondre(socket, { accepte: false, code: a.code, message: a.message });
+      }
+      const id = `not-${crypto.randomBytes(16).toString("hex")}`;
+      ajouterLigne(D.notes, { id, ...n, exploitant: requete.exploitant, recu_a: ecrireHorodatage(horloge.murale()) });
+      // Le journal ne garde ni le nom interne ni le motif d'une correction (CT-4 EX-7.23, complément du 2026-11-19).
+      consigner("note_recue", { id, sorte: n.sorte, org_id: n.org_id, exploitant: requete.exploitant });
+      return repondre(socket, { accepte: true, id });
+    }
+    return repondre(socket, { accepte: false, code: "requete_invalide", message: "kind travail, confirmation ou note attendu" });
   };
 
   // Auxiliaires du compte du pair : au plus AUXILIAIRES_MAX à la fois, les connexions suivantes attendent leur tour.

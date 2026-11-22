@@ -27,7 +27,11 @@
     }
   ],
   "warnings": [
-    "AV-O-3"
+    "AV-N-2",
+    "AV-N-2",
+    "AV-T-5",
+    "AV-O-3",
+    "AV-R-4"
   ],
   "anchors": "../../ancres/ancres-cle-non-ancree.json",
   "bitcoin_headers": "../../ots/entetes/chaine.json",

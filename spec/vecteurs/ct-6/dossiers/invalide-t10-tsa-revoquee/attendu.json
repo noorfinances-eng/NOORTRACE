@@ -25,7 +25,13 @@
     }
   ],
   "warnings": [
-    "AV-O-3"
+    "AV-N-1",
+    "AV-N-2",
+    "AV-N-2",
+    "AV-N-1",
+    "AV-O-3",
+    "AV-R-4",
+    "AV-N-1"
   ],
   "anchors": "../../ancres/ancres-tsa-revoquee.json",
   "bitcoin_headers": "../../ots/entetes/chaine.json",

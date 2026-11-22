@@ -276,11 +276,34 @@ const horsPerimetreAttendu = (json) => (Array.isArray(json.absent_parts) ? json.
  * Quatrième lecture (CT-6 §18, point 15), écrit ici une seconde fois : les raisons courtes (clés) qui rendent un
  * contrôle réussi sans valeur de preuve, celles des avertissements AV-O-3 que le rapport lui rattache.
  */
-const SANS_VALEUR_ATTENDU = { "AV-O-3": "sans_valeur_av_o_3" };
+// Complément du 2026-11-19 (CT-6 6.10) : les avertissements de pièce d'essai AV-T-5, AV-R-4, AV-N-1 et AV-N-2 s'y ajoutent.
+const SANS_VALEUR_ATTENDU = { "AV-O-3": "sans_valeur_av_o_3", "AV-T-5": "sans_valeur_av_t_5", "AV-R-4": "sans_valeur_av_r_4", "AV-N-1": "sans_valeur_av_n_1", "AV-N-2": "sans_valeur_av_n_2" };
+// CT-6 EX-6.25, écrit ici une seconde fois : pour chaque contrôle, les couples (avertissement, vérification) qui le
+// rendent sans valeur de preuve. Levés par K-3, K-7 ou K-9, ou rattachés à un autre contrôle, ils n'y sont qu'une réserve.
+const SANS_VALEUR_PAR_CONTROLE_ATTENDU = { 4: [["AV-T-5", "T-7"]], 5: [["AV-O-3", "O-5"]], 6: [["AV-N-1", "E-8"], ["AV-N-1", "P-5"]], 7: [["AV-N-2", "E-9"]], 8: [["AV-R-4", "R-4"], ["AV-N-1", "N-4"]] };
+// Adresses d'approbateur d'essai, lues dans le texte de CT-6 6.10 (EX-6.23) et non dans les sources de la page.
+function approbateursEssaiDuTexte() {
+  const ct6 = fs.readFileSync(path.join(RACINE, "spec", "CT-6-verificateur.md"), "utf8");
+  const i = ct6.indexOf("Approbateurs (comptes 0 à 19) :");
+  const j = ct6.indexOf("Sortes pour lesquelles les données ne portent aucun signe sûr", i);
+  expect(i, "liste des approbateurs d'essai dans CT-6 6.10").to.be.greaterThan(0);
+  return [...ct6.slice(i, j).matchAll(/0x[0-9a-f]{40}\b/g)].map((m) => m[0]);
+}
 function sansValeurAttendu(json, numero) {
   const c = json.controls[numero - 1];
   if (c === undefined || c.status !== "reussi") return [];
-  return [...new Set(reservesAttendues(json, c).filter((id) => Object.hasOwn(SANS_VALEUR_ATTENDU, id)).map((id) => SANS_VALEUR_ATTENDU[id]))];
+  const couples = SANS_VALEUR_PAR_CONTROLE_ATTENDU[numero] ?? [];
+  if (numero === 7) {
+    // Règle de nombre : adresses hors de la liste d'EX-6.23 moins nombreuses que le requis ; sans ces faits, jamais.
+    // `facts` ne s'emploie que sous les verdicts valide et incomplet (EX-6.13).
+    if (json.verdict !== "valide" && json.verdict !== "incomplet") return [];
+    const a = json.facts && json.facts.approval;
+    if (!a || !Array.isArray(a.approvers) || !Number.isSafeInteger(a.required)) return [];
+    const essai = approbateursEssaiDuTexte();
+    if (new Set(a.approvers.map((x) => x.toLowerCase()).filter((x) => !essai.includes(x))).size >= a.required) return [];
+  }
+  const ids = (json.warnings ?? []).filter((w) => typeof w.check === "string" && (c.checks ?? []).includes(w.check) && couples.some(([id, v]) => w.id === id && w.check === v)).map((w) => w.id);
+  return [...new Set(ids.map((id) => SANS_VALEUR_ATTENDU[id]))];
 }
 
 /**
@@ -331,7 +354,7 @@ function attendu(cas, T, pieces = {}) {
   // Cinquième lecture (point 15) : réussis avec ce que le dossier déclare lui-même ; ni réussis, ni prouvés, ni « avec réserve ».
   const dossiers = r.controles.filter((c) => c.statut === "reussi" && !sansValeur.includes(c.numero) && cleDossierAttendue(cas, c.numero, pieces) !== null).map((c) => c.numero);
   const avecReserve = r.controles.filter((c) => c.reserves !== null && !sansValeur.includes(c.numero) && !dossiers.includes(c.numero)).length;
-  // Contrôles exigés sans valeur de preuve : le vérificateur les compte réussis (CT-6 7.5) ; la page le restreint.
+  // Contrôles exigés sans valeur de preuve : depuis le complément du 2026-11-19 (CT-6 EX-6.25), ils rendent le code 3.
   const exigesSv = sansValeur.filter((n) => exiges.includes(n));
   // Sous le code 0, le vert plein ne reste que pour huit contrôles réussis sans avertissement ; sinon la teinte
   // d'avertissement et la mention fixe, et la phrase de ce qui n'est pas prouvé (point 14).
@@ -340,7 +363,7 @@ function attendu(cas, T, pieces = {}) {
     const nonProuve = nonProuves.length > 0 || dossiers.length > 0;
     r.variante = "";
     r.teinte = "pv-verdict-reserve";
-    r.mention = exigesSv.length > 0 ? T.mention_exige_sans_valeur : nonProuve && avertis ? T.mention_les_deux : nonProuve ? T.mention_non_prouve : T.mention_reserves;
+    r.mention = nonProuve && avertis ? T.mention_les_deux : nonProuve ? T.mention_non_prouve : T.mention_reserves;
     r.nonProuve = nonProuveAttendu(nonProuves, T, dossiers);
   }
   r.pastillesReussi = 8 - nonReussis.length - avecReserve - sansValeur.length - dossiers.length;
@@ -354,10 +377,10 @@ function attendu(cas, T, pieces = {}) {
     tous += T.decompte_fin;
   }
   r.tousReussis = cas.code === 0 && nonReussis.length === 0 ? tous : null;
-  r.exigesSansValeur = (cas.code === 0 || cas.code === 3) && exigesSv.length > 0 ? libelle(T, "exiges_sans_valeur", { liste: exigesSv.join(", "), raisons: [...new Set(exigesSv.flatMap((n) => sansValeurAttendu(cas.json, n)))].map((k) => T[k]).join(", ") }) : null;
+  r.exigesSansValeur = cas.code === 3 && exigesSv.length > 0 ? libelle(T, "exiges_sans_valeur", { liste: exigesSv.join(", "), raisons: [...new Set(exigesSv.flatMap((n) => sansValeurAttendu(cas.json, n)))].map((k) => T[k]).join(", ") }) : null;
   r.sansValeur = (cas.code === 0 || cas.code === 3) && sansValeur.length > 0 && !(cas.code === 0 && nonReussis.length === 0) ? libelle(T, "valide_sans_valeur", { liste: sansValeur.join(", "), raisons }) : null;
   r.borne = cas.code === 0 && nonReussis.length > 0 ? libelle(T, "valide_borne", { liste: nonReussis.join(", ") }) : null;
-  r.exiges = cas.code === 3 ? libelle(T, "exiges_non_reussis", { liste: exiges.filter((n) => nonReussis.includes(n)).join(", ") }) : null;
+  r.exiges = cas.code === 3 && exiges.some((n) => nonReussis.includes(n)) ? libelle(T, "exiges_non_reussis", { liste: exiges.filter((n) => nonReussis.includes(n)).join(", ") }) : null;
   return r;
 }
 
@@ -367,7 +390,7 @@ const CLES_VERDICT = ["mot", "variante", "teinte", "mention", "nonProuve", "code
 // --- Langage (complément du 2026-11-18 de CT-6 §18) ------------------------------
 
 /** Les fonctions et tables du langage courant d'interface.js, telles qu'écrites ; null si les sources ne les ont pas. */
-const NOMS_LANGAGE = ["SANS_VALEUR", "sansValeurDuControle", "exigesSansValeur", "numerosDuDossier", "PARTIES_REQUISES", "partiesHorsPerimetre", "clesDuDossier", "approbateursDuDossier", "clePhraseCourante", "cleAvertissement", "cleRefusCourant", "cleRaisonCourante", "membresEnonce", "aDesReserves", "PHRASES_COURANTES", "LIMITES", "SUITES", "presentationVerdict", "clesNonProuve", "controlesDeLAvertissement", "reservesDuControle", "grouperAvertissements", "clePieceEnCause", "PIECES_EN_CAUSE", "instantDeSecondes", "instantDeTexte", "lignesEnResume", "CONTROLE_DU_RESUME", "GABARITS_DECISION"];
+const NOMS_LANGAGE = ["SANS_VALEUR", "SANS_VALEUR_PAR_CONTROLE", "APPROBATEURS_ESSAI", "approbationSansValeur", "avertissementsSansValeur", "sansValeurDuControle", "exigesSansValeur", "numerosDuDossier", "PARTIES_REQUISES", "partiesHorsPerimetre", "clesDuDossier", "approbateursDuDossier", "clePhraseCourante", "cleAvertissement", "cleRefusCourant", "cleRaisonCourante", "membresEnonce", "aDesReserves", "PHRASES_COURANTES", "LIMITES", "SUITES", "presentationVerdict", "clesNonProuve", "controlesDeLAvertissement", "reservesDuControle", "grouperAvertissements", "clePieceEnCause", "PIECES_EN_CAUSE", "instantDeSecondes", "instantDeTexte", "lignesEnResume", "CONTROLE_DU_RESUME", "GABARITS_DECISION"];
 
 /** `transformer` : changement appliqué à la source avant de l'évaluer (mutant joué sous Node) ; il doit la changer. */
 function chargerLangage(transformer = null) {
@@ -461,7 +484,7 @@ function termesTrouves(textes) {
  * la page pose dans un élément data-exact ou dans un bloc replié « Pour les spécialistes ». Tout autre libellé est
  * soumis à la liste des termes de technicien.
  */
-const LIBELLES_EXACTS_OU_REPLIES = ["ou_empreintes", "phrase_fixe", "artefact_pret", "artefact_altere", "code", "code_0", "code_1", "code_2", "code_3", "noms_choisis", "nom_dossier_repertoire", "nom_dossier_archive", "nom_ancres", "nom_entetes", "nom_interne", "commande", "sortie_erreur", "refus_archive", "avertissement", "avertissement_sans_verification"];
+const LIBELLES_EXACTS_OU_REPLIES = ["ou_empreintes", "lien_versions", "phrase_fixe", "artefact_pret", "artefact_altere", "code", "code_0", "code_1", "code_2", "code_3", "noms_choisis", "nom_dossier_repertoire", "nom_dossier_archive", "nom_ancres", "nom_entetes", "nom_interne", "commande", "sortie_erreur", "refus_archive", "avertissement", "avertissement_sans_verification"];
 const estExactOuReplie = (cle) => LIBELLES_EXACTS_OU_REPLIES.includes(cle) || /^(r|i|type)_/.test(cle);
 
 /** Éléments qui peuvent porter data-exact : la liste est fermée, pour que la marque ne serve pas à soustraire un texte à l'épreuve. */
@@ -684,12 +707,11 @@ function attenduLangage(cas, T) {
     else groupes.push([a]);
   }
   const lignes = [1, 2, 3, 4, 5].map((n) => T[`limite_${n}`]);
-  // Cinquième lecture (points 6 et 15) : sous le code 0, un contrôle exigé sans valeur de preuve change la phrase et
-  // la troisième ligne de « Et maintenant ? ».
-  const exigeSv = cas.code === 0 && cas.json.controls.some((c) => cas.json.inputs.required_controls.includes(c.number) && sansValeurAttendu(cas.json, c.number).length > 0);
+  // Complément du 2026-11-19 (CT-6 EX-6.25) : un contrôle exigé sans valeur de preuve rend le code 3 ; la phrase et la
+  // suite sont celles du code, sans cas particulier.
   return {
     mot: T[`mot_${cas.code}`],
-    phrase: exigeSv ? T.phrase_0_exige_sans_valeur : T[`phrase_${cas.code}`],
+    phrase: T[`phrase_${cas.code}`],
     phraseDansLeVerdict: true,
     reserves: (cas.code === 0 || cas.code === 3) && w.length > 0 ? T.reserves : null,
     code: libelle(T, "code", { code: cas.code, sens: T[`code_${cas.code}`] }),
@@ -706,7 +728,7 @@ function attenduLangage(cas, T) {
       exacteMarquee: true,
     })),
     limites: { 0: lignes, 1: [T.limite_invalide], 2: [], 3: lignes }[cas.code],
-    suite: (exigeSv ? ["suite_0_1", "suite_0_2", "suite_exige_sans_valeur"] : [1, 2, 3].map((n) => `suite_${cas.code}_${n}`)).map((k) => T[k]),
+    suite: [1, 2, 3].map((n) => T[`suite_${cas.code}_${n}`]),
   };
 }
 const CLES_LANGAGE = ["mot", "phrase", "phraseDansLeVerdict", "reserves", "code", "introCode", "codeMarqueExact", "codeReplie", "codeEnTeteSpecialistes", "listeReserves", "limites", "suite"];
@@ -786,6 +808,10 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     for (const [cle, texte] of Object.entries(fr)) if (/\bblocs?\b/i.test(texte)) expect(texte, cle).to.match(/\bbloc de la chaîne Bitcoin\b/);
     expect(fr.prouve_long_8).to.contain("dans des lots d'opérations signés par le nombre requis de ses validateurs");
     expect(en.prouve_long_8).to.contain("in batches of operations signed by the required number of its validators");
+    // Décisions du 2026-11-19 : « nom interne » est le nom qu'une équipe donne à un client dans l'outil d'inscription ;
+    // la page ne l'emploie pour rien d'autre. « inchangé » est la marque de la console d'approbation : la page ne l'emploie pas.
+    for (const [cle, texte] of Object.entries(fr)) expect(texte, cle).to.not.match(/noms? internes?|inchangée?s?(?!\p{L})/iu);
+    for (const [cle, texte] of Object.entries(en)) expect(texte, cle).to.not.match(/internal names?|name internal|unchanged/i);
   });
 
   it("gabarit : la phrase fixe, l'état du vérificateur, le choix du dossier, « Vérifier », « Arrêter » et le résultat sont hors de tout bloc replié ; seuls « Comment ça marche », l'empreinte et les options sont repliés ; page.js est dans l'en-tête", function () {
@@ -859,7 +885,8 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     const ct6 = texteCt6();
     const horsSection18 = ct6.slice(0, ct6.indexOf("\n## 18. Page de vérification")) + ct6.slice(ct6.indexOf("\n## Annexe A"));
     const definis = [...new Set(horsSection18.match(/AV-[A-Z]+-[0-9]+/g))].sort();
-    expect(definis).to.have.length(17);
+    // Dix-sept, et depuis le complément du 2026-11-19 quatre de plus : AV-T-5, AV-R-4, AV-N-1, AV-N-2 (section 6.10).
+    expect(definis).to.have.length(21);
     const avertissements = tableCt6("| Avertissement | Phrase de la page française | Phrase de la page anglaise |");
     expect(avertissements.map((l) => l[0]).sort()).to.deep.equal(definis);
     for (const [id, phraseFr, phraseEn] of avertissements) {
@@ -917,7 +944,8 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     }
     expect([...f.membresEnonce(s.fr)]).to.have.length(5);
     // Les lignes de « Et maintenant ? » existent pour chaque code, un refus et une vérification non faite.
-    expect(Object.keys(f.SUITES).sort()).to.deep.equal(["0", "0_exige_sans_valeur", "1", "2", "3", "non_faite", "refus", "refus_piece"]);
+    // Complément du 2026-11-19 : la suite réservée au contrôle exigé sans valeur de preuve sous le code 0 est retirée.
+    expect(Object.keys(f.SUITES).sort()).to.deep.equal(["0", "1", "2", "3", "non_faite", "refus", "refus_piece"]);
     for (const cles of Object.values(f.SUITES)) for (const cle of cles) for (const T of [fr, en]) expect(typeof T[cle] === "string" && T[cle].length > 0, cle).to.equal(true);
   });
 
@@ -974,9 +1002,11 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
       for (const a of [[], av]) expect(p(0, c, a).teinte === "pleine", `${m}`).to.equal(m === 0 && a.length === 0);
     }
     const mentions = tableCt6("| Cas, sous le code 0 | Mention de la page française | Mention de la page anglaise |");
-    expect(mentions).to.deep.equal([["un contrôle non réussi, aucun avertissement", fr.mention_non_prouve, en.mention_non_prouve], ["huit contrôles réussis, un avertissement", fr.mention_reserves, en.mention_reserves], ["un contrôle non réussi, sans valeur de preuve ou réussi avec ce que le dossier déclare, et un avertissement", fr.mention_les_deux, en.mention_les_deux], ["un contrôle exigé sans valeur de preuve (point 15)", fr.mention_exige_sans_valeur, en.mention_exige_sans_valeur]]);
+    expect(mentions).to.deep.equal([["un contrôle non réussi, aucun avertissement", fr.mention_non_prouve, en.mention_non_prouve], ["huit contrôles réussis, un avertissement", fr.mention_reserves, en.mention_reserves], ["un contrôle non réussi, sans valeur de preuve ou réussi avec ce que le dossier déclare, et un avertissement", fr.mention_les_deux, en.mention_les_deux]]);
+    // Complément du 2026-11-19 : la mention du contrôle exigé sans valeur de preuve est retirée, dans les deux langues.
+    expect([Object.hasOwn(fr, "mention_exige_sans_valeur"), Object.hasOwn(en, "mention_exige_sans_valeur"), Object.hasOwn(fr, "phrase_0_exige_sans_valeur"), Object.hasOwn(en, "suite_exige_sans_valeur")]).to.deep.equal([false, false, false, false]);
     // La mention suit le mot : elle ne le remplace pas et ne dit pas « valide » à sa place.
-    for (const T of [fr, en]) for (const cle of ["mention_non_prouve", "mention_reserves", "mention_les_deux", "mention_exige_sans_valeur"]) expect(T[cle], cle).to.match(/^, \S/).and.not.match(/valid/i);
+    for (const T of [fr, en]) for (const cle of ["mention_non_prouve", "mention_reserves", "mention_les_deux"]) expect(T[cle], cle).to.match(/^, \S/).and.not.match(/valid/i);
     // Éléments non prouvés : une clé par contrôle non réussi, la date une seule fois quand 4 et 5 manquent tous deux.
     const cles = (statuts) => [...f.clesNonProuve(lus(statuts))];
     expect(cles([R, R, R, R, R, R, R, R])).to.deep.equal([]);
@@ -1216,6 +1246,72 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
       expect(m.vu(chargerLangage((source) => source.replace(m.avant, m.apres))), `mutant vu : ${m.titre}`).to.equal(true);
     }
   });
+  it("décisions du 2026-11-19 (CT-6 EX-6.25, §18 point 15) : la page ne dit sans valeur de preuve que ce que le texte dit tel ; un avertissement d'essai levé par K-3, K-7 ou K-9 n'est qu'une réserve ; le contrôle 7 suit la règle de nombre, et sans faits lisibles n'est jamais dit sans valeur ; décompte, mention et contrôles exigés suivent ; mutants vus", function () {
+    const f = chargerLangage();
+    const r = chargerResume();
+    expect(f.avertissementsSansValeur, "avertissementsSansValeur dans interface.js").to.be.a("function");
+    // La liste d'EX-6.23 de la page est, mot pour mot, celle du texte.
+    expect([...f.APPROBATEURS_ESSAI].sort()).to.deep.equal(approbateursEssaiDuTexte().sort());
+    expect(f.APPROBATEURS_ESSAI).to.have.length(20);
+    const CHECKS = { 1: ["E-1"], 2: ["C-1"], 3: ["P-5", "K-1"], 4: ["T-7", "K-7"], 5: ["O-5", "K-9"], 6: ["E-8", "P-5", "K-3", "N-3"], 7: ["E-9", "A-3"], 8: ["R-4", "N-4", "K-8"] };
+    const ESSAI = ["0x70997970c51812dc3a010c7d01b50e0d17dc79c8", "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"];
+    const AUTRES = ["0x" + "1".repeat(40), "0x" + "2".repeat(40)];
+    const lus = (approbation = null, statuts = [R, R, R, R, R, R, R, R]) => statuts.map((st, i) => ({ numero: i + 1, statut: st, verifications: CHECKS[i + 1], approbation: i === 6 ? approbation : null }));
+    const av = (id, verification) => ({ id, verification, detail: "x" });
+    const sv = (g, n, c, a) => [...g.sansValeurDuControle(n, c, a)];
+    const huit = (g, c, a) => [1, 2, 3, 4, 5, 6, 7, 8].map((n) => sv(g, n, c, a));
+    // Levés par le point de contrôle du journal : rattachés aux contrôles 4, 5 et 6 par le rapport, mais réserves seulement.
+    for (const [w, n] of [[av("AV-T-5", "K-7"), 4], [av("AV-O-3", "K-9"), 5], [av("AV-N-1", "K-3"), 6]]) {
+      expect(huit(f, lus(), [w]), `${w.id} de ${w.verification}`).to.deep.equal([[], [], [], [], [], [], [], []]);
+      expect([...f.reservesDuControle(n, lus(), [w])], `${w.id} de ${w.verification} : réserve`).to.deep.equal([w.id]);
+      expect({ ...f.presentationVerdict(0, lus(), [w]) }).to.deep.equal({ teinte: "reserve", mention: "mention_reserves" });
+      expect([...f.exigesSansValeur(lus(), [w], [n])]).to.deep.equal([]);
+      expect([...f.clesNonProuve(lus(), [w])]).to.deep.equal([]);
+    }
+    // Les couples du texte : chacun rend son contrôle, et lui seul, sans valeur de preuve.
+    for (const [w, n, cle] of [[av("AV-T-5", "T-7"), 4, "sans_valeur_av_t_5"], [av("AV-O-3", "O-5"), 5, "sans_valeur_av_o_3"], [av("AV-N-1", "E-8"), 6, "sans_valeur_av_n_1"], [av("AV-N-1", "P-5"), 6, "sans_valeur_av_n_1"], [av("AV-R-4", "R-4"), 8, "sans_valeur_av_r_4"], [av("AV-N-1", "N-4"), 8, "sans_valeur_av_n_1"]]) {
+      expect(huit(f, lus(), [w]), `${w.id} de ${w.verification}`).to.deep.equal([1, 2, 3, 4, 5, 6, 7, 8].map((k) => (k === n ? [cle] : [])));
+    }
+    // Contrôle 7, règle de nombre : approbateurs hors de la liste d'EX-6.23 moins nombreux que le requis.
+    const n2 = [av("AV-N-2", "E-9")];
+    const cas7 = [
+      ["deux comptes d'essai, 2 requis", { approvers: ESSAI, required: 2 }, ["sans_valeur_av_n_2"]],
+      ["un compte d'essai et un autre, 2 requis", { approvers: [ESSAI[0], AUTRES[0]], required: 2 }, ["sans_valeur_av_n_2"]],
+      ["un compte d'essai et deux autres, 2 requis", { approvers: [ESSAI[0], ...AUTRES], required: 2 }, []],
+      ["un compte d'essai et un autre, 1 requis", { approvers: [ESSAI[0], AUTRES[0]], required: 1 }, []],
+      ["adresse d'essai en capitales", { approvers: [ESSAI[0].toUpperCase().replace("0X", "0x"), AUTRES[0]], required: 2 }, ["sans_valeur_av_n_2"]],
+      ["une autre adresse en double ne compte qu'une fois", { approvers: [ESSAI[0], AUTRES[0], AUTRES[0]], required: 2 }, ["sans_valeur_av_n_2"]],
+      ["faits absents", null, []],
+    ];
+    for (const [titre, a, attendu] of cas7) {
+      expect(sv(f, 7, lus(a), n2), titre).to.deep.equal(attendu);
+      expect([...f.exigesSansValeur(lus(a), n2, [7])], titre).to.deep.equal(attendu.length > 0 ? [7] : []);
+    }
+    // AV-N-2 rattaché par une autre vérification que E-9 : réserve.
+    expect(sv(f, 7, lus({ approvers: ESSAI, required: 2 }), [av("AV-N-2", "A-3")])).to.deep.equal([]);
+    // Lecture des faits par la page : facts.approval sous les codes 0 et 3 seulement ; forme exacte, sinon rien.
+    const json = (approval) => ({ controls: [1, 2, 3, 4, 5, 6, 7, 8].map((k) => ({ number: k, status: "reussi", reason: null, summary: "", checks: CHECKS[k] })), facts: { approval } });
+    const approbation = (j, code) => r.lireControles(j, code)[6].approbation;
+    expect(JSON.parse(JSON.stringify(approbation(json({ approvers: ESSAI, required: 2, size: 3 }), 0)))).to.deep.equal({ approvers: ESSAI, required: 2 });
+    expect(JSON.parse(JSON.stringify(approbation(json({ approvers: ESSAI, required: 2, size: 3 }), 3)))).to.deep.equal({ approvers: ESSAI, required: 2 });
+    for (const [titre, a, code] of [["code 1", { approvers: ESSAI, required: 2 }, 1], ["code 2", { approvers: ESSAI, required: 2 }, 2], ["sans approbation", null, 0], ["requis absent", { approvers: ESSAI }, 0], ["requis nul", { approvers: ESSAI, required: 0 }, 0], ["adresse mal formée", { approvers: ["0x12"], required: 1 }, 0], ["approbateurs absents", { required: 2 }, 0]]) expect(approbation(json(a), code), titre).to.equal(null);
+    expect(r.lireControles(json(null), 0).filter((c) => c.numero !== 7).every((c) => c.approbation === null)).to.equal(true);
+    // Mutants, joués sur la source : chacun dit sans valeur ce que le texte ne dit pas tel.
+    const mutants = [
+      { titre: "AV-T-5 de K-7 compté pour le contrôle 4", avant: '  4: Object.freeze([["AV-T-5", "T-7"]]),', apres: '  4: Object.freeze([["AV-T-5", "T-7"], ["AV-T-5", "K-7"]]),', vu: (g) => sv(g, 4, lus(), [av("AV-T-5", "K-7")]).length > 0 },
+      { titre: "AV-O-3 de K-9 compté pour le contrôle 5", avant: '  5: Object.freeze([["AV-O-3", "O-5"]]),', apres: '  5: Object.freeze([["AV-O-3", "O-5"], ["AV-O-3", "K-9"]]),', vu: (g) => sv(g, 5, lus(), [av("AV-O-3", "K-9")]).length > 0 },
+      { titre: "AV-N-1 de K-3 compté pour le contrôle 6", avant: '  6: Object.freeze([["AV-N-1", "E-8"], ["AV-N-1", "P-5"]]),', apres: '  6: Object.freeze([["AV-N-1", "E-8"], ["AV-N-1", "P-5"], ["AV-N-1", "K-3"]]),', vu: (g) => sv(g, 6, lus(), [av("AV-N-1", "K-3")]).length > 0 },
+      { titre: "vérification de l'avertissement ignorée (table par identifiant)", avant: "    if (couples.some(([id, v]) => a.id === id && a.verification === v) && !ids.includes(a.id)) ids.push(a.id);", apres: "    if (couples.some(([id]) => a.id === id) && !ids.includes(a.id)) ids.push(a.id);", vu: (g) => sv(g, 4, lus(), [av("AV-T-5", "K-7")]).length > 0 },
+      { titre: "règle de nombre du contrôle 7 ignorée", avant: "  if (numero === 7 && !approbationSansValeur(c.approbation)) return [];\n", apres: "", vu: (g) => sv(g, 7, lus({ approvers: [ESSAI[0], ...AUTRES], required: 2 }), n2).length > 0 },
+      { titre: "contrôle 7 dit sans valeur sans faits lisibles", avant: "  if (approbation === null || approbation === undefined) return false;", apres: "  if (approbation === null || approbation === undefined) return true;", vu: (g) => sv(g, 7, lus(null), n2).length > 0 },
+      { titre: "adresses d'essai comparées sans la casse", avant: "approbation.approvers.map((x) => x.toLowerCase())", apres: "approbation.approvers.map((x) => x)", vu: (g) => sv(g, 7, lus({ approvers: [ESSAI[0].toUpperCase().replace("0X", "0x"), AUTRES[0]], required: 2 }), n2).length === 0 },
+    ];
+    for (const m of mutants) {
+      expect(m.vu(f), `témoin : ${m.titre}`).to.equal(false);
+      expect(m.vu(chargerLangage((source) => source.replace(m.avant, m.apres))), `mutant vu : ${m.titre}`).to.equal(true);
+    }
+  });
+
   it("quatrième lecture (complément du 2026-11-18, point 15, point 17 et étape 2) : un contrôle réussi que le rapport dit sans valeur de preuve (table de CT-6 §18) ne compte ni parmi les réussis ni comme prouvé, et « En résumé » ne le dit pas réussi ; un contrôle réussi avec les clés ou les approbateurs que le dossier déclare lui-même le dit ; la liste des références de confiance vient par un autre moyen que le dossier ; les heures du registre sont dites comparées à rien ; mutants vus", function () {
     const { fr, en } = tables();
     const f = chargerLangage();
@@ -1225,23 +1321,29 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     const table = tableCt6("| Avertissement | Raison courte, page française | Raison courte, page anglaise |");
     expect(table).to.deep.equal(Object.entries(SANS_VALEUR_ATTENDU).map(([id, cle]) => [id, fr[cle], en[cle]]));
     expect({ ...f.SANS_VALEUR }).to.deep.equal(SANS_VALEUR_ATTENDU);
-    // AV-O-3 est le seul avertissement que CT-6 dit « sans valeur probante » (section 10.7) ; sa phrase dit qu'il ne prouve rien.
+    // Complément du 2026-11-19 (CT-6 EX-6.25) : la table de la page est celle du texte, couple par couple.
+    expect(JSON.parse(JSON.stringify(f.SANS_VALEUR_PAR_CONTROLE))).to.deep.equal(SANS_VALEUR_PAR_CONTROLE_ATTENDU);
+    // Les avertissements que CT-6 dit « sans valeur probante » : AV-O-3 (section 10.7) et, depuis le complément du
+    // 2026-11-19, les quatre de pièce d'essai (section 6.10) ; leur phrase dit qu'ils ne prouvent rien.
     const ct6 = texteCt6();
-    const texte5 = () => ct6.replace(/\s+/g, " ");
-    expect([...ct6.matchAll(/^\| (AV-[A-Z]+-[0-9]+) \|.*sans valeur probante/gm)].map((m) => m[1])).to.deep.equal(["AV-O-3"]);
+    expect([...new Set([...ct6.matchAll(/^\| (AV-[A-Z]+-[0-9]+) \|.*sans valeur probante/gm)].map((m) => m[1]))].sort()).to.deep.equal(Object.keys(SANS_VALEUR_ATTENDU).sort());
     expect(fr.av_o_3).to.include("elle ne prouve rien");
+    for (const cle of ["av_t_5", "av_r_4", "av_n_1", "av_n_2"]) expect([fr[cle], en[cle]], cle).to.satisfy(([a, b]) => / ne prouve rien/.test(a) && /proves nothing/.test(b));
     const lus = (statuts, checks = {}) => statuts.map((s, i) => ({ numero: i + 1, statut: s, verifications: checks[i + 1] ?? [] }));
     const av = (id, verification) => ({ id, verification, detail: "x" });
-    const VERIFS = { 4: ["T-1", "K-7"], 5: ["O-5", "K-9"], 6: ["N-3"], 8: ["K-8", "R-10"] };
+    const VERIFS = { 4: ["T-7", "K-7"], 5: ["O-5", "K-9"], 6: ["E-8", "K-3"], 8: ["K-8", "R-4"] };
     const tous = lus([R, R, R, R, R, R, R, R], VERIFS);
     const sv = (g, n, c, a) => [...g.sansValeurDuControle(n, c, a)];
+    // AV-N-1 levé par P-5 (clé du manifeste) est rattaché aux contrôles 3 et 6 : sans valeur de preuve pour le 6 seulement.
+    expect([3, 6].map((n) => sv(f, n, lus([R, R, R, R, R, R, R, R], { 3: ["P-5"], 6: ["P-5"] }), [av("AV-N-1", "P-5")]))).to.deep.equal([[], ["sans_valeur_av_n_1"]]);
     expect([1, 2, 3, 4, 5, 6, 7, 8].map((n) => sv(f, n, tous, [av("AV-O-3", "O-5"), av("AV-K-1", "K-8"), av("AV-O-3", "K-9")]))).to.deep.equal([[], [], [], [], ["sans_valeur_av_o_3"], [], [], []]);
+    expect([1, 2, 3, 4, 5, 6, 7, 8].map((n) => sv(f, n, tous, [av("AV-T-5", "T-7"), av("AV-N-1", "E-8"), av("AV-R-4", "R-4")]))).to.deep.equal([[], [], [], ["sans_valeur_av_t_5"], [], ["sans_valeur_av_n_1"], [], ["sans_valeur_av_r_4"]]);
     // Seul le rattachement que le rapport donne compte ; un contrôle non fait ou échoué garde sa ligne.
     for (const v of [null, "Z-1", "R-10"]) expect(sv(f, 5, tous, [av("AV-O-3", v)]), String(v)).to.deep.equal([]);
     for (const s of [N, E]) expect(sv(f, 5, lus([R, R, R, R, s, R, R, R], VERIFS), [av("AV-O-3", "O-5")]), s).to.deep.equal([]);
     expect(sv(f, 5, tous, null)).to.deep.equal([]);
     // Les seize autres avertissements de la table ne rendent jamais un contrôle sans valeur de preuve.
-    const autres = Object.keys(fr).filter((k) => /^av_[a-z]+_[0-9]+$/.test(k)).map((k) => `AV-${k.slice(3, k.lastIndexOf("_")).toUpperCase()}-${k.slice(k.lastIndexOf("_") + 1)}`).filter((id) => id !== "AV-O-3");
+    const autres = Object.keys(fr).filter((k) => /^av_[a-z]+_[0-9]+$/.test(k)).map((k) => `AV-${k.slice(3, k.lastIndexOf("_")).toUpperCase()}-${k.slice(k.lastIndexOf("_") + 1)}`).filter((id) => !Object.hasOwn(SANS_VALEUR_ATTENDU, id));
     expect(autres).to.have.length(16);
     for (const id of autres) for (const n of [4, 5, 6, 8]) expect(sv(f, n, tous, [av(id, VERIFS[n][0])]), `${id}, contrôle ${n}`).to.deep.equal([]);
     // Un contrôle sans valeur de preuve compte comme non prouvé : mention et éléments non prouvés.
@@ -1291,26 +1393,18 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     expect([...f.clesNonProuve(tous, [av("AV-O-3", "O-5")], [7])]).to.deep.equal(["non_prouve_5", "non_prouve_7_dossier"]);
     const resumeLu = (controles, clesDossier, approbateurs) => [...f.numerosDuDossier({ controles, clesDuDossier: clesDossier, approbateursDuDossier: approbateurs })];
     expect([resumeLu(tous, "partie", true), resumeLu(tous, null, true), resumeLu(tous, "toutes", false), resumeLu(lus([R, R, R, R, R, N, N, R]), "toutes", true), resumeLu(null, "toutes", true)]).to.deep.equal([[6, 7], [7], [6], [], []]);
-    // Un contrôle exigé que le rapport dit sans valeur de preuve (CT-6 7.5 : le vérificateur rend 0) : sa mention à lui.
+    // Complément du 2026-11-19 (CT-6 EX-6.25) : un contrôle exigé sans valeur de preuve rend le code 3 ; le code 0 n'a plus
+    // de cas particulier, et la ligne des contrôles exigés sans valeur de preuve ne paraît que sous le code 3.
     const essai = [av("AV-O-3", "O-5")];
     expect([...f.exigesSansValeur(tous, essai, [4, 5]), ...f.exigesSansValeur(tous, essai, [4]), ...f.exigesSansValeur(tous, essai, null), ...f.exigesSansValeur(tous, [], [5]), ...f.exigesSansValeur(null, essai, [5])]).to.deep.equal([5]);
-    expect(p5(0, tous, essai, [], [5])).to.deep.equal({ teinte: "reserve", mention: "mention_exige_sans_valeur" });
-    expect(p5(0, tous, essai, [7], [1, 2, 3, 4, 5, 6, 7, 8])).to.deep.equal({ teinte: "reserve", mention: "mention_exige_sans_valeur" });
-    expect(p5(0, tous, essai, [], [4])).to.deep.equal({ teinte: "reserve", mention: "mention_les_deux" });
-    for (const code of [1, 3]) expect(p5(code, tous, essai, [], [5]), String(code)).to.deep.equal({ teinte: "pleine", mention: null });
-    // Les phrases ne disent plus l'exigence remplie, et disent que le vérificateur la compte remplie.
-    expect(fr.phrase_0_exige_sans_valeur).to.not.include("tout contrôle que vous avez exigé a réussi");
-    expect(fr.phrase_0_exige_sans_valeur).to.include("ce que vous avez exigé n'est donc pas prouvé");
-    expect(en.phrase_0_exige_sans_valeur).to.not.include("every control you required passed");
-    expect(en.phrase_0_exige_sans_valeur).to.include("what you required is therefore not proven");
-    for (const T of [fr, en]) expect(T.exiges_sans_valeur).to.match(/Le vérificateur les compte comme réussis|The verifier counts them as passed/);
-    expect(texte5()).to.include(`remplacée par « ${fr.phrase_0_exige_sans_valeur} » (« ${en.phrase_0_exige_sans_valeur} »)`).and.include("Le vérificateur rend 0 dans ce cas (7.5 : « `--exiger 5` est satisfait par un contrôle 5 réussi sur le réseau que déclare votre fichier d'ancres, `regtest` compris »)").and.include(`« ${fr.exiges_sans_valeur} » (« ${en.exiges_sans_valeur} »)`).and.include(`« ${fr.suite_exige_sans_valeur} » (« ${en.suite_exige_sans_valeur} »)`);
-    expect(ct6.replace(/\s+/g, " ")).to.include("`--exiger 5` est satisfait par un contrôle 5 réussi sur le réseau que déclare votre fichier d'ancres, `regtest` compris");
-    // Chaque renvoi du §18 à 7.5 en cite le texte mot pour mot, jamais une paraphrase.
+    expect(p5(0, tous, essai, [])).to.deep.equal({ teinte: "reserve", mention: "mention_les_deux" });
+    expect(f.presentationVerdict.length, "presentationVerdict ne lit plus les contrôles exigés").to.equal(3);
+    for (const code of [1, 3]) expect(p5(code, tous, essai, []), String(code)).to.deep.equal({ teinte: "pleine", mention: null });
+    for (const T of [fr, en]) expect(T.exiges_sans_valeur).to.match(/« Incomplet »|“Incomplete”/).and.not.match(/compte comme réussis|counts them as passed/);
+    for (const T of [fr, en]) expect(T.phrase_3).to.match(/pièce d'essai|test piece/);
     const s18 = ct6.slice(ct6.indexOf("\n## 18. Page de vérification"), ct6.indexOf("\n## Annexe A")).replace(/\s+/g, " ");
-    const exact75 = "(7.5 : « `--exiger 5` est satisfait par un contrôle 5 réussi sur le réseau que déclare votre fichier d'ancres, `regtest` compris »)";
-    expect(s18.split(exact75).length - 1, "renvois exacts à 7.5").to.equal(2);
-    expect(s18, "aucune paraphrase de 7.5").to.not.include("satisfait sur `regtest`");
+    expect(s18, "§18 : plus de renvoi à l'ancien 7.5").to.not.include("est satisfait par un contrôle 5 réussi");
+    expect(ct6.replace(/\s+/g, " ")).to.include("`--exiger 5` sur `regtest` rend le code 3").and.not.include("`--exiger 5` est satisfait par un contrôle 5 réussi sur le réseau que déclare votre fichier d'ancres, `regtest` compris : ne déclarez");
     for (const T of [fr, en]) {
       expect(T.controle_approbateurs_dossier).to.not.match(/ajoutez|add the list/);
       for (const c of ["controle_cles_dossier_toutes_liste", "controle_cles_dossier_partie_liste"]) expect(T[c], c).to.match(/organisation/).and.not.match(/ajoutez|add the list/);
@@ -1321,14 +1415,17 @@ describe("page de vérification, présentation : sources (CT-6 §18, complément
     for (const T of [fr, en]) for (const [cle, texte] of Object.entries(T)) expect(texte, cle).to.not.match(/avec lui ;|cette liste avec lui|reçu ces pièces avec le dossier|pas une pièce à ajouter|provides this list with it|received these documents with the dossier|not a document to add/);
     // Mutants, joués ici sur la source : chacun rend ce que l'essai refuse.
     const mutants = [
-      { titre: "table des avertissements sans valeur de preuve vidée", avant: 'const SANS_VALEUR = Object.freeze({ "AV-O-3": "sans_valeur_av_o_3" });', apres: "const SANS_VALEUR = Object.freeze({});", vu: (g) => sv(g, 5, tous, [av("AV-O-3", "O-5")]).length === 0 },
-      { titre: "inscription « déclarée, non prouvée » (AV-K-1) prise pour un contrôle sans valeur", avant: 'const SANS_VALEUR = Object.freeze({ "AV-O-3": "sans_valeur_av_o_3" });', apres: 'const SANS_VALEUR = Object.freeze({ "AV-O-3": "sans_valeur_av_o_3", "AV-K-1": "sans_valeur_av_o_3" });', vu: (g) => sv(g, 8, tous, [av("AV-K-1", "K-8")]).length > 0 },
+      { titre: "table des avertissements sans valeur de preuve vidée", avant: 'const SANS_VALEUR = Object.freeze({ "AV-O-3": "sans_valeur_av_o_3",', apres: 'const SANS_VALEUR = Object.freeze({ "AV-O-9": "sans_valeur_av_o_3",', vu: (g) => sv(g, 5, tous, [av("AV-O-3", "O-5")]).length === 0 },
+      // Depuis le complément du 2026-11-19, la règle tient en deux tables (raisons courtes, couples d'EX-6.25) : le mutant
+      // ajoute AV-K-1 aux deux.
+      { titre: "inscription « déclarée, non prouvée » (AV-K-1) prise pour un contrôle sans valeur", avant: /(const SANS_VALEUR = Object\.freeze\(\{ )("AV-O-3"[\s\S]*?  8: Object\.freeze\(\[\["AV-R-4", "R-4"\], \["AV-N-1", "N-4"\])/, apres: '$1"AV-K-1": "sans_valeur_av_o_3", $2, ["AV-K-1", "K-8"]', vu: (g) => sv(g, 8, tous, [av("AV-K-1", "K-8")]).length > 0 },
+      // Complément du 2026-11-19.
+      { titre: "registre d'essai (AV-R-4) dit « avec réserve » au lieu de « sans valeur de preuve »", avant: ' "AV-R-4": "sans_valeur_av_r_4",', apres: "", vu: (g) => sv(g, 8, tous, [av("AV-R-4", "R-4")]).length === 0 },
       { titre: "contrôle sans valeur de preuve compté comme prouvé", avant: '  const non = controles.filter((c) => c.statut !== "reussi" || sansValeurDuControle(c.numero, controles, avertissements).length > 0).map((c) => c.numero);', apres: '  const non = controles.filter((c) => c.statut !== "reussi").map((c) => c.numero);', vu: (g) => g.clesNonProuve(tous, [av("AV-O-3", "O-5")]).length === 0 },
       { titre: "« réussie » gardé dans le résumé pour une preuve sans valeur", avant: "    if (raisons.length === 0) lignes.push(ligne);", apres: "    if (raisons.length >= 0) lignes.push(ligne);", vu: (g) => lignes(g).some((l) => l.nom === "limite_bitcoin") },
       { titre: "provenance des clés lue sous un code qui n'affirme rien", avant: "  if (code !== 0 && code !== 3) return null;\n  const objet", apres: "  const objet", vu: (g) => g.clesDuDossier(cles("dossier", "dossier"), 1) !== null },
       { titre: "une clé du dossier sur deux passée sous silence", avant: '  return n === 0 ? null : n === sources.length ? "toutes" : "partie";', apres: '  return n === sources.length ? "toutes" : null;', vu: (g) => g.clesDuDossier(cles("dossier", "registre"), 0) !== "partie" },
       // Cinquième lecture.
-      { titre: "contrôle exigé sans valeur de preuve tenu pour une exigence remplie", avant: '  if (exigesSansValeur(controles, avertissements, exiges).length > 0) return { teinte: "reserve", mention: "mention_exige_sans_valeur" };\n', apres: "", vu: (g) => g.presentationVerdict(0, tous, essai, [], [5]).mention !== "mention_exige_sans_valeur" },
       { titre: "approbateurs déclarés par le dossier comptés comme prouvés", avant: " || duDossier.includes(c.numero));", apres: ");", vu: (g) => g.presentationVerdict(0, tous, [], [7]).teinte === "pleine" },
       { titre: "élément « identité des approbateurs » tu", avant: "      if (duDossier.includes(n)) cles.push(`non_prouve_${n}_dossier`);", apres: "", vu: (g) => g.clesNonProuve(tous, [], [7]).length === 0 },
       { titre: "contrôle exigé sans valeur de preuve oublié", avant: "  return controles.filter((c) => exiges.includes(c.numero) && sansValeurDuControle(c.numero, controles, avertissements).length > 0).map((c) => c.numero);", apres: "  return [];", vu: (g) => g.exigesSansValeur(tous, essai, [5]).length === 0 },
@@ -2426,19 +2523,32 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       }
     });
 
-    it("cinquième lecture (complément du 2026-11-18, points 6, 8, 12 et 15, EX-18.5) : un contrôle exigé sans valeur de preuve n'est plus dit satisfait (titre, phrase, ligne sous le verdict, « Et maintenant ? »), alors que le vérificateur rend 0 ; les deux causes de hors_perimetre_version ; aucun code interne sur la ligne d'un contrôle ni sous le verdict ; où trouver les empreintes publiées ; en français et en anglais ; mutant vu", async function () {
+    it("décisions du 2026-11-19 (CT-6 6.10, EX-6.25, EX-18.5) : un contrôle exigé sans valeur de preuve donne « Incomplet », sans cas particulier sous le code 0, et la ligne des contrôles exigés qui reposent sur une pièce d'essai ; les deux causes de hors_perimetre_version ; aucun code interne sur la ligne d'un contrôle ni sous le verdict ; adresse des empreintes publiées, en clair et en lien ; en français et en anglais ; mutant vu", async function () {
       if (!pret(this)) return;
       const T = tables();
-      const exige = (exiges, extra = {}) => ({ code: 0, json: rapportAuxFaits({ avertissements: [AV_ESSAI], exiges, ...extra }) });
+      // Complément du 2026-11-19 (CT-6 EX-6.25) : la preuve de date par la chaîne Bitcoin exigée, sur un réseau d'essai,
+      // rend le code 3 ; sans exigence, le même rapport rend 0.
+      const exige = (exiges) => ({ code: exiges.length > 0 ? 3 : 0, json: rapportAuxFaits({ code: exiges.length > 0 ? 3 : 0, avertissements: [AV_ESSAI], exiges }) });
       const cas = {
-        // La preuve de date par la chaîne Bitcoin exigée, sur un réseau d'essai : le vérificateur rend 0 (CT-6 7.5).
         exigeCinq: exige([4, 5]),
         exigeTous: exige([1, 2, 3, 4, 5, 6, 7, 8]),
-        // Même rapport sans exigence : la phrase du code 0 reste.
         sansExigence: exige([]),
         // Code 3 : le 4 exigé non fait, le 5 exigé sans valeur de preuve ; les deux lignes.
         incomplet: { code: 3, json: rapportAuxFaits({ code: 3, statuts: [R, R, R, N, R, R, R, R], raisons: { 4: "ancre_absente" }, exiges: [4, 5], avertissements: [AV_ESSAI] }) },
+        // EX-6.25 : levé par le point de contrôle du journal (K-7, K-9), un avertissement d'essai n'est qu'une réserve ;
+        // les contrôles 4 et 5 exigés restent satisfaits (code 0), et la page ne les dit pas sans valeur de preuve.
+        pointEssai: { code: 0, json: rapportAuxFaits({ code: 0, exiges: [4, 5], avertissements: [{ id: "AV-T-5", check: "K-7", detail: "autorité AC de test CT-6 : certificat d'essai, sans valeur probante hors des tests" }, { ...AV_ESSAI, check: "K-9" }] }) },
       };
+      // Contrôle 7 et règle de nombre : un approbateur d'essai sur trois, deux requis (code 0, « réserve » seulement), puis
+      // les deux approbateurs du dossier, tous deux comptes d'essai (code 3 sous --exiger 7).
+      const avN2 = (adresse) => ({ id: "AV-N-2", check: "E-9", detail: `approbateur ${adresse} : compte d'essai publié, sans valeur probante hors des tests` });
+      const septSuffit = rapportAuxFaits({ code: 0, exiges: [7], avertissements: [avN2("0x70997970c51812dc3a010c7d01b50e0d17dc79c8")] });
+      septSuffit.controls[6].checks = ["E-5", "E-9", "A-3"];
+      septSuffit.facts.approval.approvers = ["0x70997970c51812dc3a010c7d01b50e0d17dc79c8", "0x" + "1".repeat(40), "0x" + "2".repeat(40)];
+      const septEssai = rapportAuxFaits({ code: 3, exiges: [7], avertissements: [avN2("0x70997970c51812dc3a010c7d01b50e0d17dc79c8"), avN2("0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc")] });
+      septEssai.controls[6].checks = ["E-5", "E-9", "A-3"];
+      cas.septSuffit = { code: 0, json: septSuffit };
+      cas.septEssai = { code: 3, json: septEssai };
       // Les deux causes de hors_perimetre_version (6.2), d'après absent_parts (EX-4.3).
       const absent = { code: 0, json: rapportAuxFaits({ statuts: [R, R, R, N, N, R, R, N], raisons: { 4: "hors_perimetre_version", 5: "hors_perimetre_version", 8: "hors_perimetre_version" } }) };
       absent.json.absent_parts = ["jeton-rfc3161.der", "preuve.ots", "registre.json", "certificat-commit.json", "validateurs.json"].map((file) => ({ name: file.replace(/[.-].*$/, ""), file, reason: "hors périmètre CT-1" }));
@@ -2474,12 +2584,16 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         try {
           const ecran = await lireEcran(o.page);
           const langage = await lireLangage(o.page);
-          expect([ecran.mention, ecran.exigesSansValeur, langage.phrase], langue).to.deep.equal(langue === "fr" ? [", mais ce que vous avez exigé n'est pas prouvé, et avec des réserves", "Contrôles que vous avez exigés et qui sont sans valeur de preuve : n° 5 (réseau d'essai). Le vérificateur les compte comme réussis, mais ils ne prouvent pas ce que vous demandiez.", L.phrase_0_exige_sans_valeur] : [", but what you required is not proven, and with reservations", "Controls you required that are without evidential value: no. 5 (test network). The verifier counts them as passed, but they do not prove what you asked for.", L.phrase_0_exige_sans_valeur]);
+          expect([ecran.mot, ecran.mention, ecran.exigesSansValeur, ecran.exiges, langage.phrase], langue).to.deep.equal(langue === "fr" ? ["Incomplet", null, "Contrôles que vous avez exigés et qui reposent sur une pièce d'essai : n° 5 (réseau d'essai). Ils sont sans valeur de preuve : c'est pourquoi le résultat est « Incomplet ».", null, L.phrase_3] : ["Incomplete", null, "Controls you required that rest on a test piece: no. 5 (test network). They have no evidential value: that is why the result is “Incomplete”.", null, L.phrase_3]);
           expect(await o.page.textContent("#verdict"), langue).to.not.include(langue === "fr" ? "tout contrôle que vous avez exigé a réussi" : "every control you required passed");
-          // Où trouver les empreintes publiées : dans le bloc replié de l'empreinte, avant la phrase qui porte l'empreinte.
+          // Où trouver les empreintes publiées (décision du 2026-11-19) : l'adresse en clair dans la mise en garde courante ;
+          // dans le bloc replié de l'empreinte, avant la phrase qui porte l'empreinte, un lien que la personne ouvre.
+          const ADRESSE = "https://github.com/noorfinances-eng/NOORTRACE/releases";
           expect(await o.page.textContent("#confiance-courante"), langue).to.equal(L.confiance_courante);
+          expect(L.confiance_courante, langue).to.match(langue === "fr" ? /sur la page des versions de son dépôt \(l'adresse est dans « Pour les spécialistes : empreinte du vérificateur », ci-dessous\)/ : /on the releases page of its repository \(the address is in “For specialists: fingerprint of the verifier”, below\)/);
           await o.page.click("#detail-empreinte > summary");
           expect(await o.page.evaluate(() => { const p = document.getElementById("ou-empreintes"); return [p.textContent, p.getClientRects().length > 0, (p.compareDocumentPosition(document.getElementById("artefact")) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0]; }), langue).to.deep.equal([L.ou_empreintes, true, true]);
+          expect(await o.page.evaluate(() => { const a = document.getElementById("adresse-versions"); return [a.closest("#lien-versions").textContent, a.getAttribute("href"), a.textContent, a.getAttribute("rel"), a.getAttribute("target"), a.getClientRects().length > 0, (a.compareDocumentPosition(document.getElementById("artefact")) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0]; }), langue).to.deep.equal([`${L.lien_versions} ${ADRESSE}`, ADRESSE, ADRESSE, "noopener noreferrer", "_blank", true, true]);
         } finally {
           await o.fermer();
         }
@@ -2492,17 +2606,17 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       } finally {
         await o.fermer();
       }
-      // Mutant : la phrase du code 0 gardée sous une exigence sans valeur de preuve ; l'essai le voit.
+      // Mutant : la ligne des contrôles exigés qui reposent sur une pièce d'essai tue sous « Incomplet » ; l'essai le voit.
       const copie = path.join(dir, "mutant-exige-sans-valeur");
       fs.cpSync(SOURCES, path.join(copie, "src"), { recursive: true });
       const fichier = path.join(copie, "src", "page", "interface.js");
       const source = fs.readFileSync(fichier, "utf8");
-      const avant = '  const courante = v.code === 0 && exigesSv.length > 0 ? "phrase_0_exige_sans_valeur" : clePhraseCourante(v.code);';
+      const avant = "      if (v.code === 3 && exigesSv.length > 0) {";
       expect(source.split(avant)).to.have.length(2);
-      fs.writeFileSync(fichier, source.replace(avant, "  const courante = clePhraseCourante(v.code);"));
+      fs.writeFileSync(fichier, source.replace(avant, "      if (false) {"));
       const m = await verifierCas(cas.exigeCinq, { page: construirePageFactice(path.join(copie, "construite"), path.join(copie, "src")) });
       try {
-        expect((await lireLangage(m.page)).phrase, "mutant vu : phrase du code 0 sous une exigence sans valeur de preuve").to.not.equal(T.fr.phrase_0_exige_sans_valeur);
+        expect((await lireEcran(m.page)).exigesSansValeur, "mutant vu : contrôle exigé sans valeur de preuve tu sous « Incomplet »").to.equal(null);
       } finally {
         await m.fermer();
         fs.rmSync(copie, { recursive: true, force: true });
@@ -2713,13 +2827,14 @@ describe("page de vérification, présentation, de bout en bout dans chromium (C
     if (attente !== null) return enAttente(this, attente);
     const T = tables().fr;
     const echantillon = [
-      { titre: "valide, huit contrôles réussis", dossier: "ct-6/dossiers/valide-seq-7-complet", ancres: true, entetes: true, code: 0, nonReussis: [], resume: ["action", "outil", "periode", "approbation", "limite_autorite", "sans_valeur_5", "registre"], dossier6: null },
-      { titre: "valide borné, sans fichier d'ancres", dossier: "ct-6/dossiers/valide-seq-7-complet", code: 0, nonReussis: [4, 5, 8], resume: ["action", "outil", "periode", "approbation"], dossier6: "controle_cles_dossier_toutes" },
+      // Décision du 2026-11-19 : avec les pièces d'essai des vecteurs, les lignes des contrôles 4, 5, 7 et 8 disent « sans valeur de preuve ».
+      { titre: "valide, huit contrôles réussis", dossier: "ct-6/dossiers/valide-seq-7-complet", ancres: true, entetes: true, code: 0, nonReussis: [], resume: ["action", "outil", "periode", "sans_valeur_7", "sans_valeur_4", "sans_valeur_5", "sans_valeur_8"], dossier6: null },
+      { titre: "valide borné, sans fichier d'ancres", dossier: "ct-6/dossiers/valide-seq-7-complet", code: 0, nonReussis: [4, 5, 8], resume: ["action", "outil", "periode", "sans_valeur_7"], dossier6: "controle_cles_dossier_toutes" },
       { titre: "non valide", dossier: "ct-1/dossiers/invalide-hash-faux", code: 1 },
       { titre: "incomplet, contrôles 4, 5 et 8 exigés", dossier: "ct-1/dossiers/valide-seq-7", exiger: [4, 5, 8], code: 3, nonReussis: [4, 5, 8], dossier6: "controle_cles_dossier_toutes", raisons: "raison_hors_perimetre_absente" },
-      // Cinquième lecture : la preuve de date par la chaîne Bitcoin exigée, sur un réseau d'essai (le vérificateur rend 0,
-      // CT-6 7.5) ; une preuve OpenTimestamps présente, d'une forme que la version 0 ne vérifie pas.
-      { titre: "valide, preuve de date par la chaîne Bitcoin exigée sur un réseau d'essai", dossier: "ct-6/dossiers/valide-seq-7-complet", ancres: true, entetes: true, exiger: [4, 5], code: 0, nonReussis: [], resume: ["action", "outil", "periode", "approbation", "limite_autorite", "sans_valeur_5", "registre"], dossier6: null, phrase: "phrase_0_exige_sans_valeur" },
+      // Décision du 2026-11-19 (CT-6 EX-6.25) : la preuve de date par la chaîne Bitcoin exigée, sur un réseau d'essai, rend
+      // le code 3 ; une preuve OpenTimestamps présente, d'une forme que la version 0 ne vérifie pas.
+      { titre: "incomplet, preuve de date par la chaîne Bitcoin exigée sur un réseau d'essai", dossier: "ct-6/dossiers/valide-seq-7-complet", ancres: true, entetes: true, exiger: [4, 5], code: 3, nonReussis: [], resume: ["action", "outil", "periode", "sans_valeur_7", "sans_valeur_4", "sans_valeur_5", "sans_valeur_8"], dossier6: null, phrase: "phrase_3" },
       { titre: "valide, preuve OpenTimestamps hors profil", dossier: "ct-6/dossiers/valide-o3-hors-profil-seul", ancres: true, entetes: true, code: 0, nonReussis: [5], dossier6: null, raisons: "raison_hors_perimetre_forme" },
       { titre: "aucun verdict", dossier: "ct-1/dossiers/illisible-index-non-json", code: 2 },
     ];
@@ -2779,10 +2894,10 @@ describe("page de vérification, présentation, de bout en bout dans chromium (C
         if (e.resume) expect(lu.enResume.map((l) => l[0]), e.titre).to.deep.equal(e.resume);
         // Les valeurs affichées sont celles du rapport : numéro d'ordre, nombres de l'approbation, instants en toutes lettres.
         if (e.code === 0 && e.nonReussis.length === 0) {
-          expect(lu.valeursDuResume, e.titre).to.deep.equal([String(json.event.seq), json.event.tool, instantAttendu(json.period.period_start * 1000, T), instantAttendu(json.period.period_end * 1000, T), String(json.facts.approval.approvers.length), String(json.facts.approval.required), String(json.facts.approval.size), instantAttendu(Date.parse(json.facts.timestamp.upper_bound), T)]);
+          // Les lignes de l'approbation et de l'autorité d'horodatage, faites avec des pièces d'essai, ne recopient plus leurs valeurs.
+          expect(lu.valeursDuResume, e.titre).to.deep.equal([String(json.event.seq), json.event.tool, instantAttendu(json.period.period_start * 1000, T), instantAttendu(json.period.period_end * 1000, T)]);
           expect(lu.valeursDuResume[1], e.titre).to.equal("sap.payments.create");
           expect(lu.valeursDuResume[2], e.titre).to.equal("5 novembre 2026 à 09 h 00 min 00 s");
-          expect(lu.valeursDuResume[7], e.titre).to.equal("5 novembre 2026 à 10 h 00 min 06 s");
         }
         if (e.code === 2) expect(lu.piece, e.titre).to.equal(T.piece_dossier);
       }

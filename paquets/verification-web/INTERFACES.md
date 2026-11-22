@@ -186,8 +186,9 @@ rien retirer ; `#code` et `.aucun-rapport` ne sont plus dans `#verdict` :
 | `#mention-refus` | après un refus, en tête de `#specialistes` : la ligne qui porte `.aucun-rapport` (« Mention fixée pour un refus : ») | jamais |
 | `#controles .pv-controle-raison` | la phrase d'un contrôle non fait, d'après la raison, le contrôle et les pièces ajoutées à l'étape 2 (et, sous `hors_perimetre_version`, `absent_parts`) ; cinquième lecture : la raison exacte est dans `data-raison` et dans `#raisons-exactes` | jamais |
 | `#raisons-exactes`, `#specialistes .pv-references` | cinquième lecture, sous `#formule-exacte` : la raison exacte de chaque contrôle non fait (`data-valeur`) ; sous le code 1, les vérifications en échec et bloquantes | jamais |
-| `#exiges-sans-valeur` | cinquième lecture, codes 0 et 3 : les contrôles exigés que le rapport dit sans valeur de preuve | jamais |
+| `#exiges-sans-valeur` | code 3 (décisions du 2026-11-19, CT-6 EX-6.25) : les contrôles exigés qui reposent sur une pièce d'essai | jamais |
 | `#ou-empreintes` | cinquième lecture, en tête du bloc `#detail-empreinte` : qui publie les empreintes, et dans quel fichier | avec `#detail-empreinte` |
+| `#lien-versions`, `#adresse-versions` | décisions du 2026-11-19 : sous `#ou-empreintes`, l'adresse de la page des versions du dépôt, lien ouvert par la personne (`target="_blank"`, `rel="noopener noreferrer"`) | avec `#detail-empreinte` |
 | `#consigne-ancres` | étape 2 : la consigne de sûreté sur la liste des références de confiance, à la taille du texte courant | avec `#options` |
 | `#nom-ancres.pv-fichier-refuse`, `#nom-entetes.pv-fichier-refuse` | étape 2, tant qu'un refus de cette pièce complémentaire est affiché | avec `#options` |
 | `#verifier` | inactif tant qu'un refus est affiché ; `#aide-verifier` dit pourquoi | jamais |

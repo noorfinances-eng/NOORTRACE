@@ -31,6 +31,7 @@
 // rapport-verification-v0) et rapport lisible en français ou en anglais
 // (section 8.5).
 
+import crypto from "node:crypto";
 import * as J from "./journal.mjs";
 import * as H from "./horodatage.mjs";
 import * as O from "./ots.mjs";
@@ -62,6 +63,109 @@ export const FICHIERS_SCHEMAS = [
   { fichier: "entetes-bitcoin-v0.schema.json", id: ID_SCHEMA_ENTETES },
   { fichier: "rapport-verification-v0.schema.json", id: ID_SCHEMA_RAPPORT },
 ];
+
+// --- Pièces d'essai (CT-6 section 6.10, complément du 2026-11-19, décision du porteur) -------------------------
+// Valeurs exactes qui désignent une pièce d'essai (EX-6.23), détails d'EX-6.24, et contrôles réussis sans valeur de
+// preuve calculés d'après le seul rapport (EX-6.25). Aucune pièce n'est reconnue d'après un nom ou un texte libre.
+
+/** SHA-256 du DER des certificats d'essai : seize de spec/vecteurs/ct-6/rfc3161/cles/, AC d'exemple de 12.3. */
+export const CERTIFICATS_ESSAI = new Set([
+  "0x56ae2b379606d0aee499f5d790f35cc9a41ee6dbc63e511f5f2c5ac73399b568",
+  "0xf9e8f8ac115234297bfd817696c83a4eab398ee1c028931d09b34be6b4335037",
+  "0xf34bca8cb29c2632ec209abf39fb912c0eaadc7bbf237deaeb41e51310f98739",
+  "0x77be4a251aa3cdd0ce67e07eb4b3be46b906d9f10a1687a22d8f4a2cc13ef078",
+  "0x243795c7795d2372773329da9efba1de71ddf175d0f0d5ec9b744618e62e7327",
+  "0xb3bed2e9b5a52e4a9423dc420194d2c1b0b090bb625fac40e14ed07d3200f597",
+  "0x8bcda2d914e55fe43e07f96102b2ebfee03cba768c55f18dace7f295a3c93332",
+  "0xa39159bef83a32855479074287e8030987fc103259c63eac85437c860a7f7e6e",
+  "0x3b2070b9e823b69157f06e7ab4c8d2f8d43e6e1e9033b4280a0ac6d57c3580bd",
+  "0xe91135578a497e9f25f34c961e1b860e844f9a15bdf657e08e255c820699d002",
+  "0xe1d773f9b29af5614c521969b98ffdcb3a484ec98e2f2ff843f001c637d89d3a",
+  "0x08666cf01c0ef9fc7bc5279264c186a414fe5774cb05280931c3ec9e53c66b14",
+  "0x17b014380b0c82f5a903597ff629c3605625d621588098c62fc48c5f0fee5123",
+  "0x3ac1e377b94a494fabfe27654bec6917ebe83ab5dc75a7642f74ff8966173a9b",
+  "0x69ada0c156e7ecd5b363da0a77b947e550368832e02c535cfe991b5b02041e84",
+  "0x0059fa87b4b02432ab3c2cbedbabaefe0e4b4839352921385c6fb1df1035c3a9",
+  "0x89873f3fcb40f2b42c29e5457dea05ef5e41281451afccbec2934a80eb7a5539",
+]);
+
+/** Identifiants BFT de registre d'essai : le réseau de développement de CT-4. */
+export const CHAINES_ESSAI = new Set(["noortrace-2124-dev"]);
+
+/** Clés publiques Ed25519 d'enregistreur d'essai : rec-test-01 à rec-test-03. */
+export const CLES_ENREGISTREUR_ESSAI = new Set([
+  "0xe2116fdce7f27ff208971b6c821f9691a4a9a29bc407224eaf0c4b60c1174045",
+  "0xfd08757fa4798c3c8757bbf5a0db49580cbcb80075ddb30f13f881b0f47aacb3",
+  "0x7fcebb9e8efd62d13a17c830ad33739c1de7fe9f1458701cb739ae15e9e62cd6",
+]);
+
+/** Clés de chaîne d'essai : celles de rec-test-01 à rec-test-03. */
+export const CLES_CHAINE_ESSAI = new Set(["0xaa2a59656361352e96ef2eed355316ef8b29dab7", "0x510d7d0f5afbd9129abb1a899aff5f9246dd9c49", "0xe2bdcef6264103ab6c88fa3c1b5a2ceacd995b22"]);
+
+/** Adresses d'approbateur d'essai : comptes 0 à 19 du mnémonique Hardhat par défaut. */
+export const APPROBATEURS_ESSAI = new Set([
+  "0xf39fd6e51aad88f6f4ce6ab8827279cfffb92266",
+  "0x70997970c51812dc3a010c7d01b50e0d17dc79c8",
+  "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc",
+  "0x90f79bf6eb2c4f870365e785982e1f101e93b906",
+  "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65",
+  "0x9965507d1a55bcc2695c58ba16fb37d819b0a4dc",
+  "0x976ea74026e726554db657fa54763abd0c3a0aa9",
+  "0x14dc79964da2c08b23698b3d3cc7ca32193d9955",
+  "0x23618e81e3f5cdf7f54c3d65f7fbc0abf5b21e8f",
+  "0xa0ee7a142d267c1f36714e4a8f75612f20a79720",
+  "0xbcd4042de499d14e55001ccbb24a551f3b954096",
+  "0x71be63f3384f5fb98995898a86b02fb2426c5788",
+  "0xfabb0ac9d68b0b445fb7357272ff202c5651694a",
+  "0x1cbd3b2770909d4e10f157cabc84c7264073c9ec",
+  "0xdf3e18d64bc6a983f673ab319ccae4f1a57c7097",
+  "0xcd3b766ccdd6ae721141f452c550ca635964ce71",
+  "0x2546bcd3c84621e976d8185a91a922ae77ecec30",
+  "0xbda5747bfd65f08deb54cb465eb87d40e51b197e",
+  "0xdd2fd4581271e230360230f9337d5c0430bf44c0",
+  "0x8626f6940e2eb28930efb4cef49b2d1f2c9c1199",
+]);
+
+const minuscule = (v) => (typeof v === "string" ? v.toLowerCase() : v);
+export const estCertificatEssai = (sha256Hex) => CERTIFICATS_ESSAI.has(minuscule(sha256Hex));
+export const estChaineEssai = (chainId) => typeof chainId === "string" && CHAINES_ESSAI.has(chainId);
+export const estCleEnregistreurEssai = (publicKey) => CLES_ENREGISTREUR_ESSAI.has(minuscule(publicKey));
+export const estCleChaineEssai = (chainKey) => CLES_CHAINE_ESSAI.has(minuscule(chainKey));
+export const estApprobateurEssai = (adresse) => APPROBATEURS_ESSAI.has(minuscule(adresse));
+
+const SANS_VALEUR = " : clé d'essai publiée, sans valeur probante hors des tests";
+
+/** Détails d'EX-6.24, dans les deux langues. */
+export const detailsEssai = {
+  autorite: (nom, sha) => ({ fr: `autorité ${nom} : certificat d'essai ${sha}, sans valeur probante hors des tests`, en: `authority ${nom}: test certificate ${sha}, no evidential value outside tests` }),
+  registre: (chainId) => ({ fr: `registre ${chainId} : réseau de développement, sans valeur probante hors des tests`, en: `registry ${chainId}: development network, no evidential value outside tests` }),
+  cle: (keyId, role) => ({
+    fr: `clé d'enregistreur ${keyId} (${{ evenement: "événement", manifeste: "manifeste", point: "point de contrôle" }[role]})${SANS_VALEUR}`,
+    en: `recorder key ${keyId} (${{ evenement: "event", manifeste: "manifest", point: "checkpoint" }[role]}): published test key, no evidential value outside tests`,
+  }),
+  cleChaine: (chainKey, keyId) => ({ fr: `clé de chaîne ${chainKey} de ${keyId}${SANS_VALEUR}`, en: `chain key ${chainKey} of ${keyId}: published test key, no evidential value outside tests` }),
+  approbateur: (adresse) => ({ fr: `approbateur ${adresse} : compte d'essai publié, sans valeur probante hors des tests`, en: `approver ${adresse}: published test account, no evidential value outside tests` }),
+};
+
+/**
+ * Contrôles réussis sans valeur de preuve (EX-6.25), d'après le rapport seul :
+ * `controls`, `warnings` ({id, check}) et `facts.approval`. Rend les numéros,
+ * croissants.
+ */
+export function controlesSansValeur({ controls, warnings, facts }) {
+  const a = (id, checks) => warnings.some((w) => w.id === id && checks.includes(w.check));
+  const reussi = (n) => controls.some((c) => c.number === n && c.status === "reussi");
+  const out = [];
+  if (reussi(4) && a("AV-T-5", ["T-7"])) out.push(4);
+  if (reussi(5) && a("AV-O-3", ["O-5"])) out.push(5);
+  if (reussi(6) && a("AV-N-1", ["E-8", "P-5"])) out.push(6);
+  if (reussi(7) && warnings.some((w) => w.id === "AV-N-2") && facts?.approval) {
+    const horsListe = new Set(facts.approval.approvers.map(minuscule).filter((x) => !APPROBATEURS_ESSAI.has(x)));
+    if (horsListe.size < facts.approval.required) out.push(7);
+  }
+  if (reussi(8) && (a("AV-R-4", ["R-4"]) || a("AV-N-1", ["N-4"]))) out.push(8);
+  return out;
+}
 
 /** Seuil d'AV-K-4 (CT-6 §7.9) : écart, en secondes, entre la borne du jeton du point et checkpoint_ts au-delà duquel le rapport avertit. */
 export const SEUIL_AV_K4_S = 3600;
@@ -989,6 +1093,46 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
   const atDe = (n) => (attestation ? attestation.checks.filter((c) => c.controls.includes(n)).map((c) => c.id) : []);
   const reussi = (n) => statuts[n].status === "reussi";
 
+  // Pièces d'essai (CT-6 EX-6.23, EX-6.24, complément du 2026-11-19) : clés d'enregistreur (AV-N-1) et approbateurs (AV-N-2).
+  const avertissementsEssai = [];
+  {
+    const clePublique = (k) => clesListe?.find((x) => x.key_id === k)?.public_key ?? null;
+    const dites = new Set();
+    const cleEssai = (k, role, check) => {
+      if (typeof k !== "string" || dites.has(k)) return;
+      dites.add(k);
+      if (estCleEnregistreurEssai(clePublique(k))) avertissementsEssai.push({ id: "AV-N-1", check, detail: detailsEssai.cle(k, role) });
+    };
+    if (reussi(6)) {
+      cleEssai(ev?.recorder_key_id, "evenement", "E-8");
+      cleEssai(manifesteSig?.recorder_key_id, "manifeste", "P-5");
+    }
+    if (point && kStatut("K-3") === "reussi") {
+      if (!reussi(6)) dites.add(ev?.recorder_key_id).add(manifesteSig?.recorder_key_id);
+      cleEssai(point.key_id, "point", "K-3");
+    }
+    if (reussi(7)) for (const a of ev.approval.approvers) if (estApprobateurEssai(a)) avertissementsEssai.push({ id: "AV-N-2", check: "E-9", detail: detailsEssai.approbateur(a) });
+    // Autorité d'horodatage d'essai (AV-T-5) : celle que T-7 a retenue, premier pointeur des ancres employées, pour le
+    // contrôle 4 réussi (vérification T-7) et pour K-7 réussie (jeton du point).
+    const autoriteEssai = (pointeur, check) => {
+      const m = /^\/tsa_authorities\/([0-9]+)$/.exec(pointeur ?? "");
+      const a = m ? ancres?.tsa_authorities?.[Number(m[1])] : undefined;
+      if (!a) return;
+      const sha = "0x" + crypto.createHash("sha256").update(Buffer.from(a.certificate.replace(/-----[^-]+-----/g, "").replace(/\s+/g, ""), "base64")).digest("hex");
+      if (estCertificatEssai(sha)) avertissementsEssai.push({ id: "AV-T-5", check, detail: detailsEssai.autorite(a.name, sha) });
+    };
+    if (reussi(4)) autoriteEssai(c4.anchors_used?.[0], "T-7");
+    if (kStatut("K-7") === "reussi") autoriteEssai(ancresEmployeesK[4]?.[0], "K-7");
+    // Registre d'essai (AV-R-4) : contrôle 8 réussi sur le réseau de développement.
+    if (reussi(8) && estChaineEssai(ancres?.registry?.chain_id)) avertissementsEssai.push({ id: "AV-R-4", check: "R-4", detail: detailsEssai.registre(ancres.registry.chain_id) });
+    // Clé de chaîne d'essai (AV-N-1 sur N-4) : N-4 réussie ; l'enregistreur de l'ancre est la dernière ancre employée du contrôle 8.
+    if (c8?.n4?.status === "reussi") {
+      const m = /^\/recorders\/([0-9]+)$/.exec((c8.ancresEmployees ?? []).at(-1) ?? "");
+      const rec = m ? ancres?.recorders?.[Number(m[1])] : undefined;
+      if (rec && estCleChaineEssai(rec.chain_key)) avertissementsEssai.push({ id: "AV-N-1", check: "N-4", detail: detailsEssai.cleChaine(rec.chain_key, rec.key_id) });
+    }
+  }
+
   // Provenance des clés employées (EX-3.6, EX-6.8) : clé par clé, ancres
   // (confirmée par N-3), registre (inscription prouvée par R-10 dans un
   // contrôle 8 réussi) ou dossier ; « mixte » quand les deux clés diffèrent.
@@ -1066,9 +1210,21 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
   // Verdict (EX-6.7) ; les AT- n'y entrent pas (EX-5.11).
   const failed_checks = liste.filter((c) => c.status === "echoue" && !estAT(c.id)).map((c) => c.id);
   const blocking_unexecuted = liste.filter((c) => c.status === "non_execute" && c.reason === "prerequis_en_echec" && !estAT(c.id)).map((c) => c.id);
+  // Avertissements (EX-6.15), avec ceux de pièce d'essai (EX-6.24).
+  const warnings = ordonnerAvertissements(
+    [...avertissementsK, ...(attestation ? attestation.avertissements : []), ...c4.warnings, ...c5.warnings, ...c8.avertissements, ...avertissementsEssai],
+    liste,
+  ).map((w) => ({ id: w.id, check: w.check ?? null, detail: lang(w.detail) }));
+  // Contrôles réussis sans valeur de preuve (EX-6.25), d'après ce que le rapport portera.
+  const sansValeur = controlesSansValeur({
+    controls: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ number: n, status: statuts[n].status })),
+    warnings,
+    facts: { approval: reussi(7) ? { approvers: ev.approval.approvers, required: ev.approval.threshold.required } : null },
+  });
   const requis = [...new Set(exiger)].sort((a, b) => a - b);
   const nonReussisExiges = requis.filter((n) => !reussi(n));
-  const verdict = failed_checks.length || blocking_unexecuted.length ? "invalide" : nonReussisExiges.length ? "incomplet" : "valide";
+  const sansValeurExiges = requis.filter((n) => sansValeur.includes(n));
+  const verdict = failed_checks.length || blocking_unexecuted.length ? "invalide" : nonReussisExiges.length || sansValeurExiges.length ? "incomplet" : "valide";
   const exit_code = { valide: 0, invalide: 1, incomplet: 3 }[verdict];
 
   // Désignation de l'événement et de la période (EX-6.13) : valeurs bien formées seulement.
@@ -1178,7 +1334,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     failed_checks,
     blocking_unexecuted,
     absent_parts: ct1.partiesAbsentes.map((p) => ({ name: p.name, file: p.file, reason: p.reason })),
-    warnings: ordonnerAvertissements([...avertissementsK, ...(attestation ? attestation.avertissements : []), ...c4.warnings, ...c5.warnings, ...c8.avertissements], liste).map((w) => ({ id: w.id, check: w.check ?? null, detail: lang(w.detail) })),
+    warnings,
     facts,
     verdict,
     exit_code,
@@ -1635,7 +1791,12 @@ function ligneResultat(r) {
   if (r.verdict === "valide") return en ? "VALID — no failed check, no check left unrun without an admitted reason" : "VALIDE — aucune vérification en échec, aucune vérification non exécutée sans raison admise";
   if (r.verdict === "incomplet") {
     const nums = r.controls.filter((c) => r.inputs.required_controls.includes(c.number) && c.status !== "reussi").map((c) => c.number).join(", ");
-    return en ? `INCOMPLETE — required control(s) not passed: ${nums}` : `INCOMPLET — contrôle(s) exigé(s) non réussi(s) : ${nums}`;
+    // Complément du 2026-11-19 (EX-6.25, EX-8.6 point 11) : contrôles exigés sans valeur de preuve, nommés à part.
+    const sv = controlesSansValeur(r).filter((n) => r.inputs.required_controls.includes(n)).join(", ");
+    const m = [];
+    if (nums) m.push(en ? `required control(s) not passed: ${nums}` : `contrôle(s) exigé(s) non réussi(s) : ${nums}`);
+    if (sv) m.push(en ? `required control(s) without evidential value (test piece): ${sv}` : `contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : ${sv}`);
+    return (en ? "INCOMPLETE — " : "INCOMPLET — ") + m.join(en ? "; " : " ; ");
   }
   const morceaux = [];
   if (r.failed_checks.length) morceaux.push(en ? `failed check(s): ${r.failed_checks.join(", ")}` : `vérification(s) en échec : ${r.failed_checks.join(", ")}`);

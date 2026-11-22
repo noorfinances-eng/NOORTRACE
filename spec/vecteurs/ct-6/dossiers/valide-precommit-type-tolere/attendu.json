@@ -23,9 +23,16 @@
     }
   ],
   "warnings": [
+    "AV-N-1",
+    "AV-N-2",
+    "AV-N-2",
+    "AV-N-1",
+    "AV-T-5",
     "AV-O-3",
+    "AV-R-4",
     "AV-R-2",
-    "AV-R-2"
+    "AV-R-2",
+    "AV-N-1"
   ],
   "anchors": "../../ancres/ancres-jeu-substitue.json",
   "bitcoin_headers": "../../ots/entetes/chaine.json",

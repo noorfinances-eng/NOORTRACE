@@ -176,7 +176,8 @@ func TestRefusAttestation(t *testing.T) {
 	if res.Code != 0 || v["AT-1"].Statut != commun.Echoue || v["D-2"].Statut != commun.Reussi {
 		t.Errorf("attestation de plus de 4 Mio : code %d, AT-1 %s, D-2 %s", res.Code, v["AT-1"].Statut, v["D-2"].Statut)
 	}
-	if len(res.Avertissements) == 0 || res.Avertissements[0].ID != "AV-AT-1" {
+	// AV-AT-1 suit les avertissements de pièce d'essai (E-8, E-9, P-5 précèdent AT-1).
+	if a := res.Avertissements; len(a) == 0 || a[len(a)-1].ID != "AV-AT-1" {
 		t.Errorf("AV-AT-1 attendu : %+v", res.Avertissements)
 	}
 	// Plus de 64 Mio : entrée inutilisable (EX-4.15).

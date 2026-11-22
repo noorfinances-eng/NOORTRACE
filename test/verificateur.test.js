@@ -369,7 +369,7 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
     expect(exige.stdout.split("\n").find((l) => l.startsWith("Énoncé"))).to.equal(r.stdout.split("\n").find((l) => l.startsWith("Énoncé")));
   });
 
-  it("contrôle 7 non exécuté (partie_absente) pour un événement sans approbation ; --exiger tous sur le dossier complet : code 0", function () {
+  it("contrôle 7 non exécuté (partie_absente) pour un événement sans approbation ; --exiger tous sur le dossier complet de pièces d'essai : code 3 (EX-6.25)", function () {
     // Dossier CT-1 de l'événement seq 3 du journal de référence (documents.search, sans approbation), assemblé par journal.mjs.
     const evs = lireJSON(CT1, "journal-valide", "evenements.json");
     const m = lireJSON(CT1, "manifestes", "periode-1.json");
@@ -388,7 +388,8 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
     expect(doc.facts.approval).to.equal(null);
     fs.rmSync(rep, { recursive: true, force: true });
     const tous = rapportJSON([COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE, "--exiger", "tous"]);
-    expect(tous.code).to.equal(0);
+    // Complément du 2026-11-19 (CT-6 EX-6.25) : les huit contrôles réussissent, mais 4 à 8 reposent sur des pièces d'essai.
+    expect([tous.code, tous.doc.verdict, tous.doc.controls.every((c) => c.status === "reussi")]).to.deep.equal([3, "incomplet", true]);
     expect(tous.doc.inputs.required_controls).to.deep.equal([1, 2, 3, 4, 5, 6, 7, 8]);
     const sansEntetes = rapportJSON([COMPLET, "--ancres", ANCRES_TEST, "--exiger", "5"]);
     expect([sansEntetes.code, sansEntetes.doc.verdict]).to.deep.equal([3, "incomplet"]);
@@ -740,7 +741,9 @@ describe("CT-6 : règles précisées par la revue", function () {
     const lireDossier = () => Object.fromEntries(fs.readdirSync(rep).filter((f) => V.FICHIERS_DOSSIER.includes(f)).map((f) => [f, fs.readFileSync(path.join(rep, f))]));
     const ancres = V.controlerAncres(fs.readFileSync(ANCRES_TEST), SCHEMAS);
     const avant = V.verifierDossierComplet({ fichiers: lireDossier(), schemas: SCHEMAS, ancres });
-    expect([avant.exit_code, avant.warnings.map((w) => w.id)]).to.deep.equal([0, []]);
+    // Les avertissements de pièce d'essai (CT-6 EX-6.24, complément du 2026-11-19) sont laissés de côté.
+    const horsEssai = (ws) => ws.map((w) => w.id).filter((id) => !["AV-T-5", "AV-R-4", "AV-N-1", "AV-N-2"].includes(id));
+    expect([avant.exit_code, horsEssai(avant.warnings)]).to.deep.equal([0, []]);
     expect(V.SEUIL_AV_K4_S).to.equal(3600);
     const fichiers = lireDossier();
     const partie = J.analyserJSONStrict(fichiers["points-de-controle.json"]);
@@ -752,7 +755,7 @@ describe("CT-6 : règles précisées par la revue", function () {
     };
     // 09:35:00.000Z + 3599 s + 1 s de précision : borne à 3600 s exactement, pas d'avertissement.
     const limite = verifier("20261105103459Z");
-    expect([limite.exit_code, limite.warnings.map((w) => w.id)]).to.deep.equal([0, []]);
+    expect([limite.exit_code, horsEssai(limite.warnings)]).to.deep.equal([0, []]);
     const tardif = verifier("20261105113500Z");
     expect(tardif.exit_code).to.equal(0);
     expect(tardif.failed_checks).to.deep.equal([]);
@@ -765,7 +768,9 @@ describe("CT-6 : règles précisées par la revue", function () {
     const liste = [{ id: "T-1" }, { id: "T-9" }, { id: "O-4" }, { id: "O-5" }, { id: "O-7" }, { id: "R-5" }, { id: "R-10" }];
     const a = [{ id: "AV-R-1", check: "R-10" }, { id: "AV-O-3", check: "O-5" }, { id: "AV-O-2", check: "O-7", n: 1 }, { id: "AV-O-1", check: "O-4" }, { id: "AV-O-2", check: "O-7", n: 2 }, { id: "AV-T-4", check: "T-9" }, { id: "AV-T-2", check: "T-9" }];
     expect(V.ordonnerAvertissements(a, liste).map((w) => `${w.id}${w.n ?? ""}`)).to.deep.equal(["AV-T-2", "AV-T-4", "AV-O-1", "AV-O-3", "AV-O-21", "AV-O-22", "AV-R-1"]);
-    expect(lireJSON(DOSSIERS, "valide-deux-attestations", "attendu.json").warnings).to.deep.equal(["AV-O-1", "AV-O-3"]);
+    expect(lireJSON(DOSSIERS, "valide-deux-attestations", "attendu.json").warnings.filter((id) => /^AV-O-/.test(id))).to.deep.equal(["AV-O-1", "AV-O-3"]);
+    // À vérification égale, familles dans l'ordre T, O, R, N, K, AT (complément du 2026-11-19 d'EX-6.15).
+    expect(V.ordonnerAvertissements([{ id: "AV-K-2", check: "K-7" }, { id: "AV-T-5", check: "K-7" }], [{ id: "K-7" }]).map((w) => w.id)).to.deep.equal(["AV-T-5", "AV-K-2"]);
   });
 
   it("--version et --aide exclusives : avec un répertoire ou une autre option, code 2 (usage), en JSON avec --json (EX-8.2)", function () {
@@ -965,7 +970,11 @@ describe("CT-6 révision 0.3 : attestation de périmètre (section 5.5, EX-6.19 
 
   it("--exiger ne nomme que les huit contrôles : une attestation non retenue ne rend pas un dossier incomplet ; le rapport de la révision 0.2 d'un dossier sans la partie ne diffère que par verifier.schemas et facts.perimeter (EX-6.21)", function () {
     const r = lancer([path.join(CT1, "dossiers", "valide-at3-signature-substituee"), "--exiger", "1,2,3,6,7"]);
-    expect(r.code).to.equal(0);
+    // Complément du 2026-11-19 (CT-6 EX-6.25) : code 3, mais seulement parce que les contrôles 6 et 7 reposent sur les clés et
+    // les approbateurs d'essai de CT-1 §13 ; l'attestation non retenue n'y est pour rien (contrôles 6 et 7 réussis).
+    expect(r.code).to.equal(3);
+    expect(r.stdout).to.include("INCOMPLET — contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : 6, 7\n");
+    expect(lancer([path.join(CT1, "dossiers", "valide-at3-signature-substituee"), "--exiger", "1,2,3"]).code).to.equal(0);
     // Les rapports des dossiers antérieurs portent facts.perimeter à null, en dernière clé de facts.
     for (const n of ["valide-seq-7-complet", "valide-point-de-controle-complet", "invalide-t6-signature"]) {
       const { doc } = rapportJSON(argumentsDossier(n).args);
@@ -973,5 +982,87 @@ describe("CT-6 révision 0.3 : attestation de périmètre (section 5.5, EX-6.19 
       expect(doc.facts.perimeter, n).to.equal(null);
       expect(doc.checks.some((c) => c.id.startsWith("AT-")), n).to.equal(false);
     }
+  });
+});
+
+describe("CT-6 complément du 2026-11-19 : pièces d'essai (section 6.10, EX-6.23 à EX-6.25)", function () {
+  this.timeout(120000);
+  const CT6_MD = fs.readFileSync(path.join(PROJECT_ROOT, "spec", "CT-6-verificateur.md"), "utf8");
+  const GO_ESSAI = fs.readFileSync(path.join(PROJECT_ROOT, "verificateur", "commun", "essai.go"), "utf8");
+  /** Valeurs hexadécimales du passage de 6.10 compris entre deux repères. */
+  const valeursTexte = (debut, fin) => {
+    const i = CT6_MD.indexOf(debut);
+    const j = CT6_MD.indexOf(fin, i);
+    expect(i, debut).to.be.greaterThan(0);
+    return [...CT6_MD.slice(i, j).matchAll(/0x[0-9a-f]{40,64}\b/g)].map((m) => m[0]).sort();
+  };
+  /** Valeurs d'une variable `var nom = ensemble(…)` du binaire Go. */
+  const valeursGo = (nom) => {
+    const m = new RegExp(`var ${nom} = ensemble\\(([^)]*)\\)`).exec(GO_ESSAI);
+    expect(m, nom).to.not.equal(null);
+    return [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]).sort();
+  };
+
+  it("les valeurs d'EX-6.23 sont, mot pour mot, celles de la référence et du binaire Go", async function () {
+    const PE = V;
+    const certificats = valeursTexte("Certificats d'essai (SHA-256 du DER", "Clés d'enregistreur : `rec-test-01`");
+    const enregistreurs = valeursTexte("Clés d'enregistreur : `rec-test-01`", "Clés de chaîne :");
+    const chaines = valeursTexte("Clés de chaîne :", "Approbateurs (comptes 0 à 19)");
+    const approbateurs = valeursTexte("Approbateurs (comptes 0 à 19)", "Sortes pour lesquelles les données");
+    expect([certificats.length, enregistreurs.length, chaines.length, approbateurs.length]).to.deep.equal([17, 3, 3, 20]);
+    expect([...PE.CERTIFICATS_ESSAI].sort()).to.deep.equal(certificats);
+    expect([...PE.CLES_ENREGISTREUR_ESSAI].sort()).to.deep.equal(enregistreurs);
+    expect([...PE.CLES_CHAINE_ESSAI].sort()).to.deep.equal(chaines);
+    expect([...PE.APPROBATEURS_ESSAI].sort()).to.deep.equal(approbateurs);
+    expect([...PE.CHAINES_ESSAI]).to.deep.equal(["noortrace-2124-dev"]);
+    expect([valeursGo("certificatsEssai"), valeursGo("clesEnregistreurEssai"), valeursGo("clesChaineEssai"), valeursGo("approbateursEssai"), valeursGo("chainesEssai")]).to.deep.equal([certificats, enregistreurs, chaines, approbateurs, ["noortrace-2124-dev"]]);
+  });
+
+  it("chaque certificat publié sous spec/vecteurs/ct-6/rfc3161/cles est un certificat d'essai d'EX-6.23", async function () {
+    const PE = V;
+    const crypto = await import("node:crypto");
+    const dir = path.join(CT6, "rfc3161", "cles");
+    const certs = fs.readdirSync(dir).filter((f) => f.endsWith(".pem") && !f.endsWith(".cle.pem"));
+    expect(certs).to.have.length(16);
+    for (const f of certs) {
+      const der = Buffer.from(fs.readFileSync(path.join(dir, f), "utf8").replace(/-----[^-]+-----/g, "").replace(/\s+/g, ""), "base64");
+      expect(PE.estCertificatEssai("0x" + crypto.createHash("sha256").update(der).digest("hex")), f).to.equal(true);
+    }
+    // Aucune reconnaissance par le nom : un autre identifiant de chaîne, même « -test », n'est pas une pièce d'essai.
+    expect([PE.estChaineEssai("noortrace-9999-test"), PE.estChaineEssai("NOORTRACE-2124-DEV")]).to.deep.equal([false, false]);
+  });
+
+  it("EX-6.25 : contrôles réussis sans valeur de preuve, d'après le seul rapport", async function () {
+    const PE = V;
+    const controls = [1, 2, 3, 4, 5, 6, 7, 8].map((number) => ({ number, status: "reussi" }));
+    const w = (id, check) => ({ id, check });
+    const essai = "0x70997970c51812dc3a010c7d01b50e0d17dc79c8";
+    const reel = "0x00000000000000000000000000000000000000aa";
+    const cas = [
+      [[], null, []],
+      [[w("AV-N-1", "E-8"), w("AV-N-2", "E-9"), w("AV-T-5", "T-7"), w("AV-O-3", "O-5"), w("AV-R-4", "R-4")], { approvers: [essai], required: 1 }, [4, 5, 6, 7, 8]],
+      [[w("AV-N-1", "P-5")], null, [6]],
+      [[w("AV-N-1", "N-4")], null, [8]],
+      [[w("AV-T-5", "K-7"), w("AV-O-3", "K-9"), w("AV-N-1", "K-3")], null, []],
+      [[w("AV-N-2", "E-9")], { approvers: [reel, "0x00000000000000000000000000000000000000bb", essai], required: 2 }, []],
+      [[w("AV-N-2", "E-9")], { approvers: [reel, essai], required: 2 }, [7]],
+    ];
+    for (const [warnings, approval, attendu] of cas) expect(PE.controlesSansValeur({ controls, warnings, facts: { approval } }), JSON.stringify(warnings)).to.deep.equal(attendu);
+    const nonReussis = controls.map((c) => ({ ...c, status: "non_execute" }));
+    expect(PE.controlesSansValeur({ controls: nonReussis, warnings: [w("AV-T-5", "T-7"), w("AV-O-3", "O-5")], facts: { approval: null } })).to.deep.equal([]);
+  });
+
+  it("--exiger : un contrôle exigé fait avec des pièces d'essai rend le code 3, nommé à part sur la ligne « Résultat » (EX-6.25, EX-8.6)", function () {
+    const base = [COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE];
+    const sans = rapportJSON(base);
+    expect([sans.code, sans.doc.verdict]).to.deep.equal([0, "valide"]);
+    expect(sans.doc.warnings.map((x) => [x.id, x.check])).to.deep.equal([["AV-N-1", "E-8"], ["AV-N-2", "E-9"], ["AV-N-2", "E-9"], ["AV-N-1", "P-5"], ["AV-T-5", "T-7"], ["AV-O-3", "O-5"], ["AV-R-4", "R-4"], ["AV-N-1", "N-4"]]);
+    expect(rapportJSON([...base, "--exiger", "1,2,3"]).code).to.equal(0);
+    const exige = rapportJSON([...base, "--exiger", "4,5"]);
+    expect([exige.code, exige.doc.verdict, exige.doc.controls.every((c) => c.status === "reussi"), exige.doc.statement]).to.deep.equal([3, "incomplet", true, sans.doc.statement]);
+    expect(lancer([...base, "--exiger", "4,5"]).stdout).to.include("\nRésultat      : INCOMPLET — contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : 4, 5\n");
+    expect(lancer([...base, "--exiger", "5,8", "--langue", "en"]).stdout).to.include("\nResult        : INCOMPLETE — required control(s) without evidential value (test piece): 5, 8\n");
+    // Sans en-têtes, le contrôle 5 n'est pas fait : il est nommé parmi les non réussis, le 4 parmi les sans valeur.
+    expect(lancer([COMPLET, "--ancres", ANCRES_TEST, "--exiger", "4,5"]).stdout).to.include("\nRésultat      : INCOMPLET — contrôle(s) exigé(s) non réussi(s) : 5 ; contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : 4\n");
   });
 });

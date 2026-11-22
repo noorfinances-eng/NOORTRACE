@@ -2509,7 +2509,14 @@ export const TV = [
       "CT-6 EX-5.20",
       "CT-6 EX-6.22",
       "CT-6 EX-A.23",
-      "CT-6 EX-A.24"
+      "CT-6 EX-A.24",
+      "CT-6 EX-6.23",
+      "CT-6 EX-6.24",
+      "CT-6 EX-6.25",
+      "CT-6 AV-T-5",
+      "CT-6 AV-R-4",
+      "CT-6 AV-N-1",
+      "CT-6 AV-N-2"
     ],
     "preconditions": [
       "Vecteurs `ct-6/dossiers` présents au commit éprouvé, régénérés sans différence (TV- de génération déterministe de la même famille).",
@@ -2517,7 +2524,8 @@ export const TV = [
     ],
     "steps": [
       "Lancer `scripts/verify/dossier.mjs` sur chaque dossier, en français et en anglais, avec et sans `--json` ; comparer deux exécutions ; reconstruire l'énoncé fragment par fragment ; vérifier V-10 sur chaque dossier avec la partie d'attestation ; aucun « prouvé » sur le périmètre.",
-      "Révision 0.4 de CT-6 : les seize dossiers d'EX-A.23 et les deux d'EX-A.24 sont rejoués comme les autres, `--exiger 4` compris (`exit_code_exiger_4`) ; événement prouvé inexploitable (EX-5.14, EX-5.15) : D-1, P-1, T-2, O-2, R-9 et R-10 non exécutées (`prerequis_en_echec`), contrôles 4, 5 et 8 non exécutés, N-4 absente, `event`, `org_id` et `journal_id` nuls (EX-6.22) ; entrées éprouvées sur une copie de `valide-seq-7-complet` : partie imbriquée au-delà de 128 niveaux (EX-4.16, point 3), `dossier.json` sans forme canonique (E-2, EX-5.20) ou contraire à son schéma (D-1), lien symbolique pour `dossier.json`, une partie, `--ancres`, `--entetes-bitcoin`, `--second-manifeste` ou une pièce (EX-4.17)."
+      "Révision 0.4 de CT-6 : les seize dossiers d'EX-A.23 et les deux d'EX-A.24 sont rejoués comme les autres, `--exiger 4` compris (`exit_code_exiger_4`) ; événement prouvé inexploitable (EX-5.14, EX-5.15) : D-1, P-1, T-2, O-2, R-9 et R-10 non exécutées (`prerequis_en_echec`), contrôles 4, 5 et 8 non exécutés, N-4 absente, `event`, `org_id` et `journal_id` nuls (EX-6.22) ; entrées éprouvées sur une copie de `valide-seq-7-complet` : partie imbriquée au-delà de 128 niveaux (EX-4.16, point 3), `dossier.json` sans forme canonique (E-2, EX-5.20) ou contraire à son schéma (D-1), lien symbolique pour `dossier.json`, une partie, `--ancres`, `--entetes-bitcoin`, `--second-manifeste` ou une pièce (EX-4.17).",
+      "Complément du 2026-11-19 de CT-6 (section 6.10) : les valeurs d'EX-6.23 sont, mot pour mot, celles du texte, de la référence et du binaire, et chaque certificat de `rfc3161/cles` en est ; aucune pièce n'est reconnue d'après un nom (`noortrace-9999-test`) ; sur le dossier complet de pièces d'essai, AV-T-5, AV-R-4, AV-N-1 et AV-N-2 levés comme EX-6.24 le dit, et `--exiger` d'un contrôle sans valeur de preuve rend le code 3, la ligne `Résultat` le nommant à part (EX-6.25, EX-8.6 point 11) ; sans `--exiger`, aucun code ne change."
     ],
     "oracle": "Code, vérifications en échec, statuts, non-exécutions, avertissements, énoncé et borne égaux à `attendu.json` ; rapports JSON identiques octet pour octet (V-8).",
     "status": {
@@ -2546,6 +2554,10 @@ export const TV = [
         {
           "file": "test/verificateur.test.js",
           "describe": "CT-6 révision 0.3 : attestation de périmètre (section 5.5, EX-6.19 à EX-6.21, V-10)"
+        },
+        {
+          "file": "test/verificateur.test.js",
+          "describe": "CT-6 complément du 2026-11-19 : pièces d'essai (section 6.10, EX-6.23 à EX-6.25)"
         }
       ],
       "command": "npx hardhat --config hardhat.config.mjs test test/verificateur.test.js"

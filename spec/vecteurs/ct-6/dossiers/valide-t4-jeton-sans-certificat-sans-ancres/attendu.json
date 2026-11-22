@@ -78,7 +78,12 @@
       "reason": "ancre_absente"
     }
   ],
-  "warnings": [],
+  "warnings": [
+    "AV-N-1",
+    "AV-N-2",
+    "AV-N-2",
+    "AV-N-1"
+  ],
   "anchors": null,
   "bitcoin_headers": "../../ots/entetes/chaine.json",
   "exit_code": 0,

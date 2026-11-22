@@ -159,6 +159,8 @@ export async function ouvrirPont(provider, { noorcore = true, bftChainId = BFT_E
     /** Message d'erreur JSON-RPC rendu à tout `eth_getLogs` (null : journaux servis), comme un nœud qui borne la plage. */
     refuserJournaux: null,
     envoisRecus: [],
+    /** Chaque requête reçue, méthode et paramètres, telle que le nœud la lit (complément du 2026-11-19 : rien d'une note interne n'en part). */
+    requetesRecues: [],
   };
 
   const brut = async (methode, params) => provider.request({ method: methode, params });
@@ -233,6 +235,7 @@ export async function ouvrirPont(provider, { noorcore = true, bftChainId = BFT_E
   async function repondre(requete) {
     const { method: m, params: p = [] } = requete;
     etat.appels.push(m);
+    etat.requetesRecues.push(JSON.stringify({ method: m, params: p }));
     if (m === "eth_getLogs" && etat.refuserJournaux) return { erreur: { code: -32005, message: etat.refuserJournaux } };
     if (noorcore) {
       if (m === "noor_txindexStatus") return { resultat: { enabled: true, ready: true, ok: true, last_indexed_height: etat.suiveur ? 0 : Number(BigInt(await brut("eth_blockNumber", []))) } };

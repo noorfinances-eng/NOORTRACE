@@ -68,7 +68,7 @@ import {
   texteRestant,
   texteValeur,
 } from "../commun/cadre.mjs";
-import { groupesValeurs, libelleValeur, montantDuResume, partiesIdentite, resumeVerifie } from "../commun/lisible.mjs";
+import { groupesValeurs, libelleValeur, montantDuResume, resumeVerifie, titreDemande } from "../commun/lisible.mjs";
 
 const PREFIXES_VOTE = ["console."];
 
@@ -115,6 +115,8 @@ const etat = {
   // « Changer ma décision » aussi.
   detailOuvert: false,
   completesOuvert: false,
+  // L'autre forme du code, sur l'écran de signature, ouverte sur demande (complément du 2026-11-19).
+  autreOuvert: false,
   changerOuvert: false,
   // La dernière lecture de la demande a échoué.
   lectureEchouee: false,
@@ -328,21 +330,33 @@ function nomDe(adresse) {
  * compte que la barre nomme : la mention « vous » dit d'où vient chacun.
  */
 function personne(adresse) {
-  const nom = nomDe(adresse);
   const mien = etat.pas1 !== null && adresse === etat.pas1.approver;
-  const compte = () => {
-    const p = partiesIdentite(identite());
-    return p === null ? String(identite()) : p.personne;
-  };
+  // Complément du 2026-11-19 (CT-3 EX-12.15) : le nom que la vue donne à une adresse qui a voté, tiré de l'annuaire par
+  // le service ; une adresse qu'aucune fiche ne porte le dit. Pour soi, le nom de la barre (EX-13.7, EX-13.48).
+  const fiche = nomDansLaVue(adresse);
+  const nomSession = mien && etat.session !== null && typeof etat.session.display_name === "string" ? etat.session.display_name : null;
+  const nom = nomSession ?? (fiche !== null && typeof fiche.display_name === "string" ? fiche.display_name : nomDe(adresse));
+  const inconnue = !mien && nom === null && fiche !== null && fiche.role === null;
+  const presentation = nom !== null || mien ? null : inconnue ? t("personne.inconnue") : fiche !== null ? t("personne.sans_nom") : t("personne.adresse");
   return el(
     "span",
-    { classe: "personne" },
+    { classe: "personne", attributs: inconnue ? { "data-inconnue": "" } : {} },
     nom === null ? null : donnee(nom, "personne-nom"),
-    mien ? el("span", { classe: nom === null ? "personne-nom capitale" : "nt-attenue", texte: nom === null ? t("modele.jeu.vous") : t("modele.jeu.vous_nom", { compte: compte() }), attributs: { "data-vous": "" } }) : null,
-    // Sans nom connu, l'adresse est présentée : « adresse de signature ».
-    nom === null && !mien ? el("span", { classe: "personne-presentation", texte: t("personne.adresse") }) : null,
+    mien ? el("span", { classe: nom === null ? "personne-nom capitale" : "nt-attenue", texte: nom === null ? t("modele.jeu.vous") : t("modele.jeu.vous_nom"), attributs: { "data-vous": "" } }) : null,
+    !mien && fiche !== null && fiche.role === "administrateur" ? el("span", { classe: "nt-attenue", texte: t("personne.role.administrateur"), attributs: { "data-role": "administrateur" } }) : null,
+    // Sans nom connu, l'adresse est présentée : « adresse de signature », ou « adresse inconnue de l'annuaire ».
+    presentation === null ? null : el("span", { classe: "personne-presentation", texte: presentation }),
     code(adresse, "nt-fixe personne-adresse"),
   );
+}
+
+/** L'élément de `approver_names` de la vue pour une adresse, ou `null` (vue antérieure, ou adresse sans vote). */
+function nomDansLaVue(adresse) {
+  const liste = etat.vue !== null && Array.isArray(etat.vue.approver_names) ? etat.vue.approver_names : [];
+  const x = liste.find((n) => n !== null && typeof n === "object" && n.approver === adresse) ?? null;
+  if (x === null) return null;
+  const nomValide = x.display_name === null || (typeof x.display_name === "string" && x.display_name !== "");
+  return nomValide && (x.role === null || x.role === "approbateur" || x.role === "administrateur") ? x : null;
 }
 
 /** Une valeur de la demande : son libellé courant, son chemin exact, sa valeur telle qu'elle est signée ou fournie, sa marque. */
@@ -393,7 +407,7 @@ function rendreValeurs(modele, clos) {
       ),
     );
   }
-  // Sous les valeurs vérifiées, ce que « vérifié » veut dire, et ce qu'il ne veut pas dire : la console ne dit pas
+  // Sous les valeurs inchangées, ce que « inchangé » veut dire, et ce qu’il ne veut pas dire : la console ne dit pas
   // qu'une valeur est juste. Sur une demande à décider, l'invitation à comparer les valeurs aux pièces, avant d'approuver.
   if (g.verifiees.length > 0) parties.push(liste(g.verifiees, "valeurs-verifiees"), legendeVerifie(clos));
   // Une valeur qui cache des caractères invisibles (EX-9.16) : ce que cela veut dire, et quoi faire.
@@ -424,6 +438,32 @@ function rendrePhrase(r, attributs) {
   return phrase;
 }
 
+/**
+ * Le titre d'une demande (CT-3 EX-9.4, complément du 2026-11-19) : la phrase modèle que l'organisation a écrite pour
+ * la règle retenue, remplie des seules valeurs « inchangé » ; `null` sans titre. Chaque valeur garde son chemin.
+ */
+function rendreTitre(modele, attributs) {
+  const morceaux = titreDemande(modele, etat.session !== null ? etat.session.titles : null);
+  if (morceaux === null) return null;
+  return el(
+    "p",
+    { classe: "titre-demande", attributs },
+    ...morceaux.map((m) => (m.pointeur === null ? document.createTextNode(m.texte) : el("span", { classe: "titre-valeur", texte: m.texte, attributs: { "data-pointeur": m.pointeur, "data-valeur": "" } }))),
+  );
+}
+
+/** Avec un titre, la phrase d'avant, en petit, montant compris : le nom de l'outil reste lisible (point 5). */
+function phraseSousTitre(r, attributs) {
+  const phrase = el("p", { classe: "phrase-sous-titre", attributs });
+  if (r.outil === null) ajouter(phrase, t("essentiel.non_liee"));
+  else {
+    const m = montantDuResume(r);
+    ajouter(phrase, t("essentiel.outil"), " ", el("code", { classe: "nt-fixe", texte: r.outil, attributs: { "data-resume": "outil", "data-valeur": "" } }), m === null ? t("essentiel.point") : t("essentiel.montant"));
+    if (m !== null) ajouter(phrase, " ", el("span", { texte: `${m.texte}\u00a0${m.devise}`, attributs: { id: "montant-entete", "data-valeur": "" } }), t("essentiel.point"));
+  }
+  return phrase;
+}
+
 /** Le montant en grand, quand ses deux feuilles sont vérifiées ; `null` sinon. */
 function rendreMontant(r, attributs) {
   const m = montantDuResume(r);
@@ -445,7 +485,10 @@ function rendreEssentiel(modele, clos) {
   const r = resumeVerifie(modele);
   const d = decompte(modele);
   // La phrase et, à sa suite quand la place le permet, le montant en grand.
-  const parties = [el("p", { classe: "nt-sur-titre", texte: t(clos ? "essentiel.titre_clos" : "essentiel.titre"), attributs: { id: "essentiel-titre" } }), el("div", { classe: "phrase-et-montant" }, rendrePhrase(r, { id: "phrase-entete" }), rendreMontant(r, { id: "montant-entete" })), rendreValeurs(modele, clos)];
+  // Avec une phrase modèle de l'organisation pour cette règle : le titre, puis la phrase d'avant en petit.
+  const titre = rendreTitre(modele, { id: "titre-demande" });
+  const tete = titre === null ? el("div", { classe: "phrase-et-montant" }, rendrePhrase(r, { id: "phrase-entete" }), rendreMontant(r, { id: "montant-entete" })) : el("div", { classe: "titre-et-phrase" }, titre, phraseSousTitre(r, { id: "phrase-entete" }));
+  const parties = [el("p", { classe: "nt-sur-titre", texte: t(clos ? "essentiel.titre_clos" : "essentiel.titre"), attributs: { id: "essentiel-titre" } }), tete, rendreValeurs(modele, clos)];
   const faits = el("dl", { classe: "nt-faits faits-ligne" });
   if (r.demandeur !== null) {
     ajouter(
@@ -1315,6 +1358,39 @@ async function lecturePas3() {
 // ---------------------------------------------------------------------------
 // Écran de signature (EX-9.18 à EX-9.20, EX-13.21)
 
+/** `groupes(X)` en grand : le code entier, huit groupes de huit chiffres, sans en couper un (EX-9.18). */
+function groupesGrands(x, id) {
+  const p = groupesFixes(x);
+  p.classList.add("nt-empreinte", "code-groupes");
+  p.setAttribute("id", id);
+  return p;
+}
+
+/**
+ * « Mon application affiche un autre code » (CT-3 EX-9.18 et EX-9.20, compléments du 2026-11-19) : un lien qui ouvre,
+ * sur le même écran, l'autre forme du code (`groupes(H)` en grand, `empreinte(H)`) et sa consigne, mot pour mot.
+ */
+function autreCode(d) {
+  const bloc = el(
+    "details",
+    { classe: "autre-code", attributs: { id: "code-autre" } },
+    el("summary", { classe: "lien-autre-code", texte: t("signature.code_autre_lien"), attributs: { id: "lien-autre-code" } }),
+    el(
+      "div",
+      { classe: "nt-encart encart-empreinte" },
+      el("p", { texte: t("signature.code_autre_consigne"), attributs: { id: "consigne-autre-code" } }),
+      el("h3", { classe: "intitule-clair", texte: t("signature.code_autre") }),
+      groupesGrands(d.h, "code-autre-groupes"),
+      el("p", { classe: "nt-petit" }, el("span", { texte: t("signature.code_autre_abrege") }), " ", el("span", { classe: "nt-fixe", texte: d.h_fingerprint, attributs: { id: "empreinte-h", "data-valeur": "" } })),
+    ),
+  );
+  bloc.open = etat.autreOuvert;
+  bloc.addEventListener("toggle", () => {
+    etat.autreOuvert = bloc.open;
+  });
+  return bloc;
+}
+
 function groupesFixes(x) {
   const p = el("p", { classe: "groupes", attributs: { "data-valeur": "" } });
   const g = groupes(x).split(" ");
@@ -1340,10 +1416,13 @@ function rendreRappel(modele) {
     ajouter(phrase, t("essentiel.outil"), " ", code(r.outil), r.montant === null ? t("essentiel.point") : t("essentiel.montant"));
     if (r.montant !== null) ajouter(phrase, " ", el("strong", { classe: "rappel-montant", texte: `${r.montant.texte}\u00a0${r.montant.devise}`, attributs: { id: "rappel-montant", "data-valeur": "" } }), t("essentiel.point"));
   }
+  const titre = rendreTitre(modele, { id: "rappel-titre" });
+  if (titre !== null) phrase.classList.add("phrase-sous-titre");
   return el(
     "div",
     { classe: "rappel", attributs: { id: "signature-rappel" } },
     el("p", { classe: "nt-sur-titre", texte: t("signature.rappel") }),
+    titre,
     phrase,
     g.aControler.length === 0
       ? null
@@ -1378,11 +1457,13 @@ function rendreSignature() {
   // `empreinte(H)`, que certaines applications affichent en plus (EX-9.18, complément du 2026-11-18) ; puis le bouton.
   // Ensuite, dans un bloc ouvert sur demande : les noms exacts des deux codes, sous les intitulés que fixe EX-9.18,
   // leurs groupes, et les consignes d'EX-9.20, entières.
+  // Complément du 2026-11-19 (CT-3 EX-9.18) : un seul code à l'écran, `D_A` en entier ; sa forme abrégée et les noms
+  // exacts des deux codes ne sont plus que dans le bloc des consignes complètes.
   const completes = detail(
     t("consigne.completes"),
     t("consigne.completes_note"),
-    el("div", { classe: "nt-encart nt-pile" }, fixe(t("signature.empreinte_d_a"), "intitule", "h3"), el("p", { classe: "nt-petit", texte: t("signature.d_a_sens") }), groupesFixes(d.d_a)),
-    el("div", { classe: "nt-encart nt-pile" }, fixe(t("signature.eip191"), "intitule", "h3"), el("p", { classe: "nt-petit", texte: t("signature.eip191_sens") }), groupesFixes(d.h)),
+    el("div", { classe: "nt-encart nt-pile" }, fixe(t("signature.empreinte_d_a"), "intitule", "h3"), el("p", { classe: "nt-petit", texte: t("signature.d_a_sens") }), el("p", { classe: "nt-fixe", texte: d.fingerprint, attributs: { id: "empreinte-d-a", "data-valeur": "" } })),
+    el("div", { classe: "nt-encart nt-pile" }, fixe(t("signature.eip191"), "intitule", "h3"), el("p", { classe: "nt-petit", texte: t("signature.eip191_sens") })),
     rendreConsignesElement(),
   );
   completes.setAttribute("id", "consignes-completes");
@@ -1406,37 +1487,39 @@ function rendreSignature() {
       { classe: "signature-haut" },
       el("div", { classe: "nt-pile signature-gauche" }, rendreRappel(l.modele)),
       // Les consignes courantes, à côté du rappel et au-dessus des codes et du bouton : on les lit avant de signer.
-      el("div", { classe: "nt-pile avant-de-signer" }, el("h3", { classe: "intitule-clair", texte: t("signature.avant_titre"), attributs: { id: "avant-de-signer" } }), rendreConsignesCourantes()),
+      // Dessous, dans la même colonne, la décision telle qu'elle est signée (`approuve` ou `refuse`, EX-9.4), l'adresse
+      // retenue et le portefeuille choisi : le rappel, à gauche, est la colonne la plus haute quand la demande porte
+      // des valeurs à contrôler ; placés ici, ces trois faits ne repoussent pas le bouton de signature hors du premier
+      // écran.
+      el(
+        "div",
+        { classe: "nt-pile avant-de-signer" },
+        el("h3", { classe: "intitule-clair", texte: t("signature.avant_titre"), attributs: { id: "avant-de-signer" } }),
+        rendreConsignesCourantes(),
+        lignes(
+          [
+            [t("signature.decision_signee"), code(etat.decision)],
+            [t("signature.adresse"), code(etat.adresse)],
+            [t("signature.portefeuille"), donnee(etat.fournisseur.name)],
+          ],
+          { id: "signature-faits" },
+          "faits-signature",
+        ),
+      ),
     ),
-    // La décision telle qu'elle est signée (`approuve` ou `refuse`, EX-9.4), l'adresse retenue et le portefeuille
-    // choisi : sur une rangée, sur un poste.
-    lignes(
-      [
-        [t("signature.decision_signee"), code(etat.decision)],
-        [t("signature.adresse"), code(etat.adresse)],
-        [t("signature.portefeuille"), donnee(etat.fournisseur.name)],
-      ],
-      { id: "signature-faits" },
-      "faits-signature",
-    ),
-    // Les deux codes, en grand, début et fin (EX-9.18, complément du 2026-11-18).
+    // Un seul code, en grand et en entier, par groupes de huit (EX-9.18, complément du 2026-11-19), le même d'un seul
+    // tenant juste dessous ; l'autre forme, derrière un lien, avec sa consigne.
     el(
       "div",
-      { classe: "codes-signature", attributs: { id: "codes-signature" } },
+      { classe: "codes-signature un-code", attributs: { id: "codes-signature" } },
       el(
         "div",
         { classe: "nt-encart encart-empreinte", attributs: { id: "code-controle" } },
         el("h3", { classe: "intitule-clair", texte: t("signature.code_controle") }),
-        el("p", { classe: "nt-empreinte", texte: d.fingerprint, attributs: { id: "empreinte-d-a", "data-valeur": "" } }),
+        groupesGrands(d.d_a, "code-controle-groupes"),
         el("p", { classe: "nt-petit code-entier" }, el("span", { texte: t("signature.code_entier") }), " ", code(d.d_a, "nt-fixe d-a")),
       ),
-      el(
-        "div",
-        { classe: "nt-encart encart-empreinte", attributs: { id: "code-autre" } },
-        el("h3", { classe: "intitule-clair", texte: t("signature.code_autre") }),
-        el("p", { classe: "nt-empreinte", texte: d.h_fingerprint, attributs: { id: "empreinte-h", "data-valeur": "" } }),
-        el("p", { classe: "nt-petit code-autre-sens", texte: t("signature.code_autre_sens") }),
-      ),
+      autreCode(d),
     ),
     l.modele.warnings.includes("condense_utf8") ? rendreAvertissements(["condense_utf8"], []) : null,
     actions(bouton(t("signature.demander"), () => void demanderSignature(), { actif: !etat.enCours, genre: "principal", icone: "cadenas" }), el("a", { classe: "nt-bouton nt-bouton-discret", texte: t("signature.revenir"), attributs: { href: "#essentiel" } })),
@@ -1672,16 +1755,27 @@ async function envoyerVote(corps, g, empreinteSignee, decision) {
  * l'écran, sous l'en-tête, et la page y amène la personne (complément du 2026-11-18, CT-3 EX-13.29). D'abord une
  * phrase qui dit ce qui s'est passé et que la décision n'est pas enregistrée ; puis le message de la panne et son
  * code. Le choix du portefeuille et l'écran de signature sont retirés jusqu'à « Réessayer », qui reprend la
- * décision que la personne avait confirmée ; elle peut aussi en choisir une autre, plus bas.
+ * décision que la personne avait confirmée ; elle peut aussi en choisir une autre, plus bas. Après un refus dans
+ * l'application, pas de « Réessayer » : la consigne, et le lien discret du complément du 2026-11-19.
  */
 function afficherPanne(codePanne, erreur, recouvree, decision) {
   const sens = sensCode(codePanne, PREFIXES_VOTE);
   const titre = sens ?? el("p", { classe: "nt-bandeau-titre", texte: t(aCle(`panne_signature.${codePanne}`) ? `panne_signature.${codePanne}` : "panne_signature.autre"), attributs: { "data-panne": codePanne } });
   const parties = [titre, el("p", { classe: sens === null ? null : "phrase-fixee", attributs: { "data-code": codePanne } }, ...noeudsPanne(codePanne, erreur, PREFIXES_VOTE))];
   if (codePanne === "adresse_differente" && typeof recouvree === "string") parties.push(el("p", {}, t("signature.adresse_recouvree"), " ", code(recouvree)));
-  // Consigne 4 d'EX-9.20 : qui a refusé parce que le code ne correspondait pas ne réessaie pas.
-  if (codePanne === "refus_approbateur") parties.push(el("p", { texte: t("panne_signature.refus_consigne"), attributs: { id: "panne-consigne" } }));
-  if (decision === "approuve" || decision === "refuse") {
+  // Complément du 2026-11-19 (CT-3 EX-13.29) : après un refus dans l'application, aucun bouton pour recommencer ; la
+  // consigne, puis un lien discret pour qui a refusé par erreur, les deux codes étant identiques.
+  if (codePanne === "refus_approbateur") {
+    parties.push(el("p", { classe: "nt-bandeau-titre", texte: t("panne_signature.refus_consigne"), attributs: { id: "panne-consigne" } }));
+    if (decision === "approuve" || decision === "refuse") {
+      const lien = el("a", { classe: "lien-discret", texte: t("panne_signature.refus_erreur"), attributs: { href: "#", id: "recommencer-signature", "data-recommencer": decision } });
+      lien.addEventListener("click", (ev) => {
+        ev.preventDefault();
+        confirmerDecision(decision);
+      });
+      parties.push(el("p", { classe: "nt-petit" }, lien));
+    }
+  } else if (decision === "approuve" || decision === "refuse") {
     const reessayer = bouton(t("panne_signature.reessayer"), () => confirmerDecision(decision), { genre: "principal" });
     reessayer.setAttribute("data-reessayer", decision);
     parties.push(actions(reessayer));

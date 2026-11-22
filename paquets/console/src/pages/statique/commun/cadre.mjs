@@ -155,8 +155,26 @@ export function bascule() {
  * canonique, elle, est au pied de l'écran. Une identité qui ne se découpe
  * pas s'affiche en entier.
  */
-function personneConnectee(identite) {
+function personneConnectee(identite, nom = null) {
   const p = partiesIdentite(identite);
+  // Complément du 2026-11-19 (CT-3 EX-13.7) : le nom que l'annuaire donne à la session, le même que dans une demande ;
+  // le sujet et le système de l'identité restent à côté, hors de tout bloc replié.
+  if (p !== null && nom !== null)
+    return el(
+      "p",
+      { classe: "nt-session barre-console-session" },
+      el("span", {}, el("span", { classe: "nt-session-libelle", texte: t("cadre.personne") }), " ", el("strong", { classe: "personne-connectee", texte: nom, attributs: { "data-valeur": "", "data-personne-nom": "" } })),
+      el(
+        "span",
+        { classe: "nt-attenue" },
+        el("span", { texte: t("cadre.compte_nomme") }),
+        " ",
+        el("code", { classe: "nt-fixe", texte: p.personne, attributs: { "data-valeur": "", "data-personne": "" } }),
+        el("span", { texte: t(`cadre.compte_nomme.${p.genre}`) }),
+        " ",
+        el("code", { classe: "nt-fixe", texte: p.systeme, attributs: { "data-valeur": "", "data-systeme": p.genre } }),
+      ),
+    );
   if (p === null) return el("p", { classe: "nt-session barre-console-session" }, el("span", { classe: "nt-session-libelle", texte: t("cadre.personne") }), el("code", { classe: "nt-fixe", texte: String(identite), attributs: { "data-valeur": "", "data-personne": "" } }));
   return el(
     "p",
@@ -213,7 +231,7 @@ export async function demarrerEcran(ecran) {
   const barre = el(
     "header",
     { classe: "nt-barre barre-console" },
-    el("div", { classe: "nt-barre-dedans barre-console-ligne" }, logo("/tickets"), nav, el("div", { classe: "nt-barre-fin barre-console-fin" }, personneConnectee(s.session_identity), sortie), el("div", { classe: "nt-barre-outils barre-console-outils" }, bascule())),
+    el("div", { classe: "nt-barre-dedans barre-console-ligne" }, logo("/tickets"), nav, el("div", { classe: "nt-barre-fin barre-console-fin" }, personneConnectee(s.session_identity, s.display_name ?? null), sortie), el("div", { classe: "nt-barre-outils barre-console-outils" }, bascule())),
   );
   const identite = el("div", { classe: "bande-session" }, zoneSortie);
   // EX-13.7 : l'identité de session est une chaîne canonique ; elle reste lisible en entier, dans son ordre, au pied de l'écran.
@@ -229,8 +247,8 @@ export async function demarrerEcran(ecran) {
 }
 
 /**
- * Ce que la marque « vérifié » veut dire, et ce qu'elle ne veut pas dire
- * (complément du 2026-11-18) : bien visible, sur chaque écran qui montre
+ * Ce que la marque « inchangé » veut dire, et ce qu'elle ne veut pas dire
+ * (compléments du 2026-11-18 et du 2026-11-19) : bien visible, sur chaque écran qui montre
  * une valeur vérifiée ; sur une demande encore à décider, avec l'invitation
  * à comparer les valeurs aux pièces avant d'approuver.
  * @param {boolean} clos la demande n'accepte plus de décision

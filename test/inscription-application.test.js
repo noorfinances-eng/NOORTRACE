@@ -446,6 +446,145 @@ describe("inscription : application d'exploitant, interface Next.js et agent ré
     });
   });
 
+  describe("nom interne et remise du paquet (complément du 2026-11-19, décision du porteur sur le suivi interne des clients ; CT-4 EX-7.23)", function () {
+    it("décisions du 2026-11-19 : le nom interne, donné avant les pas 2 à 10, ne sort jamais de l'outil (requêtes au nœud, données de l'agent hors des notes, journal, parties, paquet et son archive) ; la remise du paquet se note, se refuse en double et se corrige sans s'effacer", async function () {
+      const slug2 = "essai-nom-interne";
+      const NOM_INTERNE = "Assurances du Léman NI7Q4";
+      const NOM_CHANGE = "Mutuelle des Alpes NI8R5";
+      const MOTIF = "Remise notée par erreur : motif interne MX3K9";
+      const k = crypto.createHash("sha256").update("noortrace/essai/inscription/application/nom-interne/chaine").digest();
+      const fk = path.join(dir, "chaine-nom-interne.cle");
+      fs.writeFileSync(fk, k.toString("hex"), { mode: 0o600 });
+      const chaine = { reference: `fichier:${fk}`, adresse: new SignataireChaineFichier(new Uint8Array(k)).adresse() };
+      const ed = O.cleEd25519("application-nom-interne");
+      const keyId = "rec-nom-interne-01";
+      const app = [1, 2, 3].map((i) => O.compteHardhat(i).adresse);
+      const debutRequetes = pont.requetesRecues.length;
+      let t = await travail({ commande: "inscrire-client-preparer", slug: slug2, parametres: { org: slug2, journaux: [JOURNAL], approbateurs: app, seuil: 2, admin_jeu: O.compteHardhat(4).adresse, cles_enregistreur: [O.documentCle({ keyId, journalId: JID, chainKey: chaine.adresse, publique: ed.publique })] } });
+      expect(t.sortie.result).to.equal("reussi");
+      const note = (corps, s = slug2) => req(`/api/clients/${s}/notes`, { methode: "POST", corps });
+      // Le nom interne, avant tout envoi au registre public.
+      let r = await note({ sorte: "nom_interne", nom: NOM_INTERNE });
+      expect(r.statut, r.texte).to.equal(200);
+      expect(r.json.id).to.match(/^not-[0-9a-f]{32}$/);
+      // Refus de forme et de l'agent : 400, valeur jamais recopiée ; client inconnu : 404 ; hors session : 401 ; sans Origin : 403.
+      const secret = crypto.randomBytes(32).toString("hex");
+      for (const corps of [{ sorte: "nom_interne", nom: secret }, { sorte: "nom_interne", nom: "x", org_id: "0x" + "00".repeat(32) }, { sorte: "remise_paquet", manifest_sha256: "0x12" }, { sorte: "autre" }]) {
+        const x = await note(corps);
+        expect(x.statut, JSON.stringify(corps)).to.equal(400);
+        expect(x.json.error.code).to.equal("requete_invalide");
+        expect(x.texte).to.not.contain(secret);
+      }
+      r = await note({ sorte: "remise_paquet", manifest_sha256: "0x" + "ab".repeat(32) });
+      expect([r.statut, r.json.error.code], "aucun paquet produit").to.deep.equal([400, "paquet_inconnu"]);
+      r = await note({ sorte: "correction_remise", remise: `not-${"0".repeat(32)}`, motif: "x" });
+      expect([r.statut, r.json.error.code]).to.deep.equal([400, "remise_inconnue"]);
+      expect((await note({ sorte: "nom_interne", nom: "x" }, "client-absent")).statut).to.equal(404);
+      expect((await req(`/api/clients/${slug2}/notes`, { methode: "POST", corps: { sorte: "nom_interne", nom: "x" }, avecSession: false })).statut).to.equal(401);
+      expect((await req(`/api/clients/${slug2}/notes`, { methode: "POST", corps: { sorte: "nom_interne", nom: "x" }, avecOrigine: false })).statut).to.equal(403);
+      // Pas 2 à 6 par l'outil.
+      const org = (await req(`/api/clients/${slug2}`)).json.dossier.organisation.org_id;
+      expect((await req(`/api/clients/${slug2}/confirmations`, { methode: "POST", corps: { operation: "approvisionnement", objet: { org_id: org, cle_chaine: chaine.adresse }, personne_client: "Responsable de l'essai", canal: "appel au numéro du contrat", instant: "2026-11-19T09:00:00.000Z", piece_sha256: "0x" + "78".repeat(32) } })).statut).to.equal(200);
+      t = await travail({ commande: "inscrire-client", slug: slug2, parametres: {} });
+      expect(t.sortie.result, JSON.stringify(t.sortie.error)).to.equal("reussi");
+      t = await travail({ commande: "condense-inscription", slug: slug2, parametres: { key_id: keyId } });
+      expect(t.sortie.result).to.equal("reussi");
+      const demande = (await req(`/api/clients/${slug2}`)).json.demandes.find((x) => x.nom.startsWith(`demande-inscription-${keyId}`)).document;
+      t = await travail({ commande: "inscrire-cle", slug: slug2, parametres: { demande: O.signerDemande(demande, [2, 3]), cle_chaine: chaine.reference } });
+      expect(t.sortie.result, JSON.stringify(t.sortie.error)).to.equal("reussi");
+      // Pas 7 à 9 chez le client (l'outil de référence tient lieu d'enregistreur), puis pas 10 et le paquet par l'outil.
+      const cl = a.client(slug2);
+      const graine = path.join(dir, "rec-nom-interne.graine");
+      fs.writeFileSync(graine, Buffer.from(ed.graine).toString("hex"), { mode: 0o600 });
+      const C = ["--instance", manifeste, "--rpc", pont.url];
+      const periode = path.join(cl.dir, "periode-1");
+      const cloture = path.join(dir, "cloture-nom-interne.json");
+      for (const e of [
+        ["manifeste-essai", "--dossier", cl.dossier, "--key-id", keyId, "--graine", `graine:${graine}`, "--sortie", periode],
+        ["ancrer", "--manifeste", path.join(periode, "manifeste.json"), "--cle-chaine", chaine.reference, "--dossier", cl.dossier, "--captures", cl.captures],
+        ["condense", "cloture", "--manifeste", path.join(periode, "manifeste.json"), "--captures", cl.captures, "--sortie", cloture],
+        ["signer", "--demande", cloture, "--cle", "hardhat:1"],
+        ["signer", "--demande", cloture, "--cle", "hardhat:3"],
+        ["clore", "--demande", cloture, "--manifeste", path.join(periode, "manifeste.json"), "--cle-chaine", chaine.reference, "--dossier", cl.dossier, "--captures", cl.captures],
+      ]) {
+        const x = await O.outilReference([...e, ...C]);
+        expect(x.sortie?.result, `${e[0]} : ${x.err}`).to.equal("reussi");
+      }
+      t = await travail({ commande: "exporter", slug: slug2, parametres: { manifeste: "periode-1/manifeste.json" } });
+      expect(t.sortie.result, JSON.stringify(t.sortie.error)).to.equal("reussi");
+      t = await travail({ commande: "verifier", slug: slug2, parametres: { parties: "parties/1", manifeste: "periode-1/manifeste.json" } });
+      expect(t.sortie.result, JSON.stringify(t.sortie.error)).to.equal("reussi");
+      t = await travail({ commande: "paquet", slug: slug2, parametres: { prepared_by: "exploitant de l'essai", console_origin: null, administrators: null } });
+      expect(t.sortie.result, JSON.stringify(t.sortie)).to.equal("reussi");
+      const manifesteSha = t.sortie.outputs.manifest_sha256;
+      // Remise : notée une fois ; en double, refusée ; d'un autre paquet, refusée ; corrigée sans s'effacer ; notée de nouveau.
+      r = await note({ sorte: "remise_paquet", manifest_sha256: manifesteSha });
+      expect(r.statut, r.texte).to.equal(200);
+      const remise1 = r.json.id;
+      r = await note({ sorte: "remise_paquet", manifest_sha256: manifesteSha });
+      expect([r.statut, r.json.error.code]).to.deep.equal([400, "remise_deja_notee"]);
+      r = await note({ sorte: "remise_paquet", manifest_sha256: "0x" + "ab".repeat(32) });
+      expect([r.statut, r.json.error.code]).to.deep.equal([400, "paquet_inconnu"]);
+      expect((await req(`/clients/${slug2}`)).texte).to.contain('data-prochaine-action="paquet_remis"');
+      r = await note({ sorte: "correction_remise", remise: remise1, motif: MOTIF });
+      expect(r.statut, r.texte).to.equal(200);
+      r = await note({ sorte: "correction_remise", remise: remise1, motif: "seconde correction" });
+      expect([r.statut, r.json.error.code], "une remise ne se corrige qu'une fois").to.deep.equal([400, "remise_inconnue"]);
+      expect((await req(`/clients/${slug2}`)).texte).to.contain('data-prochaine-action="remettre_paquet"');
+      r = await note({ sorte: "remise_paquet", manifest_sha256: manifesteSha });
+      expect(r.statut, r.texte).to.equal(200);
+      r = await note({ sorte: "nom_interne", nom: NOM_CHANGE });
+      expect(r.statut).to.equal(200);
+      // Le registre des notes, en ajout seul : chaque note, avec l'exploitant et l'instant ; la remise corrigée y reste.
+      const lignes = fs.readFileSync(path.join(a.donnees, "notes-internes.ndjson"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+      expect(lignes.map((l) => [l.sorte, l.org_id === org, l.exploitant])).to.deep.equal([["nom_interne", true, `exploitant ${NOM}`], ["remise_paquet", true, `exploitant ${NOM}`], ["correction_remise", true, `exploitant ${NOM}`], ["remise_paquet", true, `exploitant ${NOM}`], ["nom_interne", true, `exploitant ${NOM}`]]);
+      expect(lignes[0]).to.include({ nom: NOM_INTERNE });
+      expect(lignes[2]).to.include({ remise: remise1, motif: MOTIF });
+      for (const l of lignes) expect(l.recu_a).to.match(/^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9:.]{12}Z$/);
+      // Les pages, servies sous session, montrent le nom et la remise.
+      expect((await req("/clients")).texte).to.contain(NOM_CHANGE);
+      expect((await req(`/clients/${slug2}`)).texte).to.contain(NOM_CHANGE);
+      expect((await req(`/clients/${slug2}/paquet`)).texte).to.contain(`Paquet remis le `);
+      // Ce qui sort de l'outil : rien ne porte le nom interne, ni le motif de la correction.
+      const archive = (await req(`/api/clients/${slug2}/paquet`)).octets;
+      expect(archive.length).to.be.greaterThan(1024);
+      const formes = (texte) => [texte, JSON.stringify(texte).slice(1, -1).replace(/[\u0080-￿]/g, (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, "0")}`), Buffer.from(texte, "utf8").toString("hex"), Buffer.from(texte, "utf8").toString("base64").slice(0, 16), texte.split(" ").pop(), Buffer.from(texte.split(" ").pop()).toString("hex")].map((x) => x.toLowerCase());
+      const cherches = [...formes(NOM_INTERNE), ...formes(NOM_CHANGE), ...formes(MOTIF)];
+      const contient = (octets) => {
+        const bas = Buffer.from(octets).toString("latin1").toLowerCase();
+        const utf = Buffer.from(octets).toString("utf8").toLowerCase();
+        return cherches.find((x) => bas.includes(x) || utf.includes(x)) ?? null;
+      };
+      const fichiers = [];
+      const parcourir = (d) => {
+        for (const n of fs.readdirSync(d)) {
+          const f = path.join(d, n);
+          const st = fs.lstatSync(f);
+          if (st.isDirectory()) parcourir(f);
+          else if (st.isFile()) fichiers.push(f);
+        }
+      };
+      parcourir(a.donnees);
+      const notesFichier = path.join(a.donnees, "notes-internes.ndjson");
+      expect(contient(fs.readFileSync(notesFichier)), "la recherche trouve le nom là où il est gardé").to.not.equal(null);
+      const verifies = fichiers.filter((f) => f !== notesFichier);
+      for (const n of ["journal-agent.ndjson", `clients/${slug2}/dossier.json`, `clients/${slug2}/parties/1`, `clients/${slug2}/paquets/1/paquet-client-${slug2}/paquet-client.json`, `clients/${slug2}/captures`]) {
+        expect(verifies.some((f) => f.startsWith(path.join(a.donnees, n))), `${n} parcouru`).to.equal(true);
+      }
+      for (const f of verifies) expect(contient(fs.readFileSync(f)), f).to.equal(null);
+      expect(contient(archive), "archive du paquet").to.equal(null);
+      const requetes = pont.requetesRecues.slice(debutRequetes);
+      expect(requetes.filter((x) => x.includes('"eth_sendRawTransaction"')).length, "les pas 2 à 9 ont écrit sur le registre").to.be.at.least(6);
+      for (const x of requetes) expect(contient(Buffer.from(x)), "requête au nœud").to.equal(null);
+      expect(contient(Buffer.from(journalWeb)), "journal du serveur de l'interface").to.equal(null);
+      // Le journal de l'agent garde chaque note sans son contenu.
+      const journal = fs.readFileSync(path.join(a.donnees, "journal-agent.ndjson"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l));
+      const recues = journal.filter((l) => l.evenement === "note_recue");
+      expect(recues.map((l) => Object.keys(l).sort().join(","))).to.deep.equal(Array(5).fill("evenement,exploitant,id,instant,org_id,sorte"));
+      expect(journal.filter((l) => l.evenement === "note_refusee").map((l) => l.code)).to.include.members(["paquet_inconnu", "remise_inconnue", "remise_deja_notee"]);
+    });
+  });
+
   describe("bornes des corps de requête (relecture de l'étape 6)", function () {
     /** Requête HTTP brute : écrit les en-têtes puis `envoyer(socket)`, sans finir le corps ; rend le statut et le corps de la réponse, ou null passé `attente` ms. */
     const brute = (entetes, envoyer, attente = 5000) => new Promise((ok) => {

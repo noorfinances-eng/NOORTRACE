@@ -107,7 +107,12 @@ export function urlLisible(url) {
  */
 export function erreursDocument(doc) {
   const v = registreSchemas().valider(IDS.configuration, doc);
-  if (!v.valide) return trier([...new Set(v.erreurs.map((e) => e.pointeur))].map((pointer) => ({ code: "schema", pointer })));
+  const pointeurs = v.valide ? [] : v.erreurs.map((e) => e.pointeur);
+  // Complément du 2026-11-19 (CT-3 10.3) : au plus 256 phrases modèles. La borne n'est pas écrite dans le schéma, dont
+  // les mots-clés restent ceux du validateur de référence du dépôt ; elle se contrôle ici, comme une erreur de schéma.
+  const t = doc !== null && typeof doc === "object" ? doc.titles : undefined;
+  if (t !== null && typeof t === "object" && !Array.isArray(t) && Object.keys(t).length > 256) pointeurs.push("/titles");
+  if (pointeurs.length > 0) return trier([...new Set(pointeurs)].map((pointer) => ({ code: "schema", pointer })));
   const errors = [];
   if (doc.environment === "production" && doc.identity.kind !== "oidc") errors.push({ code: "identite_locale_en_production", pointer: "/identity/kind" });
   const url = doc.service.url ?? null;

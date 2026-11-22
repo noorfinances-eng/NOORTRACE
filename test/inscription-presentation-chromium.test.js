@@ -1136,13 +1136,14 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       expect(await attente.locator("form").count(), "aucune action à lancer").to.equal(0);
       expect(await attente.innerText(), "aucune durée inventée").to.not.match(/[0-9]+ (?:minutes?|heures?|jours?)|quelques (?:minutes|heures|jours)|une heure/);
       await sansMotTechnique("fiche, en attente du registre");
-      // Un nom tiré au hasard ne dit pas qui est le client : la fiche et le formulaire renvoient au fichier des clients.
+      // Un nom tiré au hasard ne dit pas qui est le client : la fiche et le formulaire renvoient au nom interne (sixième
+      // tour, complément du 2026-11-19 : l'outil garde ce nom, que seule l'équipe voit).
       await aller(`/clients/${TIRE}`);
-      expect(await page.locator("[data-nom-tire]").innerText()).to.equal("Ce nom ne dit pas qui est le client : notez-le dans votre fichier des clients, à côté de son vrai nom.");
+      expect(await page.locator("[data-nom-tire]").innerText()).to.equal("Ce nom court ne dit pas qui est le client : donnez-lui un nom interne, ci-dessous, que seule notre équipe voit.");
       await aller("/clients/client-neuf");
       expect(await page.locator("[data-nom-tire]").count(), "un nom libre n'est pas dit « tiré au hasard »").to.equal(0);
       await aller("/clients/nouveau");
-      expect(plat(await page.locator('form[data-commande="inscrire-client-preparer"]').first().locator('[data-a-retenir="org"]').innerText())).to.equal("Ce nom ne dit pas qui est le client : notez-le dans votre fichier des clients, à côté de son vrai nom.");
+      expect(plat(await page.locator('form[data-commande="inscrire-client-preparer"]').first().locator('[data-a-retenir="org"]').innerText())).to.equal("Ce nom ne dit pas qui est le client : une fois le dossier préparé, donnez-lui sur sa fiche un nom interne, que seule notre équipe voit.");
 
       // 3. Formulaire de confirmation : en haut, ce que le client confirme (le montant et le compte) ; avant l'envoi,
       // un récapitulatif à relire ; rien ne part avant le second clic, qui envoie le corps que la route recevait déjà.
@@ -1685,5 +1686,154 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       expect(x.lignesTitre, x.titre).to.be.at.most(2);
     }
     expect(tel.ecarts).to.deep.equal([]);
+  });
+
+  it("décisions du 2026-11-19 : le nom interne d'un client passe en premier sur la liste et la fiche, le nom court reste à côté, en petit ; « J'ai remis le paquet au client » note la remise, que la fiche lit « remis le … par … » ; une remise se corrige sans s'effacer ; corps exacts des notes, aucune présélection, aucun mot de technicien, 390 px sans défilement", async function () {
+    const registre = path.join(donneesFictives, "notes-internes.ndjson");
+    const avant = fs.existsSync(registre) ? fs.readFileSync(registre, "utf8") : null;
+    const ligne = (n, sorte, plus, recu_a, exploitant = `exploitant ${NOM}`) => JSON.stringify({ id: `not-${String(n).padStart(32, "0")}`, sorte, org_id: F.clients["client-inscrit"].dossier.organisation.org_id, ...plus, exploitant, recu_a }) + "\n";
+    const plat = (x) => x.replace(/\s+/g, " ").trim();
+    try {
+      fs.writeFileSync(registre, ligne(1, "nom_interne", { nom: "Assurances du Léman" }, "2026-11-19T09:00:00.000Z"));
+      const { page, ecarts, aller } = await ouvrir();
+      const envois = [];
+      let reponse = { status: 200, body: JSON.stringify({ id: `not-${"f".repeat(32)}` }) };
+      await page.route("**/api/clients/*/notes", (r) => {
+        envois.push({ url: new URL(r.request().url()).pathname, corps: r.request().postData() });
+        return r.fulfill({ status: reponse.status, contentType: "application/json", body: reponse.body });
+      });
+      const autres = [];
+      page.on("request", (r) => {
+        if (r.method() === "POST" && !/\/notes$/.test(r.url())) autres.push(r.url());
+      });
+      const sansMotTechnique = async (ecran) => expect(motsTechniquesDans(await page.evaluate(textePremierNiveau)), ecran).to.deep.equal([]);
+      const sansPreselection = async (ecran) => {
+        expect(await page.locator('input[type="checkbox"], input[type="radio"], [aria-pressed="true"], option[selected]:not([value=""])').count(), `${ecran} : rien de présélectionné`).to.equal(0);
+      };
+      // 1. Liste : le nom interne en titre de la carte, le nom court à côté, en petit ; sans nom interne, le nom court reste le titre.
+      await aller("/clients");
+      const carte = page.locator('article[data-client="client-inscrit"]');
+      expect(await carte.locator("h3 a").innerText()).to.equal("Assurances du Léman");
+      expect(plat(await carte.locator("[data-nom-court]").innerText())).to.equal("Nom court : client-inscrit");
+      const tailles = await carte.evaluate((c) => [c.querySelector("h3 a"), c.querySelector("[data-nom-court]")].map((e) => [parseFloat(getComputedStyle(e).fontSize), Math.round(e.getBoundingClientRect().top)]));
+      expect(tailles[1][0], "nom court plus petit").to.be.below(tailles[0][0]);
+      expect(tailles[1][1], "nom court sous le nom interne").to.be.above(tailles[0][1]);
+      expect(await page.locator('article[data-client="client-neuf"] h3 a').innerText()).to.equal("client-neuf");
+      expect(await page.locator('article[data-client="client-neuf"] [data-nom-court]').count()).to.equal(0);
+      await sansMotTechnique("liste avec un nom interne");
+      // 2. Fiche : le nom interne en titre, le nom court dessous ; le bouton de la consigne reste dans le premier écran.
+      await aller("/clients/client-inscrit");
+      expect(await page.locator("h1").innerText()).to.equal("Assurances du Léman");
+      expect(plat(await page.locator("header [data-nom-court]").innerText())).to.equal("Nom court : client-inscrit");
+      expect(await page.locator("section.nt-essentiel").getAttribute("data-prochaine-action")).to.equal("remettre_paquet");
+      expect(plat(await page.locator("section.nt-essentiel .ins-essentiel-texte").first().innerText())).to.equal("L'inscription est faite et le paquet est produit. Téléchargez le paquet et remettez-le au client, avec son empreinte : une suite de 66 caractères, donnée sur l'écran du paquet, qui permet au client de vérifier qu'il a reçu exactement ce paquet. Puis notez la remise sur ce même écran.");
+      const bas = await page.evaluate(() => Math.round(document.querySelector("section.nt-essentiel .nt-bouton-principal").getBoundingClientRect().bottom + window.scrollY));
+      expect(bas, "bouton de la consigne à 40 px au moins du bas du premier écran").to.be.at.most(760);
+      await sansMotTechnique("fiche avec un nom interne");
+      await sansPreselection("fiche");
+      // 3. Changer puis retirer le nom interne : un champ de texte, refus en clair sans envoi, corps exacts.
+      const bloc = page.locator("details[data-nom-interne-action]");
+      expect(await bloc.evaluate((d) => d.open), "replié à l'arrivée : le nom interne n'engage rien").to.equal(false);
+      expect(plat(await bloc.locator("> summary").innerText())).to.equal("Changer le nom interne visible seulement de notre équipe");
+      await bloc.locator("> summary").click();
+      const f = bloc.locator('form[data-note="nom_interne"]');
+      expect(await f.locator('input[name="nom"]').getAttribute("data-type")).to.equal("texte");
+      expect(await f.locator('input[name="nom"]').inputValue(), "champ vide, rien de prérempli").to.equal("");
+      await f.locator('button[type="submit"]').click();
+      expect(await f.locator(".nt-erreur").innerText()).to.equal("Ce champ est vide. Remplissez-le en suivant l'aide écrite dessous.");
+      await f.locator('input[name="nom"]').fill("x".repeat(81));
+      await f.locator('button[type="submit"]').click();
+      expect(await f.locator(".nt-erreur").innerText()).to.equal("Ce texte est trop long : 80 caractères au plus.");
+      expect(envois, "aucune note envoyée sur une saisie refusée").to.deep.equal([]);
+      await f.locator('input[name="nom"]').fill("  Assurances du Léman SA ");
+      await f.locator('button[type="submit"]').click();
+      await page.waitForSelector("[data-note-faite]");
+      expect(envois).to.deep.equal([{ url: "/api/clients/client-inscrit/notes", corps: '{"sorte":"nom_interne","nom":"Assurances du Léman SA"}' }]);
+      await page.locator("[data-retirer-nom]").click();
+      await page.waitForFunction(() => /retiré/.test(document.querySelector("[data-note-faite]")?.textContent ?? ""));
+      expect(envois[1]).to.deep.equal({ url: "/api/clients/client-inscrit/notes", corps: '{"sorte":"nom_interne","nom":null}' });
+      // Un refus de l'outil se dit en clair, le code au détail.
+      reponse = { status: 503, body: JSON.stringify({ error: { code: "agent_injoignable", message: "l'agent ne répond pas" } }) };
+      await f.locator('input[name="nom"]').fill("Autre nom");
+      await f.locator('button[type="submit"]').click();
+      await page.waitForSelector('[data-nom-interne-formulaire] [data-refus="agent_injoignable"]');
+      reponse = { status: 200, body: JSON.stringify({ id: `not-${"f".repeat(32)}` }) };
+      // 4. Paquet : « J'ai remis le paquet au client », sans présélection, corps exact (l'empreinte du paquet affiché).
+      envois.length = 0;
+      await aller("/clients/client-inscrit/paquet");
+      expect(plat(await page.locator(".nt-sur-titre").first().evaluate((e) => e.textContent))).to.equal("Client Assurances du Léman · nom court client-inscrit");
+      expect(await page.locator("[data-remise]").getAttribute("data-remise")).to.equal("a-noter");
+      const bouton = page.locator("[data-noter-remise]");
+      expect(await bouton.innerText()).to.equal("J'ai remis le paquet au client");
+      expect(await bouton.isDisabled()).to.equal(false);
+      expect(plat(await page.locator('[data-remise] [data-sous-bouton]').innerText())).to.equal("Ce bouton note que vous avez remis ce paquet au client, avec la date, l'heure et votre nom. C'est votre déclaration : l'outil ne peut pas savoir si le client l'a reçu. Rien n'est envoyé au client ni au registre public. La note ne s'efface pas ; une erreur se corrige par une nouvelle note.");
+      await sansPreselection("paquet");
+      await sansMotTechnique("paquet, remise à noter");
+      expect(envois, "rien ne part sans le clic").to.deep.equal([]);
+      await bouton.click();
+      await page.waitForLoadState("networkidle");
+      expect(envois).to.deep.equal([{ url: "/api/clients/client-inscrit/notes", corps: JSON.stringify({ sorte: "remise_paquet", manifest_sha256: F.manifestePaquet }) }]);
+      // 5. Remise notée : l'écran du paquet, la fiche et la liste la lisent.
+      fs.appendFileSync(registre, ligne(2, "remise_paquet", { manifest_sha256: F.manifestePaquet }, "2026-11-19T10:30:00.000Z"));
+      await aller("/clients/client-inscrit/paquet");
+      expect(await page.locator("[data-remise]").getAttribute("data-remise")).to.equal("notee");
+      expect(plat(await page.locator("[data-remise-en-vigueur]").innerText())).to.equal("Paquet remis le 19 novembre 2026 à 10:30 UTC par operateur-1.");
+      expect(await page.locator("[data-noter-remise]").count(), "une seule remise en vigueur par paquet").to.equal(0);
+      await sansMotTechnique("paquet, remise notée");
+      await aller("/clients/client-inscrit");
+      expect(await page.locator("section.nt-essentiel").getAttribute("data-prochaine-action")).to.equal("paquet_remis");
+      expect(await page.locator("section.nt-essentiel h2").innerText()).to.equal("Le paquet a été remis au client");
+      expect(plat(await page.locator("section.nt-essentiel .ins-essentiel-texte").first().innerText())).to.equal("Paquet remis le 19 novembre 2026 à 10:30 UTC par operateur-1. Vous n'avez plus rien à faire pour ce client.");
+      expect(await page.locator("[data-paquet-remis]").innerText()).to.equal("remis le 19 novembre 2026 à 10:30 UTC par operateur-1");
+      await sansMotTechnique("fiche, paquet remis");
+      await aller("/clients");
+      expect(await carte.locator("[data-prochaine-action]").innerText()).to.equal("Le paquet a été remis au client");
+      // 6. Corriger la remise : un motif exigé, corps exact ; la remise reste lisible, marquée corrigée.
+      envois.length = 0;
+      await aller("/clients/client-inscrit/paquet");
+      const corriger = page.locator("details[data-corriger-remise]");
+      expect(await corriger.evaluate((d) => d.open)).to.equal(false);
+      await corriger.locator("> summary").click();
+      await corriger.locator('button[type="submit"]').click();
+      expect(await corriger.locator(".nt-erreur").innerText()).to.equal("Ce champ est vide. Remplissez-le en suivant l'aide écrite dessous.");
+      expect(envois).to.deep.equal([]);
+      await corriger.locator('input[name="motif"]').fill("Bouton cliqué par erreur : le paquet n'est pas encore remis.");
+      await corriger.locator('button[type="submit"]').click();
+      await page.waitForLoadState("networkidle");
+      expect(envois).to.deep.equal([{ url: "/api/clients/client-inscrit/notes", corps: JSON.stringify({ sorte: "correction_remise", remise: `not-${"0".repeat(31)}2`, motif: "Bouton cliqué par erreur : le paquet n'est pas encore remis." }) }]);
+      fs.appendFileSync(registre, ligne(3, "correction_remise", { remise: `not-${"0".repeat(31)}2`, motif: "Bouton cliqué par erreur : le paquet n'est pas encore remis." }, "2026-11-19T11:00:00.000Z", "exploitant operateur-2"));
+      await aller("/clients/client-inscrit/paquet");
+      expect(await page.locator("[data-remise]").getAttribute("data-remise")).to.equal("a-noter");
+      expect(await page.locator("[data-noter-remise]").count(), "le paquet est de nouveau à remettre").to.equal(1);
+      const historique = page.locator("details[data-historique-remises]");
+      await historique.locator("> summary").click();
+      const ancienne = historique.locator(`[data-remise-notee="not-${"0".repeat(31)}2"]`);
+      expect(await ancienne.getAttribute("data-corrigee")).to.equal("oui");
+      expect(await ancienne.locator("s").innerText()).to.equal("Paquet remis le 19 novembre 2026 à 10:30 UTC par operateur-1.");
+      expect(plat(await ancienne.locator("[data-correction]").innerText())).to.equal("Corrigée le 19 novembre 2026 à 11:00 UTC par operateur-2 : « Bouton cliqué par erreur : le paquet n'est pas encore remis. ».");
+      await aller("/clients/client-inscrit");
+      expect(await page.locator("section.nt-essentiel").getAttribute("data-prochaine-action")).to.equal("remettre_paquet");
+      // 7. Un refus de l'agent (remise déjà notée) se dit en clair.
+      reponse = { status: 400, body: JSON.stringify({ error: { code: "remise_deja_notee", message: "remise de ce paquet déjà notée" } }) };
+      await aller("/clients/client-inscrit/paquet");
+      await page.locator("[data-noter-remise]").click();
+      await page.waitForSelector('[data-refus="remise_deja_notee"]');
+      expect(await page.locator('[data-refus="remise_deja_notee"] .nt-bandeau-titre').innerText()).to.equal("La remise de ce paquet est déjà notée.");
+      expect(autres, "aucun autre envoi").to.deep.equal([]);
+      // Stockage du navigateur : le thème seulement, jamais une note.
+      expect(await page.evaluate(() => Object.keys(localStorage).filter((k) => k !== "noor.theme"))).to.deep.equal([]);
+      expect(ecarts).to.deep.equal([]);
+      // 8. À 390 px, un nom interne de 80 caractères ne fait pas déborder la liste, la fiche ni le paquet.
+      fs.appendFileSync(registre, ligne(4, "nom_interne", { nom: "Mutuelle d'assurances des transports et de la logistique du bassin lémanique SA" }, "2026-11-19T12:00:00.000Z"));
+      const tel = await ouvrir({ largeur: 390, hauteur: 844 });
+      for (const ecran of ["/clients", "/clients/client-inscrit", "/clients/client-inscrit/paquet"]) {
+        await tel.aller(ecran);
+        expect(await tel.page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `${ecran} à 390 px`).to.equal(true);
+      }
+      expect(tel.ecarts).to.deep.equal([]);
+    } finally {
+      if (avant === null) fs.rmSync(registre, { force: true });
+      else fs.writeFileSync(registre, avant);
+    }
   });
 });

@@ -34,7 +34,15 @@
       "reason": "ancre_absente"
     }
   ],
-  "warnings": [],
+  "warnings": [
+    "AV-N-1",
+    "AV-N-2",
+    "AV-N-2",
+    "AV-N-1",
+    "AV-T-5",
+    "AV-R-4",
+    "AV-N-1"
+  ],
   "anchors": "../../ancres/ancres-test.json",
   "bitcoin_headers": "../../ots/entetes/chaine-depuis-1001.json",
   "exit_code": 0,

@@ -509,7 +509,7 @@ export const ATTENDU_ACCEPTATION_CONSOLE = {
           id: "q3",
           question: "Que vérifiez-vous avant de signer ?",
           elements: [
-            el("Les arguments et leur marque, « vérifié » ou « non vérifiable par la console ».", "EX-9.4", "EX-9.16"),
+            el("Les arguments et leur marque, « inchangé » ou « non vérifiable par la console ».", "EX-9.4", "EX-9.16"),
             el("La règle déclenchée et la délégation ; l'intention marquée « déclarée par l'agent, non vérifiée ».", "EX-9.4"),
             el("Les 8 premiers et les 8 derniers chiffres du message montré par le portefeuille, égaux à l'empreinte de la console ; les huit groupes pour une objection ou un montant élevé.", "EX-9.18", "EX-9.20"),
             el("Sur un appareil qui montre « Message hash », comparer cette valeur à l'empreinte de H et non à celle de D_A.", "EX-9.18", "EX-9.20"),

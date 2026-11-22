@@ -250,6 +250,9 @@ type DonneesLisibles struct {
 	LignePerimetre *commun.Texte
 	// ResultatExige : contrôles exigés non réussis (INCOMPLET).
 	ExigesNonReussis []int
+	// ExigesSansValeur : contrôles exigés réussis mais sans valeur de preuve
+	// (CT-6 EX-6.25, complément du 2026-11-19).
+	ExigesSansValeur []int
 }
 
 // ErreurRapport : error d'un rapport d'erreur.

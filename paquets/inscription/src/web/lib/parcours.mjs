@@ -56,6 +56,26 @@ const ETAPES_DE_COMMANDE = Object.freeze({ "inscrire-client": ETAPES_CONDUITES, 
 
 const MOIS = Object.freeze(["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"]);
 
+/** Nom du compte d'une identité de session (`exploitant <nom>`, INTERFACES.md 1), comme la barre l'affiche ; autre forme : telle quelle. */
+export const nomDuCompte = (identite) => String(identite ?? "").replace(/^exploitant /, "");
+
+/**
+ * Remise du paquet notée (complément du 2026-11-19, décision du porteur sur le suivi interne des clients) : « Paquet
+ * remis le 13 novembre 2026 à 10:30 UTC par operateur-1. » La date est celle où la remise a été notée dans l'outil,
+ * l'auteur, la personne connectée qui l'a notée.
+ */
+/**
+ * Empreinte du paquet produit que l'écran du paquet affiche (`outputs.manifest_sha256` de la dernière production
+ * réussie), ou null : c'est celle que la remise nomme. `c` : `{ paquet, travaux }` tels que l'interface les lit.
+ */
+export function manifesteDuPaquet(c) {
+  if (!c?.paquet?.present) return null;
+  const t = (c.travaux ?? []).find((x) => x.commande === "paquet" && x.sortie?.result === "reussi");
+  return typeof t?.sortie?.outputs?.manifest_sha256 === "string" ? t.sortie.outputs.manifest_sha256 : null;
+}
+
+export const phraseRemise = (r) => `Paquet remis le ${dateLisible(r.recu_a)} par ${nomDuCompte(r.exploitant)}.`;
+
 /** Instant ISO (`AAAA-MM-JJThh:mm:ss.sssZ`) en clair, en UTC : « 12 novembre 2026 à 08:05 UTC » ; illisible : tel quel. */
 export function dateLisible(iso) {
   if (iso === null || iso === undefined) return "";
@@ -216,7 +236,7 @@ export function avancement(dossier) {
  * d'une étape `incluse`. Pour les deux dernières étapes, faites chez le client, la consigne reste neutre : attendre,
  * puis prévenir l'équipe technique.
  */
-export function prochaineAction({ slug, dossier, confirmations = [], demandes = [], periodes = [], parties = [], travaux = [], paquet = null }) {
+export function prochaineAction({ slug, dossier, confirmations = [], demandes = [], periodes = [], parties = [], travaux = [], paquet = null, remise = null }) {
   const etapes = dossier.steps ?? [];
   const faite = (e) => ETATS_ETAPE[e.state]?.rang === "faite";
   const numero = (e) => etapes.indexOf(e) + 2;
@@ -417,13 +437,27 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       lien: `/clients/${slug}/paquet`,
     };
   }
+  // Remise du paquet (complément du 2026-11-19) : une remise en vigueur (non corrigée) du paquet produit, notée par
+  // une personne de l'équipe, clôt le parcours ; ce n'est qu'une déclaration, que l'écran attribue à son auteur.
+  if (remise) {
+    return {
+      code: "paquet_remis",
+      surTitre: "Inscription terminée",
+      titre: "Le paquet a été remis au client",
+      phrase: `${phraseRemise(remise)} Vous n'avez plus rien à faire pour ce client.`,
+      aPreparer: RIEN_A_RASSEMBLER,
+      apres: "Après le clic : vous arrivez sur l'écran du paquet. Si cette remise est notée par erreur, vous pouvez y corriger la note.",
+      bouton: "Voir le paquet",
+      lien: `/clients/${slug}/paquet`,
+    };
+  }
   return {
     code: "remettre_paquet",
     surTitre: "Inscription terminée",
     titre: "Remettez le paquet au client",
-    phrase: "L'inscription est faite et le paquet est produit. Si ce n'est pas déjà fait, téléchargez le paquet et remettez-le au client, avec son empreinte : une suite de 66 caractères, donnée sur l'écran du paquet, qui permet au client de vérifier qu'il a reçu exactement ce paquet.",
+    phrase: "L'inscription est faite et le paquet est produit. Téléchargez le paquet et remettez-le au client, avec son empreinte : une suite de 66 caractères, donnée sur l'écran du paquet, qui permet au client de vérifier qu'il a reçu exactement ce paquet. Puis notez la remise sur ce même écran.",
     aPreparer: RIEN_A_RASSEMBLER,
-    apres: "Après le clic : vous arrivez sur l'écran du paquet, où se trouvent le bouton de téléchargement et l'empreinte à donner au client.",
+    apres: "Après le clic : vous arrivez sur l'écran du paquet, où se trouvent le bouton de téléchargement, l'empreinte à donner au client et le bouton « J'ai remis le paquet au client ».",
     bouton: "Voir le paquet à remettre",
     lien: `/clients/${slug}/paquet`,
   };
@@ -623,6 +657,7 @@ const PREUVE = "L'opération elle-même est partie ; seule sa preuve manque dans
 const PREVENIR = "Si cela se reproduit, prévenez l'équipe technique en lui donnant le détail ci-dessous.";
 const REPRENDRE = "Ne renvoyez rien. Actualisez la fiche du client : elle vous propose d'aller chercher la réponse du registre public.";
 const E = (phrase, effet, quoiFaire, plus = {}) => Object.freeze({ phrase, effet, quoiFaire, ...plus });
+const NOTE_NON_ECRITE = "Rien n'a été noté, et rien n'a été envoyé au registre public.";
 const CERTIFICAT = E("L'opération est inscrite, mais sa preuve n'a pas pu être rangée dans le dossier.", PREUVE, `${REPRENDRE} Si la preuve reste introuvable, prévenez l'équipe technique sans attendre : elle n'est gardée qu'un temps.`);
 const CLE_OCCUPEE = E("Cet enregistreur ou son compte technique ne peut pas être inscrit : il l'est déjà, il a été retiré, ou il sert à un autre client.", RIEN, "Demandez au client la fiche d'un nouvel enregistreur, avec un nouveau compte technique. Un compte technique retiré ne se réinscrit jamais.");
 const SIGNATURES = E("Les signatures du document ne conviennent pas : un signataire n'est pas un approbateur du client, une signature n'a pas la forme attendue, ou il n'y en a pas assez.", RIEN, "Demandez au client de faire signer le document par assez d'approbateurs de sa liste, puis envoyez de nouveau le document signé.");
@@ -645,6 +680,10 @@ const ERREURS = Object.freeze({
   file_pleine: E("Trop d'actions attendent déjà leur tour : celle-ci n'a pas été prise.", RIEN, "Attendez que les actions en cours se terminent, puis recommencez."),
   travail_inconnu: E("L'outil ne retrouve pas cette action.", VOIR_FICHE, "Actualisez la fiche du client : son historique dit ce qui a été fait."),
   paquet_absent: E("Aucun paquet n'est produit pour ce client.", "Rien n'a été téléchargé.", "Produisez d'abord le paquet sur cet écran."),
+  // Notes internes (complément du 2026-11-19, décision du porteur sur le suivi interne des clients).
+  paquet_inconnu: E("Ce paquet n'est pas l'un de ceux que l'outil a produits pour ce client : la remise n'est pas notée.", NOTE_NON_ECRITE, "Rechargez l'écran du paquet, puis notez la remise du paquet qu'il affiche."),
+  remise_deja_notee: E("La remise de ce paquet est déjà notée.", NOTE_NON_ECRITE, "Rechargez l'écran du paquet : il dit quand et par qui. Si cette note est fausse, corrigez-la avec « Corriger cette note »."),
+  remise_inconnue: E("Cette remise n'est pas notée pour ce client, ou elle est déjà corrigée.", NOTE_NON_ECRITE, "Rechargez l'écran du paquet : il montre chaque remise notée et sa correction."),
   corps_trop_grand: E("Ce que vous envoyez est trop volumineux pour l'outil.", RIEN, "Vérifiez que vous avez collé le bon document, et lui seul, puis recommencez."),
   longueur_exigee: E("L'envoi n'a pas la forme que l'outil attend.", RIEN, `Rechargez la page, puis recommencez. ${PREVENIR}`),
   origine_refusee: E("L'outil a refusé cette action, qui ne vient pas de son adresse habituelle.", RIEN, "Ouvrez l'outil par son adresse habituelle, reconnectez-vous, puis recommencez."),
@@ -816,4 +855,5 @@ export const LEXIQUE = Object.freeze([
   { terme: "crédits d'écriture", explication: "ce qui paie chaque écriture sur le registre public ; ce n'est pas de l'argent : notre société les fournit, ils ne s'achètent ni ne se vendent, et le client ne les paie pas" },
   { terme: "service d'inscription", explication: "le programme de notre serveur qui exécute les actions que vous lancez d'ici ; lui seul écrit sur le registre public" },
   { terme: "paquet du client", explication: "l'ensemble des fichiers que nous remettons au client à la fin de l'inscription" },
+  { terme: "nom interne", explication: "le nom que notre équipe donne à un client pour le reconnaître dans cet outil ; seule notre équipe le voit : il ne part jamais vers le registre public ni dans le paquet du client" },
 ]);

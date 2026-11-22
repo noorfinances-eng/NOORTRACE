@@ -228,9 +228,9 @@ Bornes des journaux et du contrôle du paquet (revue de l'étape 8) :
 `journal-agent.ndjson` est tourné à 16 Mio (une génération gardée,
 `journal-agent.ndjson.1`), les refus que le compte de l'interface peut
 provoquer sans limite (`pair_refuse`, `requete_refusee`, `requete_erreur`,
-`travail_refuse`, `confirmation_refusee`) sont consignés ligne à ligne
+`travail_refuse`, `confirmation_refusee`, `note_refusee`) sont consignés ligne à ligne
 jusqu'à huit par minute et par événement, puis comptés dans une ligne
-`refus_cumules` ; `confirmations.ndjson` n'est jamais tourné (une ligne par
+`refus_cumules` ; `confirmations.ndjson` et `notes-internes.ndjson` ne sont jamais tournés (une ligne par
 action d'exploitant) ; `controlerPaquet` ne lit pas un fichier au-delà de
 64 Mio (`fichier_trop_grand`) ni plus de 4 096 entrées (`trop_de_fichiers`).
 Limite nommée : la liste des travaux de l'interface relit chaque

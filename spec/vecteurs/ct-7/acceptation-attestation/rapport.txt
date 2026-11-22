@@ -21,6 +21,8 @@ Vérifications non réussies :
                       aucune approbation liée (partie_absente)
   [non exécuté] A-4  [7] request_hash = hash recalculé de l'événement de demande (status retenue) quand il est dans le dossier
                       aucune approbation liée (partie_absente)
+Avertissements :
+  AV-N-1 (E-8) clé d'enregistreur rec-test-02 (événement) : clé d'essai publiée, sans valeur probante hors des tests
 Parties absentes : approbations.json (aucune approbation liée), jeton-rfc3161.der (hors périmètre CT-1), preuve.ots (hors périmètre CT-1), registre.json (hors périmètre CT-1), certificat-commit.json (hors périmètre CT-1), validateurs.json (hors périmètre CT-1), points-de-controle.json (aucun point de contrôle)
 Borne         : verdict borné : contrôle 4 non exécuté (hors_perimetre_version), contrôle 5 non exécuté (hors_perimetre_version), contrôle 7 non exécuté (partie_absente), contrôle 8 non exécuté (hors_perimetre_version)
 Résultat      : VALIDE — aucune vérification en échec, aucune vérification non exécutée sans raison admise

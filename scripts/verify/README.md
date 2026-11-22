@@ -334,7 +334,7 @@ comme un succès.
 | `valide` | 0 | aucune vérification en échec ; toute non-exécution a une raison admise |
 | `invalide` | 1 | au moins une vérification en échec, ou non exécutée sans raison admise |
 | — | 2 | entrée inutilisable : usage, dossier, schémas, fichier d'ancres ou entrée à part illisibles, limite de taille dépassée, erreur interne ; rien n'est affirmé |
-| `incomplet` | 3 | comme 0, mais un contrôle exigé par `--exiger` n'a pas réussi |
+| `incomplet` | 3 | comme 0, mais un contrôle exigé par `--exiger` n'a pas réussi, ou repose sur une pièce d'essai (CT-6 6.10, EX-6.25) |
 
 Les codes 0, 1 et 2 gardent le sens de la version CT-1. Sur les quarante
 dossiers de `spec/vecteurs/ct-1/dossiers` (cinq parties absentes avec la raison

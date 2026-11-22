@@ -322,6 +322,11 @@ export async function ecouter({ config, secrets, horloge, agentHttps, pages, jou
       doc = null;
     }
     session.administrator = doc !== null && typeof doc === "object" && Array.isArray(doc.administrators) && doc.administrators.includes(session.identite);
+    // Complément du 2026-11-19 (CT-3 EX-13.7, EX-13.48) : le nom affiché de l'entrée active de la session, tiré du même
+    // annuaire, pour nommer la personne connectée d'un même nom en haut de chaque écran et dans un ticket.
+    const entree = doc !== null && typeof doc === "object" && Array.isArray(doc.entries) ? doc.entries.find((e) => e !== null && typeof e === "object" && e.session_identity === session.identite && e.active === true) : undefined;
+    const nom = entree === undefined ? null : entree.display_name;
+    session.display_name = typeof nom === "string" && nom.length >= 1 && [...nom].length <= 256 ? nom : null;
   }
 
   /** Relaie une méthode ; rend `{ statut, corps }` ou `null` (service indisponible). */
@@ -441,6 +446,9 @@ export async function ecouter({ config, secrets, horloge, agentHttps, pages, jou
           administrator: s.administrator,
           reauth_max_age_s: reauthS,
           delai_signature_ms: config.delai_signature_ms,
+          display_name: s.display_name ?? null,
+          // Complément du 2026-11-19 (CT-3 EX-9.4) : les phrases modèles du titre d'un ticket, s'il y en a.
+          ...(config.titles === undefined ? {} : { titles: config.titles }),
         });
       }
       case "relais":

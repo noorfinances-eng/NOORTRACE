@@ -132,8 +132,20 @@ func TestDossiersControle4(t *testing.T) {
 						pa = append(pa, a.ID)
 					}
 					// Le moteur rapporte les avertissements du point sous K-7,
-					// qui précède les T- (EX-6.15).
-					sort.SliceStable(pa, func(i, j int) bool { return pa[i] < pa[j] })
+					// qui précède les T- (EX-6.15) ; à vérification égale, les
+					// familles T avant K (complément du 2026-11-19).
+					fam := func(id string) int {
+						if strings.HasPrefix(id, "AV-T-") {
+							return 0
+						}
+						return 1
+					}
+					sort.SliceStable(pa, func(i, j int) bool {
+						if fam(pa[i]) != fam(pa[j]) {
+							return fam(pa[i]) < fam(pa[j])
+						}
+						return pa[i] < pa[j]
+					})
 					avert = append(pa, avert...)
 				}
 				if k7.Statut == commun.Echoue {
@@ -168,7 +180,9 @@ func TestDossiersControle4(t *testing.T) {
 				}
 			}
 			for _, id := range att.Warnings {
-				if duControle4(id) {
+				// AV-T-5 (pièce d'essai, CT-6 EX-6.24) est levé par le moteur,
+				// non par le paquet horodatage.
+				if duControle4(id) && id != "AV-T-5" {
 					attAv = append(attAv, id)
 				}
 			}

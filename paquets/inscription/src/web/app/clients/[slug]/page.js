@@ -28,16 +28,23 @@
 // Quatrième lecture des écrans (même complément) : ce que sont les crédits d'écriture se dit une fois, juste après le
 // premier texte de la fiche qui les nomme (bandeau, consigne ou « après le clic ») ; la cause d'une étape en échec
 // se dit d'après la vérification qui l'a rendue ; le détail ne parle plus de « compte de paiement » ni de « budget ».
+//
+// Suivi interne (complément du 2026-11-19, décision du porteur ; CT-4 EX-7.23) : le titre de la fiche est le nom
+// interne du client, s'il en a un, avec son nom court en petit dessous ; « Le client en bref » permet de le donner,
+// le changer ou le retirer, dans un bloc replié dont le titre dit s'il y en a un (la fiche garde sa hauteur). Une remise du paquet notée et non corrigée se lit dans « Confirmations et paquet »
+// (« remis le … par … ») et clôt la consigne.
 
 import { notFound } from "next/navigation";
-import { client, confirmations } from "../../../lib/donnees.mjs";
+import { client, confirmations, notes } from "../../../lib/donnees.mjs";
+import { remiseEnVigueur } from "../../../../commun/notes.mjs";
 import { exigerSession, nature } from "../../../lib/page.mjs";
-import { CHERCHER_LA_REPONSE, OPERATIONS_JEU, PAR_NOTRE_COMPTE, avancement, dateLisible, etapesDuParcours, etatsTravaux, explicationErreur, jourLisible, libelleCommande, montantEnClair, nombreLisible, nommeLesCredits, prochaineAction, repereEnClair } from "../../../lib/parcours.mjs";
+import { CHERCHER_LA_REPONSE, OPERATIONS_JEU, PAR_NOTRE_COMPTE, avancement, dateLisible, etapesDuParcours, etatsTravaux, explicationErreur, jourLisible, libelleCommande, manifesteDuPaquet, montantEnClair, nombreLisible, nommeLesCredits, prochaineAction, repereEnClair } from "../../../lib/parcours.mjs";
 import CopierTexte, { CopierValeur } from "../../../composants/CopierTexte.js";
 import CreditsEnClair from "../../../composants/CreditsEnClair.js";
 import FormulaireTravail from "../../../composants/FormulaireTravail.js";
 import Icone from "../../../composants/Icone.js";
 import Lexique from "../../../composants/Lexique.js";
+import { NomInterne } from "../../../composants/NoteInterne.js";
 import Pastille from "../../../composants/Pastille.js";
 import Valeur from "../../../composants/Valeur.js";
 
@@ -271,7 +278,10 @@ export default async function PageClient({ params }) {
   const registre = confirmations(slug);
   const etapes = etapesDuParcours(d);
   const a = avancement(d);
-  const action = prochaineAction({ ...c, confirmations: registre });
+  const suivi = notes(slug);
+  const nom = suivi.nom?.valeur ?? null;
+  const remise = remiseEnVigueur(suivi, manifesteDuPaquet(c));
+  const action = prochaineAction({ ...c, confirmations: registre, remise });
   const production = nature() === "production";
   const toutes = actions({ d, c, action, etapes });
   // L'action de la consigne. Aller chercher la réponse d'un envoi : l'envoi est connu, la personne n'a rien à choisir
@@ -342,7 +352,8 @@ export default async function PageClient({ params }) {
       <header className="nt-entete">
         <div className="nt-entete-texte">
           <p className="nt-sur-titre">Client{essai ? " · mode essai" : ""}</p>
-          <h1 data-valeur="">{slug}</h1>
+          <h1 data-valeur="" data-nom-interne={nom ? "" : undefined}>{nom ?? slug}</h1>
+          {nom ? <p className="nt-attenue nt-petit ins-nom-court" data-nom-court="">Nom court : <span className="nt-fixe" data-valeur="">{slug}</span></p> : null}
           <p className="nt-sous-titre">
             Inscription sur le registre public, un registre que personne ne peut modifier après coup : {a.phraseFaites}. {a.resume}
           </p>
@@ -468,7 +479,7 @@ export default async function PageClient({ params }) {
               </li>
               <li>
                 <a href={`/clients/${slug}/paquet`}>Paquet du client</a>
-                <span className="nt-attenue nt-petit">{c.paquet.present ? "produit : à remettre au client avec son empreinte" : "pas encore produit"}</span>
+                <span className="nt-attenue nt-petit" data-paquet-remis={remise ? "" : undefined}>{c.paquet.present ? (remise ? `remis le ${dateLisible(remise.recu_a)} par ${nomDuCompte(remise.exploitant)}` : "produit : à remettre au client avec son empreinte") : "pas encore produit"}</span>
               </li>
             </ul>
           </section>
@@ -482,7 +493,11 @@ export default async function PageClient({ params }) {
               <dt>{d.recorders.length > 1 ? "Enregistreurs" : "Enregistreur"}</dt><dd>{d.recorders.length === 0 ? "Aucun" : d.recorders.map((r) => <Valeur key={r.key_id}>{r.key_id}</Valeur>)}</dd>
               <dt>Dossier préparé</dt><dd><span>le <time dateTime={d.prepared_at}>{dateLisible(d.prepared_at)}</time></span></dd>
             </dl>
-            {nomTire ? <p className="nt-attenue nt-petit" data-nom-tire="">Ce nom ne dit pas qui est le client : notez-le dans votre fichier des clients, à côté de son vrai nom.</p> : null}
+            {nomTire && !nom ? <p className="nt-attenue nt-petit" data-nom-tire="">Ce nom court ne dit pas qui est le client : donnez-lui un nom interne, ci-dessous, que seule notre équipe voit.</p> : null}
+            <details className="nt-detail ins-replie" data-nom-interne-action="">
+              <summary>{nom ? "Changer le nom interne" : "Donner un nom interne"}<span className="nt-detail-note">visible seulement de notre équipe</span></summary>
+              <div className="nt-detail-corps"><NomInterne slug={slug} nom={nom} /></div>
+            </details>
             <details className="ins-detail" data-detail-organisation>
               <summary>Détail technique</summary>
               <dl className="nt-definitions ins-detail-corps">

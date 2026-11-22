@@ -192,7 +192,8 @@ func TestDossiersControle8(t *testing.T) {
 				av = append(av, a.ID)
 			}
 			for _, a := range att.Warnings {
-				if strings.HasPrefix(a, "AV-R-") || a == "AV-K-1" || a == "AV-K-3" {
+				// AV-R-4 (pièce d'essai, CT-6 EX-6.24) est levé par le moteur.
+				if (strings.HasPrefix(a, "AV-R-") && a != "AV-R-4") || a == "AV-K-1" || a == "AV-K-3" {
 					avAtt = append(avAtt, a)
 				}
 			}
