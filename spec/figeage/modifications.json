@@ -14940,6 +14940,19 @@
           "apres": "2bae8cb2a901f389e69bd65c1504b6b1097a4d012eb482ca033d8c41cec92ea5"
         }
       ]
+    },
+    {
+      "id": "MC-110",
+      "date": "2026-11-23",
+      "etape": 8,
+      "motif": "catalogue de CT-9 : empreinte de l'essai d'export du dossier (TE-18), dont l'oracle du détail de lecture_impossible suit désormais la borne de 200 caractères d'EX-15.14 de CT-2, quel que soit le répertoire temporaire",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "5faf44b67b5a9491cc2bad25c6c6972d2941743ac7d50e4b833b4e2532af05d5",
+          "apres": "133643354873581bcd5319b655353316da120db675c88846636847e643ef0bf1"
+        }
+      ]
     }
   ]
 }

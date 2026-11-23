@@ -544,7 +544,7 @@
       },
       {
         "file": "test/enregistreur-export-dossier.test.js",
-        "sha256": "1dda6413bb59598f81994da51f88af643327552fc760c5b4f76e3311c9747950"
+        "sha256": "14477f6174b0d6468bbab3634e3dad82b7b92de9f2f7a4277fef17899c6a6266"
       },
       {
         "file": "test/enregistreur-ha-bascule.test.js",

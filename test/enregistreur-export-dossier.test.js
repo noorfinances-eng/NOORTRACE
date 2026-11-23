@@ -326,9 +326,12 @@ describe("TE-18 : noortrace-ctl dossier exporter sur le démon réel à horloge 
     fs.mkdirSync(journalJson);
     try {
       const r = await refus(["--seq", String(j.seqs.decisionApprouve), "--vers", path.join(j.exports, "lecture")], "lecture_impossible");
-      expect(r.ligne.data.detail).to.equal(`EISDIR ${journalJson}`);
+      // EX-15.14 : le code d'erreur et le nom du fichier, 200 caractères au plus, quel que soit le répertoire temporaire.
+      const detail = `EISDIR ${journalJson}`.slice(0, 200);
+      expect(r.ligne.data.detail).to.equal(detail);
+      expect(r.ligne.data.detail.length).to.be.at.most(200);
       expect(r.ligne.data.seq).to.equal(j.seqs.decisionApprouve);
-      expect(r.stderr).to.include(`lecture du journal impossible : EISDIR ${journalJson}`);
+      expect(r.stderr).to.include(`lecture du journal impossible : ${detail}`);
     } finally {
       fs.rmdirSync(journalJson);
       fs.renameSync(`${journalJson}.bak`, journalJson);
