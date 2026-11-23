@@ -124,8 +124,8 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         const faits = s.state.enum.filter((c) => M.ETATS_ETAPE[c].rang === "faite");
         expect(faits.sort()).to.deep.equal(["capturee", "faite"]);
         expect(M.ETATS_ETAPE.echec.rang).to.equal("echec");
-        expect(M.ETATS_ETAPE.envoyee.libelle).to.equal("Envoyée");
-        expect(M.ETATS_ETAPE.incluse.libelle).to.equal("Inscrite");
+        expect(M.ETATS_ETAPE.envoyee.libelle).to.equal("Envoyée — attendez la réponse");
+        expect(M.ETATS_ETAPE.incluse.libelle).to.equal("Inscrite — attendez la preuve");
         expect(M.ETATS_ETAPE.a_faire.libelle).to.equal("À faire");
         expect(M.ETATS_ETAPE.echec.libelle).to.equal("Échec");
       };
@@ -140,7 +140,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       expect(l[3].titre).to.contain("etape_future");
       expect(P.avancement(d).faites, "un état inconnu ne compte pas comme fait").to.equal(2);
       let tue = 0;
-      const m1 = await mutant("envoyee-faite", 'envoyee: { libelle: "Envoyée"', 'envoyee: { libelle: "Fait"');
+      const m1 = await mutant("envoyee-faite", 'envoyee: { ...mot("etape_envoyee_attendre")', 'envoyee: { ...mot("etape_faite")');
       try { verifier(m1); } catch { tue++; }
       const m2 = await mutant("sans-phrase", "phrase: \"Relit la liste sur le registre public, comme le service d'approbation du client la lira. Rien n'est écrit ni dépensé.\"", 'phrase: ""');
       try { verifier(m2); } catch { tue++; }
@@ -187,7 +187,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         expect(M.avancement(dossierFictif("z", [...ETAPES_2_A_5, "incluse", "a_faire", "a_faire"]))).to.include({ attente: "reponse_a_chercher", libelle: "Réponse à aller chercher" });
         for (const fin of [["capturee", "envoyee", "a_faire"], ["capturee", "incluse", "a_faire"], ["capturee", "capturee", "envoyee"]]) expect(M.avancement(dossierFictif("z", [...ETAPES_2_A_5, ...fin])), fin.join(",")).to.include({ etat: "en_cours", attente: "registre", libelle: "En attente du registre", resume: "Une étape envoyée par le client attend la réponse du registre public : vous n'avez rien à faire." });
         for (const fin of [["capturee", "a_faire", "a_faire"], ["capturee", "capturee", "a_faire"]]) expect(M.avancement(dossierFictif("z", [...ETAPES_2_A_5, ...fin])), fin.join(",")).to.include({ etat: "en_cours", attente: "client", libelle: "En attente chez le client", resume: "La suite se fait chez le client : vous n'avez rien à faire." });
-        expect(M.avancement(d), "étape 6 à faire : c'est à la personne, pas au client").to.include({ attente: null, libelle: "En cours" });
+        expect(M.avancement(d), "étape 6 à faire : c'est à la personne, pas au client").to.include({ attente: null, libelle: "À vous d'agir" });
         // L'étiquette et la consigne disent la même chose : agir seulement sous « Réponse à aller chercher ».
         const vueNue = (x) => ({ slug: "z", dossier: x, confirmations: [], demandes: [], periodes: [], parties: [], travaux: [], paquet: { present: false, dernier: null } });
         for (const etats of [["envoyee", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"], [...ETAPES_2_A_5, "envoyee", "a_faire", "a_faire"], [...ETAPES_2_A_5, "capturee", "envoyee", "a_faire"], [...ETAPES_2_A_5, "capturee", "capturee", "incluse"], [...ETAPES_2_A_5, "capturee", "a_faire", "a_faire"], [...ETAPES_2_A_5, "capturee", "capturee", "a_faire"]]) {
@@ -196,21 +196,21 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         }
         // Une étape que le client fait lui-même ne se dit pas « À faire » comme celles de la personne.
         expect(l.map((e) => e.libelle)).to.deep.equal(["Fait", "Fait", "Fait", "Fait", "Fait", "À faire", "À faire par le client", "À faire par le client"]);
-        expect(l[6].explication).to.equal("Rien n'a encore été envoyé pour cette étape : c'est le client qui la fait, avec ses propres outils.");
+        expect(l[6].explication).to.equal("Le dossier ne montre encore aucun envoi pour cette étape : c'est le client qui la fait, avec ses propres outils.");
         expect(l[5].explication).to.equal("Rien n'a encore été envoyé pour cette étape.");
-        expect(M.etapesDuParcours(dossierFictif("z", [...ETAPES_2_A_5, "capturee", "envoyee", "a_faire"])).slice(6).map((e) => e.libelle), "envoyée par le client : l'état reste celui du dossier").to.deep.equal(["Envoyée", "À faire par le client"]);
+        expect(M.etapesDuParcours(dossierFictif("z", [...ETAPES_2_A_5, "capturee", "envoyee", "a_faire"])).slice(6).map((e) => e.libelle), "envoyée par le client : l'état reste celui du dossier").to.deep.equal(["Envoyée — attendez la réponse", "À faire par le client"]);
         const fini = M.avancement(dossierFictif("client-inscrit", ["capturee", "capturee", "faite", "capturee", "capturee", "capturee", "capturee"]));
         expect(fini).to.include({ faites: 8, total: 8, etat: "inscrit" });
       };
       verifier(P);
-      const m = await mutant("echec-fait", 'echec: { libelle: "Échec", explication: "Le registre public a refusé l\'opération, ou le contrôle fait juste après ne retrouve pas ce qui devait être inscrit.", rang: "echec"', 'echec: { libelle: "Échec", explication: "Le registre public a refusé l\'opération, ou le contrôle fait juste après ne retrouve pas ce qui devait être inscrit.", rang: "faite"');
+      const m = await mutant("echec-fait", 'echec: { ...mot("echec"), explication: "Le registre public a refusé l\'opération, ou le contrôle fait juste après ne retrouve pas ce qui devait être inscrit.", rang: "echec"', 'echec: { ...mot("echec"), explication: "Le registre public a refusé l\'opération, ou le contrôle fait juste après ne retrouve pas ce qui devait être inscrit.", rang: "faite"');
       let tue = false;
       try { verifier(m); } catch { tue = true; }
       expect(tue, "mutant tué").to.equal(true);
       // Mutants de la seconde lecture : une même étiquette pour « agissez » et pour « ne faites rien » ; les étapes
       // du client dites « À faire » comme celles de la personne.
       for (const [nom, ancien, nouveau] of [
-        ["etiquette-double", 'attente: "reponse_a_chercher", libelle: "Réponse à aller chercher"', 'attente: "reponse_a_chercher", libelle: "En attente du registre"'],
+        ["etiquette-double", 'attente: "reponse_a_chercher", ...p("client_reponse_a_chercher")', 'attente: "reponse_a_chercher", ...p("client_attente_registre")'],
         ["etapes-du-client", 'const ETAPES_DU_CLIENT = Object.freeze(["premiere_ancre", "premiere_cloture"]);', "const ETAPES_DU_CLIENT = Object.freeze([]);"],
       ]) {
         const x = await mutant(nom, ancien, nouveau);
@@ -264,7 +264,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         expect(a.bouton).to.equal("Aller noter la confirmation");
         // Ce que la personne fait confirmer, elle sait l'expliquer : ce que sont les crédits (CT-4 EX-4.16, EX-4.19),
         // et comment faire confirmer l'adresse, en entier et par écrit (EX-7.26, EX-8.21).
-        expect(a.credits).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public, et chaque écriture en consomme. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas : c'est notre société qui les fournit, et le client ne les paie pas.");
+        expect(a.credits).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société ; le client ne les paie pas.");
         expect(a.versement).to.equal("Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
         expect(a.adresse).to.equal("Ne la dictez pas : 42 caractères ne se lisent pas à voix haute sans erreur. Envoyez-la au client par écrit, par un autre moyen que cet outil, et demandez-lui de vous répondre par écrit qu'elle est bien, en entier, celle du compte technique de son enregistreur. Gardez sa réponse avec la pièce de la confirmation.");
         expect(a.adresse, "jamais une comparaison partielle").to.not.match(/premiers|derniers|début|fin de/);
@@ -329,7 +329,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
           // D'abord à qui est l'étape, puis où elle en est et depuis quand, puis à partir de quand s'inquiéter : sans durée inventée.
           // Heures des données fictives, dans l'ordre des étapes : la première preuve de date à 10:00, la clôture à 11:00.
           const depuis = `depuis le 12 novembre 2026 à ${n === 7 ? "10:00" : "11:00"} UTC`;
-          expect(a.phrase).to.equal(`Cette étape se fait chez le client, avec ses propres outils : vous n'avez rien à lancer d'ici. ${envoyee ? `Elle est notée « Envoyée » ${depuis} et attend la réponse du registre public` : `Le registre public l'a inscrite ${depuis}, mais sa preuve n'est pas encore rangée dans le dossier`}. Le client a fait sa part : si la fiche n'a pas changé à votre prochaine visite, prévenez l'équipe technique.`);
+          expect(a.phrase).to.equal(`Cette étape se fait chez le client, avec ses propres outils : vous n'avez rien à lancer d'ici. ${envoyee ? `Elle est notée « Envoyée — attendez la réponse » ${depuis} et attend la réponse du registre public` : `Le registre public l'a inscrite ${depuis}, mais sa preuve n'est pas encore rangée dans le dossier`}. Le client a fait sa part : si la fiche n'a pas changé à votre prochaine visite, prévenez l'équipe technique.`);
           expect(a.apres).to.equal("Le bouton relit seulement la fiche : rien n'est envoyé, rien n'est dépensé. Cet outil ne sait pas combien de temps le registre public mettra à répondre.");
           neutres.push(vue(chezLeClient));
         }
@@ -339,7 +339,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         expect(a).to.include({ code: "preparer_demande", commande: "condense-inscription", keyId: cours.recorders[0].key_id, titre: "Préparez le document d'inscription de l'enregistreur" });
         a = M.prochaineAction(vue(cours, { demandes: [{ nom: `demande-inscription-${cours.recorders[0].key_id}-trv-1.json`, document: { signatures: [] } }] }));
         // Troisième lecture : le bouton dit lui-même qui envoie, et la phrase dessous dit que c'est le cas habituel.
-        expect(a).to.include({ code: "relayer_demande", commande: "inscrire-cle", titre: "Faites signer le document par les approbateurs du client, puis envoyez-le", bouton: "Envoyer par notre compte d'envoi", sousBouton: "C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles »." });
+        expect(a).to.include({ code: "relayer_demande", commande: "inscrire-cle", titre: "Faites signer le document par les approbateurs du client, puis envoyez-le", bouton: "Envoyer par notre compte d'envoi", sousBouton: "C'est le cas habituel : notre compte d'envoi envoie le document signé au registre public. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles »." });
         expect(a.phrase).to.equal("Le document d'inscription de l'enregistreur est prêt. Remettez-le aux approbateurs du client : ils le contrôlent et le signent avec leur propre outil, jamais dans celui-ci. Quand le client vous rend le document signé, envoyez-le ici.");
         // Enregistreur inscrit : la première période se fait hors de l'outil.
         const inscrite = dossierFictif("client-neuf", ["capturee", "capturee", "faite", "capturee", "capturee", "a_faire", "a_faire"]);
@@ -367,7 +367,9 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         for (const x of toutes) {
           expect(x.titre, x.code).to.match(/^[A-ZÀ-Ý][a-zéèêçôîû]+(?:ez|tes) /);
           expect(x.phrase, x.code).to.match(/^[A-ZÀ-Ý].{40,}\.$/);
-          expect(x.aPreparer, x.code).to.match(/^(Ayez sous la main : .+|Vous n'avez rien à rassembler avant de cliquer.*)\.$/);
+          // Sixième lecture : une consigne où il n'y a rien à faire (attendre, paquet remis) n'a pas de ligne « Ayez sous la main ».
+          if (["attendre_envoi", "attendre_premiere_periode", "paquet_remis"].includes(x.code)) expect(x.aPreparer, x.code).to.equal(null);
+          else expect(x.aPreparer, x.code).to.match(/^(Ayez sous la main : .+|Vous n'avez rien à rassembler avant de cliquer.*)\.$/);
           expect(x.apres, x.code).to.match(/^[A-ZÀ-Ý].{30,}\.$/);
           expect(x.bouton, x.code).to.match(/^[A-ZÀ-Ý][a-zéèêçôîû]+(?:er|ir|re) /);
           expect(x.surTitre, x.code).to.be.oneOf(["Prochaine action", "Inscription terminée"]);
@@ -566,7 +568,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       try { formule(await mutant("reprendre-cet-envoi", "  bouton: \"Chercher la réponse\",", "  bouton: \"Reprendre cet envoi\",")); } catch { tue = true; }
       expect(tue, "mutant « Reprendre cet envoi » tué").to.equal(true);
       // 2. L'envoi d'un document signé : le bouton nomme notre compte d'envoi ; la phrase dessous dit le cas habituel.
-      expect(P.PAR_NOTRE_COMPTE).to.deep.equal({ bouton: "Envoyer par notre compte d'envoi", sousBouton: "C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles »." });
+      expect(P.PAR_NOTRE_COMPTE).to.deep.equal({ bouton: "Envoyer par notre compte d'envoi", sousBouton: "C'est le cas habituel : notre compte d'envoi envoie le document signé au registre public. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles »." });
       // 3. Confirmation attendue : la même règle que la consigne pour le versement, et un changement des approbateurs préparé.
       const attendues = (M) => {
         const cle = neuf.recorders[0].chain_key;
@@ -669,8 +671,8 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
     it("quatrième lecture des écrans : ce que sont les crédits d'écriture se dit en une explication exacte (pas de l'argent, à quoi ils servent, qui les fournit, le client ne les paie pas), sans durée ; aucun texte ne parle de « compte de paiement » ni de « budget » ; la cause d'une étape en échec se dit d'après la vérification qui l'a rendue ; « Rien à réunir » ne contredit jamais une consigne « Préparez » ; mutants : tués", async function () {
       const verifier = (M) => {
         // L'explication, mot pour mot, et chacune de ses affirmations (CT-4 4.5, EX-4.15, EX-4.16, EX-4.19).
-        expect(M.CREDITS_EN_CLAIR).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public, et chaque écriture en consomme. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas : c'est notre société qui les fournit, et le client ne les paie pas.");
-        for (const motif of [/ne sont pas de l'argent/, /seulement à payer les écritures/, /ne s'achètent pas, ne se vendent pas et ne s'échangent pas/, /notre société qui les fournit/, /le client ne les paie pas/]) expect(M.CREDITS_EN_CLAIR).to.match(motif);
+        expect(M.CREDITS_EN_CLAIR).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société ; le client ne les paie pas.");
+        for (const motif of [/ne sont pas de l'argent/, /seulement à payer les écritures/, /ne s'achètent pas, ne se vendent pas et ne s'échangent pas/, /viennent de notre société/, /le client ne les paie pas/]) expect(M.CREDITS_EN_CLAIR).to.match(motif);
         // Aucune durée : elle ne se calcule pas à partir de ce que l'écran affiche.
         for (const t of [M.CREDITS_EN_CLAIR, M.VERSEMENT_EN_CLAIR, M.montantEnClair(10800000)]) expect(t).to.not.match(/[0-9]+ ?jours?|semaines?|mois\b|environ/);
         expect(M.montantEnClair(10800000).replace(/\s/g, " "), "milliers séparés par une espace insécable").to.equal("Le montant est calculé à partir de la consommation prévue pour son enregistreur, réglée à 10 800 000 crédits par jour ; si le compte en a déjà, l'outil ne verse que la différence.");
@@ -711,7 +713,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       verifier(P);
       let tues = 0;
       for (const [nom, ancien, nouveau] of [
-        ["credits-compte-de-paiement", "c'est notre société qui les fournit, et le client ne les paie pas.", "c'est notre société qui les verse, depuis son compte de paiement."],
+        ["credits-compte-de-paiement", "Tous ces crédits viennent de notre société ; le client ne les paie pas.", "Tous ces crédits viennent de notre société, depuis son compte de paiement."],
         ["cause-sans-verification", "e.capture ? \"OP-12\" : \"OP-11\"", "null"],
         ["rien-a-preparer", "aPreparer: `${RIEN_A_RASSEMBLER.slice(0, -1)} : l'enregistreur concerné", "aPreparer: `Rien à préparer : l'enregistreur concerné"],
       ]) {
@@ -796,6 +798,81 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       let tue = false;
       try { lire(await import(pathToFileURL(f).href)); } catch { tue = true; }
       expect(tue, "mutant « première zone seulement » tué").to.equal(true);
+    });
+
+    it("sixième lecture : une seule table de pastilles, un mot par sens, d'où viennent les états des étapes, du client et des actions ; « Envoyée » et « Inscrite » disent si c'est à la personne d'agir ; toutes les étapes faites, « Paquet à remettre » puis « Paquet remis » ; une action en cours ne demande pas d'agir ; « qui paie » est une seule phrase, sans somme d'argent ni durée, et le mode essai dit ce qu'il consomme ; mutants tués", async function () {
+      const verifier = (M) => {
+        const table = Object.entries(M.PASTILLES);
+        const mots = table.map(([, x]) => x.libelle);
+        expect(new Set(mots).size, "un mot par sens").to.equal(mots.length);
+        for (const [cle, x] of table) {
+          expect(Object.keys(x).sort(), cle).to.deep.equal(["icone", "libelle", "sens", "ton"]);
+          expect(x.sens, cle).to.match(/^[A-ZÀ-Ý].{10,}\.$/);
+          expect(["", "succes", "refus", "attente", "info"], cle).to.include(x.ton);
+          expect(motsTechniquesDans(`${x.libelle}\n${x.sens}`), cle).to.deep.equal([]);
+        }
+        const mot = new Set(mots);
+        // Les états des étapes, des actions et du client ne disent que des mots de la table.
+        for (const [code, e] of Object.entries(M.ETATS_ETAPE)) expect(mot.has(e.libelle), code).to.equal(true);
+        for (const t of [{ etat: "en_attente" }, { etat: "en_cours" }, { etat: "refuse" }, { etat: "abandonne" }, ...["reussi", "deja_fait", "refuse", "echoue", "incertain", "inutilisable"].map((r) => ({ etat: "fini", sortie: { result: r } }))]) expect(mot.has(M.etatTravail(t).libelle), JSON.stringify(t)).to.equal(true);
+        const ETAPES_2_A_5 = ["capturee", "capturee", "faite", "capturee"];
+        const libelleEtape = (etats, k) => M.etapesDuParcours(dossierFictif("z", etats))[k].libelle;
+        // Parti d'ici (étapes 2, 3, 5, 6, envoi connu) : à la personne d'agir ; parti de chez le client : attendre.
+        expect(libelleEtape(["envoyee", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"], 1)).to.equal("Envoyée — à vous d'agir");
+        expect(libelleEtape([...ETAPES_2_A_5, "incluse", "a_faire", "a_faire"], 5)).to.equal("Inscrite — à vous d'agir");
+        expect(libelleEtape([...ETAPES_2_A_5, "capturee", "envoyee", "a_faire"], 6)).to.equal("Envoyée — attendez la réponse");
+        expect(libelleEtape([...ETAPES_2_A_5, "capturee", "capturee", "incluse"], 7)).to.equal("Inscrite — attendez la preuve");
+        // La pastille de l'étape et la consigne disent la même chose.
+        const vue = (dossier, plus = {}) => ({ slug: "z", dossier, confirmations: [], demandes: [], periodes: [], parties: [], travaux: [], paquet: { present: false, dernier: null }, ...plus });
+        for (const etats of [["envoyee", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"], [...ETAPES_2_A_5, "incluse", "a_faire", "a_faire"], [...ETAPES_2_A_5, "capturee", "envoyee", "a_faire"], [...ETAPES_2_A_5, "capturee", "capturee", "incluse"]]) {
+          const d = dossierFictif("z", etats);
+          const e = M.etapesDuParcours(d).find((x) => x.rang === "en-cours");
+          expect(/à vous d'agir/.test(e.libelle), etats.join(",")).to.equal(M.prochaineAction(vue(d)).code === "reprendre_envoi");
+        }
+        // Le client : l'action attendue.
+        const fini = dossierFictif("z", [...ETAPES_2_A_5, "capturee", "capturee", "capturee"]);
+        expect(M.avancement(fini)).to.include({ etat: "inscrit", pastille: "paquet_a_remettre", libelle: "Paquet à remettre", resume: "Toutes les étapes sont faites : le client est inscrit. Il reste à lui remettre son paquet." });
+        expect(M.avancement(fini, { remise: { id: "not-1" } })).to.include({ etat: "inscrit", pastille: "paquet_remis", libelle: "Paquet remis" });
+        const six = dossierFictif("z", [...ETAPES_2_A_5, "a_faire", "a_faire", "a_faire"]);
+        expect(M.avancement(six)).to.include({ etat: "en_cours", pastille: "client_a_vous", libelle: "À vous d'agir", resume: "L'inscription est en cours : la prochaine action est à vous." });
+        for (const etat of ["en_attente", "en_cours"]) expect(M.avancement(six, { travaux: [{ etat }] }), etat).to.include({ pastille: "client_action_en_cours", libelle: "Action en cours", resume: "Une action lancée d'ici pour ce client attend son tour ou s'exécute : attendez qu'elle se termine." });
+        // La pastille vaut pour une action qui attend son tour comme pour une action qui s'exécute : son sens le dit.
+        expect(M.PASTILLES.client_action_en_cours.sens).to.equal("Une action lancée d'ici pour ce client attend son tour ou s'exécute : attendez qu'elle se termine, la fiche dira la suite.");
+        expect(M.avancement(six, { travaux: [{ etat: "fini", sortie: { result: "reussi" } }] }).pastille, "une action finie ne compte pas").to.equal("client_a_vous");
+        for (const etats of [["a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"], ["capturee", "echec", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"], ["envoyee", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"], [...ETAPES_2_A_5, "capturee", "envoyee", "a_faire"], [...ETAPES_2_A_5, "capturee", "a_faire", "a_faire"], fini.steps.map((x) => x.state)]) {
+          const a = M.avancement(dossierFictif("z", etats));
+          expect(M.PASTILLES[a.pastille]?.libelle, etats.join(",")).to.equal(a.libelle);
+        }
+        // Qui paie : une phrase, la même dans l'explication des crédits, la consigne de lancement et ce que le client confirme.
+        expect(M.CREDITS_EN_CLAIR.endsWith(M.QUI_PAIE), "l'explication repliée dit qui paie").to.equal(true);
+        for (const t of [M.QUI_PAIE, M.ESSAI_DEPENSE]) expect(t, "aucune somme d'argent, aucun équivalent, aucune durée").to.not.match(/€|euro|franc|[0-9]|jours?|semaines?|mois\b|environ/i);
+        const neuf = dossierFictif("z", ["a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]);
+        const conf = { id: "cnf-1", operation: "approvisionnement", objet: { org_id: neuf.organisation.org_id, cle_chaine: neuf.recorders[0].chain_key }, consommee_par: null };
+        const lancement = M.prochaineAction(vue(neuf, { confirmations: [conf] }));
+        expect(lancement).to.include({ code: "conduire_etapes", variante: "commencer", quiPaie: M.QUI_PAIE, essaiDepense: null });
+        expect(M.prochaineAction({ ...vue(neuf, { confirmations: [conf] }), essai: true })).to.include({ quiPaie: M.QUI_PAIE, essaiDepense: M.ESSAI_DEPENSE });
+        expect(M.prochaineAction(vue(neuf)).quiPaieExplique, "ce que le client confirme").to.equal(M.QUI_PAIE);
+        expect(M.PAR_NOTRE_COMPTE.sousBouton, "plus de « paie cet envoi »").to.not.match(/paie/);
+        // Rien à faire : pas de « Ayez sous la main ».
+        expect(M.prochaineAction(vue(dossierFictif("z", [...ETAPES_2_A_5, "capturee", "a_faire", "a_faire"]))).aPreparer).to.equal(null);
+        expect(M.prochaineAction(vue(fini, { paquet: { present: true, dernier: null }, remise: { id: "not-1", recu_a: "2026-11-19T10:30:00.000Z", exploitant: "exploitant operateur-1" } }))).to.include({ code: "paquet_remis", aPreparer: null });
+      };
+      verifier(P);
+      let tues = 0;
+      for (const [nom, ancien, nouveau] of [
+        // Une étape du client dite « à vous d'agir » (la pastille ne suit plus qui a envoyé).
+        ["a-vous-pour-tous", "Object.hasOwn(A_VOUS, e.state) && ETAPES_ENVOYEES_D_ICI.includes(e.step) && Boolean(e.transaction_hash)", "Object.hasOwn(A_VOUS, e.state)"],
+        // Deux sens pour un mot.
+        ["mot-double", 'paquet_remis: Object.freeze({ libelle: "Paquet remis"', 'paquet_remis: Object.freeze({ libelle: "Paquet à remettre"'],
+        // La remise ignorée par l'avancement.
+        ["remise-ignoree", "    return remise\n", "    return false\n"],
+        // Une action en cours qui laisse dire « À vous d'agir ».
+        ["action-en-cours-ignoree", 'const enCours = (travaux ?? []).some((t) => t?.etat === "en_attente" || t?.etat === "en_cours");', "const enCours = false;"],
+      ]) {
+        const m = await mutant(nom, ancien, nouveau);
+        try { verifier(m); } catch { tues++; }
+      }
+      expect(tues, "quatre mutants, quatre tués").to.equal(4);
     });
   });
 

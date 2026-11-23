@@ -721,6 +721,59 @@ un envoi est resté sans réponse ; le reste de 2.4 tient.
     parle d'abord ; sous « Envoyer par notre compte d'envoi », la phrase
     dit l'autre cas et où il est rangé. Sur téléphone, la note d'un bloc
     replié passe sous son titre.
+- **Sixième lecture** (même complément). Aucune route, aucun corps envoyé
+  aux routes existantes, ni l'agent, ni le dossier ne changent ; rien de ce
+  qui engage ne se replie ; aucun envoi n'est présélectionné.
+  - *Pastilles.* Une seule table (`PASTILLES` de `lib/parcours.mjs`) : le
+    mot, son ton, son icône et son sens, un mot par sens ; les écrans n'en
+    composent aucun autre (sauf « n prêtes à servir » et un code inconnu,
+    dit tel quel). La pastille dit l'action attendue. Client : « À vous
+    d'agir » (au lieu de « En cours »), « Réponse à aller chercher », « À
+    reprendre », « En attente du registre », « En attente chez le client »,
+    « Action en cours » tant qu'une action lancée d'ici attend son tour ou
+    s'exécute, puis, toutes les étapes faites, « Paquet à remettre » (au
+    lieu de « Inscrit ») jusqu'à ce que la remise soit notée, et « Paquet
+    remis ». Étape : « Envoyée — à vous d'agir » et « Inscrite — à vous
+    d'agir » pour une opération partie d'ici dont l'envoi est connu (la
+    règle de la consigne « Allez chercher la réponse »), « Envoyée —
+    attendez la réponse » et « Inscrite — attendez la preuve » pour une
+    étape du client. Écran du paquet : « Pas encore produit », « Paquet à
+    remettre », « Paquet remis » ; la remise notée, le haut de l'écran dit
+    que le paquet est remis, par qui et quand. Écran des confirmations :
+    « Confirmation à noter » quand une confirmation est attendue (la règle
+    du formulaire), sinon le nombre de celles qui sont prêtes à servir,
+    sinon « Rien à noter », sans ton d'alerte.
+  - *Rien à faire, rien à préparer.* Une consigne où la personne n'a rien à
+    faire (attendre une étape du client, attendre la première période,
+    paquet remis) n'a pas de ligne « Ayez sous la main » ; aucune durée
+    n'est inventée pour relancer le client.
+  - *Qui paie.* Une seule phrase (`QUI_PAIE`), sans somme d'argent, sans équivalent,
+    sans durée : chaque écriture consomme des crédits d'écriture du compte
+    qui l'envoie, d'ordinaire l'un de nos comptes pour ce qui part d'ici
+    (déployeur, administrateur du registre, trésorerie, compte d'envoi :
+    EX-4.19, EX-7.3), le compte technique du client pour ce que son
+    enregistreur envoie ; tous ces crédits viennent de notre société
+    (EX-4.16), le client ne les paie pas. Elle se lit sans rien ouvrir sur
+    la consigne qui lance les étapes 2 à 5, sous « Ce que le client doit
+    confirmer » et dans le formulaire de confirmation, et termine
+    l'explication repliée des crédits. En mode essai, la consigne de
+    lancement ajoute ce que consomment les écritures : des crédits du
+    registre d'essai (CT-4 4.5 : aucune exemption), rien du registre réel.
+    La phrase sous « Envoyer par notre compte d'envoi » ne dit plus « paie
+    cet envoi ».
+  - *Nouveau client.* Le formulaire demande le nom interne (2.6), en
+    premier ; il n'entre pas dans les paramètres du travail. Au-dessus des
+    adresses des approbateurs, une consigne mise en avant dit de relire
+    chaque adresse avec le client, par écrit, en entier et par un autre
+    moyen que l'outil (jamais une comparaison d'une partie de l'adresse), et
+    une case « J'ai relu chaque adresse avec le client », sans nom de
+    champ, jamais cochée d'avance et envoyée à aucune route : tant qu'elle
+    n'est pas cochée, la page refuse de remettre le travail, comme une
+    saisie refusée (CT-4 EX-7.25, complément du 2026-11-18). La case dit
+    une déclaration ; l'outil ne peut pas vérifier la relecture (EX-7.8).
+  - *Liste.* Une recherche par nom interne ou nom court, sans tenir compte
+    des majuscules ni des accents, masque dans la page les cartes qui ne
+    correspondent pas ; aucune requête, rien de gardé (même complément).
 
 ### 2.6 Suivi interne des clients
 
@@ -732,8 +785,15 @@ ni aucune commande ne lit (`src/commun/notes.mjs`) :
   (« Assurances du Léman »), le change ou le retire (`nom: null`) ; le
   dernier en date vaut. La liste et la fiche le montrent en premier, le
   nom court (le slug) à côté, en petit ; sans nom interne, le nom court
-  reste le titre. Il se donne dans « Le client en bref », bloc replié (il
-  n'engage rien). Champ de type texte (EX-7.25), 80 caractères au plus.
+  reste le titre. Champ de type texte (EX-7.25), 80 caractères au plus.
+  Sixième lecture : le formulaire du nouveau client le demande ; la page le
+  remet par `POST /api/clients/<slug>/notes`, au corps
+  `{ sorte: "nom_interne", nom }` (celui de la fiche), une fois le travail
+  de préparation fini « réussi », et seulement alors ; il n'entre jamais
+  dans le corps du travail. S'il n'est pas noté, la page le dit. Sur la
+  fiche d'un client qui n'en a pas, le formulaire est en haut, à côté de
+  l'état du client, sans repli ; un nom donné se change ou se retire dans
+  « Le client en bref », bloc replié (il n'engage rien).
 - **Remise du paquet.** Sur l'écran du paquet, sous le téléchargement, le
   bouton « J'ai remis le paquet au client » envoie l'empreinte du paquet
   affiché ; l'agent y joint l'exploitant de la session et l'instant. La

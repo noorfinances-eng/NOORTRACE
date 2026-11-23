@@ -13,6 +13,65 @@
 // Aucune valeur n'est abrégée ni reformulée : le détail technique d'une étape rend les valeurs du dossier telles
 // quelles.
 
+/**
+ * Les pastilles de l'outil, toutes ici (sixième lecture, même complément : une seule table, un sens par pastille) :
+ * le mot affiché, son ton, son icône, et son sens, c'est-à-dire ce que la personne doit comprendre et faire en la
+ * voyant. Une pastille ne sert qu'à ce sens ; deux sens ne partagent jamais un mot. Les écrans ne composent aucun mot
+ * de pastille hors de cette table, sauf le nombre des confirmations prêtes à servir et l'état d'un code que cette
+ * version ne connaît pas, dits tels quels.
+ */
+export const PASTILLES = Object.freeze({
+  // État d'un client (liste, fiche).
+  client_a_reprendre: Object.freeze({ libelle: "À reprendre", ton: "refus", icone: "croix", sens: "Une étape a échoué : à vous de la reprendre, depuis la fiche." }),
+  client_reponse_a_chercher: Object.freeze({ libelle: "Réponse à aller chercher", ton: "attente", icone: "alerte", sens: "Un envoi parti d'ici est resté sans réponse : à vous d'aller la chercher, depuis la fiche." }),
+  client_a_vous: Object.freeze({ libelle: "À vous d'agir", ton: "attente", icone: "point", sens: "L'inscription attend une action de votre part : la fiche dit laquelle." }),
+  client_action_en_cours: Object.freeze({ libelle: "Action en cours", ton: "info", icone: "sablier", sens: "Une action lancée d'ici pour ce client attend son tour ou s'exécute : attendez qu'elle se termine, la fiche dira la suite." }),
+  client_attente_registre: Object.freeze({ libelle: "En attente du registre", ton: "info", icone: "horloge", sens: "Une étape envoyée par le client attend la réponse du registre public : vous n'avez rien à faire." }),
+  client_attente_client: Object.freeze({ libelle: "En attente chez le client", ton: "info", icone: "horloge", sens: "La suite se fait chez le client : vous n'avez rien à faire." }),
+  paquet_a_remettre: Object.freeze({ libelle: "Paquet à remettre", ton: "attente", icone: "boite", sens: "Toutes les étapes sont faites ; il reste à produire, si ce n'est fait, puis remettre au client son paquet, et à noter la remise." }),
+  paquet_remis: Object.freeze({ libelle: "Paquet remis", ton: "succes", icone: "coche", sens: "La remise du paquet au client est notée : vous n'avez plus rien à faire pour ce client." }),
+  // État d'une étape (fiche).
+  etape_a_faire: Object.freeze({ libelle: "À faire", ton: "", icone: "tiret", sens: "L'étape n'est pas commencée." }),
+  etape_a_faire_client: Object.freeze({ libelle: "À faire par le client", ton: "", icone: "tiret", sens: "L'étape se fait chez le client, sans vous ; elle n'est pas commencée d'après le dossier." }),
+  etape_envoyee_a_vous: Object.freeze({ libelle: "Envoyée — à vous d'agir", ton: "attente", icone: "alerte", sens: "L'opération est partie d'ici et sa réponse n'est pas rangée : à vous d'aller la chercher." }),
+  etape_envoyee_attendre: Object.freeze({ libelle: "Envoyée — attendez la réponse", ton: "info", icone: "horloge", sens: "L'opération est partie de chez le client : attendez la réponse du registre public." }),
+  etape_inscrite_a_vous: Object.freeze({ libelle: "Inscrite — à vous d'agir", ton: "attente", icone: "alerte", sens: "Le registre public a inscrit l'opération partie d'ici ; sa preuve n'est pas rangée : à vous d'aller la chercher." }),
+  etape_inscrite_attendre: Object.freeze({ libelle: "Inscrite — attendez la preuve", ton: "info", icone: "horloge", sens: "Le registre public a inscrit l'opération partie de chez le client ; attendez que sa preuve soit rangée." }),
+  etape_faite: Object.freeze({ libelle: "Fait", ton: "succes", icone: "coche", sens: "L'étape est faite." }),
+  echec: Object.freeze({ libelle: "Échec", ton: "refus", icone: "croix", sens: "L'opération est partie mais n'a pas abouti." }),
+  // État d'une action lancée (formulaires, historique).
+  action_en_attente: Object.freeze({ libelle: "En attente de son tour", ton: "", icone: "horloge", sens: "L'action attend la fin de la précédente : vous n'avez rien à faire." }),
+  action_en_cours: Object.freeze({ libelle: "En cours", ton: "info", icone: "horloge", sens: "Le service d'inscription exécute l'action : laissez la page ouverte." }),
+  action_refusee: Object.freeze({ libelle: "Refusé avant de commencer", ton: "refus", icone: "croix", sens: "L'action a été refusée avant de commencer : rien n'est parti." }),
+  action_interrompue: Object.freeze({ libelle: "Interrompu", ton: "", icone: "tiret", sens: "Le service d'inscription s'est arrêté pendant l'action : la fiche dit ce qui est fait." }),
+  action_reussie: Object.freeze({ libelle: "Réussi", ton: "succes", icone: "coche", sens: "L'action est faite." }),
+  action_deja_faite: Object.freeze({ libelle: "Déjà fait", ton: "succes", icone: "coche", sens: "Il n'y avait plus rien à faire : rien n'est parti." }),
+  action_refusee_avant_envoi: Object.freeze({ libelle: "Refusé avant envoi", ton: "refus", icone: "croix", sens: "L'outil a contrôlé et s'est arrêté avant d'envoyer : rien n'est parti." }),
+  action_incertaine: Object.freeze({ libelle: "Résultat pas encore connu", ton: "attente", icone: "question", sens: "L'opération est partie sans réponse : allez chercher la réponse, ne relancez pas." }),
+  action_impossible: Object.freeze({ libelle: "Impossible à exécuter", ton: "", icone: "question", sens: "L'outil n'a pas pu aller au bout et n'affirme rien." }),
+  action_avec_echec: Object.freeze({ libelle: "Terminé, avec une étape en échec", ton: "refus", icone: "croix", sens: "L'action est allée au bout, mais une de ses étapes est en échec : reprenez-la." }),
+  // Documents à faire signer (fiche).
+  document_a_faire_signer: Object.freeze({ libelle: "À faire signer par le client", ton: "attente", icone: "horloge", sens: "Le document attend les signatures des approbateurs du client." }),
+  document_remplace: Object.freeze({ libelle: "Remplacé par sa version signée", ton: "", icone: "coche", sens: "Le texte d'avant signature : rien à en faire." }),
+  document_envoye: Object.freeze({ libelle: "Signé et envoyé", ton: "succes", icone: "coche", sens: "La version signée est partie au registre public." }),
+  // Paquet (écran du paquet ; à remettre et remis : les deux pastilles de l'état du client, au même sens).
+  paquet_non_produit: Object.freeze({ libelle: "Pas encore produit", ton: "", icone: "tiret", sens: "Le paquet ne se produit qu'une fois toutes les étapes faites." }),
+  // Confirmations du client (écran des confirmations).
+  confirmation_a_noter: Object.freeze({ libelle: "Confirmation à noter", ton: "attente", icone: "alerte", sens: "Une confirmation du client est attendue : notez-la avec le formulaire de l'écran." }),
+  confirmation_rien_a_noter: Object.freeze({ libelle: "Rien à noter", ton: "", icone: "tiret", sens: "Aucune confirmation n'est attendue ni prête à servir : c'est normal, vous n'avez rien à faire." }),
+  confirmation_prete: Object.freeze({ libelle: "Prête à servir", ton: "info", icone: "info", sens: "La confirmation autorise une opération, qui n'est pas encore faite." }),
+  confirmation_utilisee: Object.freeze({ libelle: "Déjà utilisée", ton: "", icone: "coche", sens: "L'opération qu'elle autorisait est faite : elle ne peut plus servir." }),
+});
+
+/** Le mot, le ton et l'icône d'une pastille de la table, pour l'afficher (son sens reste dans la table). */
+export function mot(cle) {
+  const x = PASTILLES[cle];
+  return { libelle: x.libelle, ton: x.ton, icone: x.icone };
+}
+
+/** Les confirmations prêtes à servir, comptées : « 1 prête à servir », « 2 prêtes à servir » (pastille `confirmation_prete`). */
+export const pretesAServir = (n) => `${n} ${n > 1 ? "prêtes à servir" : "prête à servir"}`;
+
 /** Étapes du dossier (`steps[].step`) : nom courant en verbe, et phrase qui dit ce que l'étape fait et pourquoi. */
 export const ETAPES = Object.freeze({
   jeu_approbateurs: { titre: "Enregistrer les approbateurs", phrase: "Inscrit sur le registre public la liste des approbateurs du client et le nombre d'approbations requises." },
@@ -32,12 +91,21 @@ export const ETAPE_PREPARATION = Object.freeze({ code: "preparation", titre: "Pr
  * (`faite`, `en-cours`, `a-faire`, `echec`), ton de la pastille et icône.
  */
 export const ETATS_ETAPE = Object.freeze({
-  a_faire: { libelle: "À faire", explication: "Rien n'a encore été envoyé pour cette étape.", rang: "a-faire", ton: "", icone: "tiret" },
-  envoyee: { libelle: "Envoyée", explication: "L'opération est partie vers le registre public ; sa réponse n'est pas encore arrivée.", rang: "en-cours", ton: "info", icone: "horloge" },
-  incluse: { libelle: "Inscrite", explication: "Le registre public a inscrit l'opération ; il reste à ranger sa preuve dans le dossier.", rang: "en-cours", ton: "info", icone: "horloge" },
-  capturee: { libelle: "Fait", explication: "L'opération est inscrite sur le registre public et sa preuve est rangée dans le dossier.", rang: "faite", ton: "succes", icone: "coche" },
-  faite: { libelle: "Fait", explication: "Étape faite sans rien écrire sur le registre public.", rang: "faite", ton: "succes", icone: "coche" },
-  echec: { libelle: "Échec", explication: "Le registre public a refusé l'opération, ou le contrôle fait juste après ne retrouve pas ce qui devait être inscrit.", rang: "echec", ton: "refus", icone: "croix" },
+  a_faire: { ...mot("etape_a_faire"), explication: "Rien n'a encore été envoyé pour cette étape.", rang: "a-faire" },
+  envoyee: { ...mot("etape_envoyee_attendre"), explication: "L'opération est partie vers le registre public ; sa réponse n'est pas encore arrivée.", rang: "en-cours" },
+  incluse: { ...mot("etape_inscrite_attendre"), explication: "Le registre public a inscrit l'opération ; il reste à ranger sa preuve dans le dossier.", rang: "en-cours" },
+  capturee: { ...mot("etape_faite"), explication: "L'opération est inscrite sur le registre public et sa preuve est rangée dans le dossier.", rang: "faite" },
+  faite: { ...mot("etape_faite"), explication: "Étape faite sans rien écrire sur le registre public.", rang: "faite" },
+  echec: { ...mot("echec"), explication: "Le registre public a refusé l'opération, ou le contrôle fait juste après ne retrouve pas ce qui devait être inscrit.", rang: "echec" },
+});
+/**
+ * Une étape « envoyée » ou « inscrite » dont l'opération est partie d'ici et dont l'envoi est connu (sixième lecture) :
+ * c'est à la personne d'aller chercher la réponse, et la pastille le dit ; la même règle que la consigne
+ * `reprendre_envoi` de `prochaineAction`. Sinon (étape du client), il n'y a qu'à attendre.
+ */
+const A_VOUS = Object.freeze({
+  envoyee: { ...mot("etape_envoyee_a_vous"), explication: "L'opération est partie d'ici vers le registre public ; sa réponse n'est pas rangée dans le dossier : allez la chercher avec le bouton de la prochaine action, en haut de la fiche." },
+  incluse: { ...mot("etape_inscrite_a_vous"), explication: "Le registre public a inscrit l'opération partie d'ici ; sa preuve n'est pas rangée dans le dossier : allez la chercher avec le bouton de la prochaine action, en haut de la fiche." },
 });
 
 /** Étapes que la commande des étapes 2 à 5 conduit (CT-4 7.6). */
@@ -49,7 +117,7 @@ const ETAPES_ENVOYEES_D_ICI = Object.freeze(["jeu_approbateurs", "assignation", 
 // Étapes que le client fait lui-même (CT-4 7.8 et 7.9) : « à faire » s'y dit « À faire par le client », pour que la
 // personne ne les prenne pas pour les siennes.
 const ETAPES_DU_CLIENT = Object.freeze(["premiere_ancre", "premiere_cloture"]);
-const A_FAIRE_PAR_LE_CLIENT = Object.freeze({ libelle: "À faire par le client", explication: "Rien n'a encore été envoyé pour cette étape : c'est le client qui la fait, avec ses propres outils." });
+const A_FAIRE_PAR_LE_CLIENT = Object.freeze({ ...mot("etape_a_faire_client"), explication: "Le dossier ne montre encore aucun envoi pour cette étape : c'est le client qui la fait, avec ses propres outils." });
 
 /** Étapes du dossier que chaque commande fait avancer : sert à ne jamais dire « réussi » à côté d'une étape en échec. */
 const ETAPES_DE_COMMANDE = Object.freeze({ "inscrire-client": ETAPES_CONDUITES, "inscrire-cle": Object.freeze(["inscription"]) });
@@ -153,7 +221,7 @@ const verificationEnEchec = (e) => (e.state !== "echec" ? null : e.capture ? "OP
 export function etapesDuParcours(dossier) {
   const preparation = {
     numero: 1, code: ETAPE_PREPARATION.code, titre: ETAPE_PREPARATION.titre, phrase: ETAPE_PREPARATION.phrase, objet: null,
-    etat: "faite", libelle: ETATS_ETAPE.faite.libelle, explication: "Le dossier existe.", rang: "faite", ton: "succes", icone: "coche",
+    etat: "faite", libelle: ETATS_ETAPE.faite.libelle, explication: "Le dossier existe.", rang: "faite", ton: ETATS_ETAPE.faite.ton, icone: ETATS_ETAPE.faite.icone,
     quand: dossier.prepared_at ?? null, erreur: null,
     technique: [
       { libelle: "Préparé par", membre: "prepared_by", valeur: dossier.prepared_by ?? "" },
@@ -165,7 +233,8 @@ export function etapesDuParcours(dossier) {
   const suite = (dossier.steps ?? []).map((e, k) => {
     const connue = ETAPES[e.step];
     const duClient = ETAPES_DU_CLIENT.includes(e.step) && e.state === "a_faire";
-    const etat = duClient ? { ...ETATS_ETAPE.a_faire, ...A_FAIRE_PAR_LE_CLIENT } : ETATS_ETAPE[e.state];
+    const aVous = Object.hasOwn(A_VOUS, e.state) && ETAPES_ENVOYEES_D_ICI.includes(e.step) && Boolean(e.transaction_hash);
+    const etat = duClient ? { ...ETATS_ETAPE.a_faire, ...A_FAIRE_PAR_LE_CLIENT } : aVous ? { ...ETATS_ETAPE[e.state], ...A_VOUS[e.state] } : ETATS_ETAPE[e.state];
     return {
       numero: k + 2,
       code: e.step,
@@ -191,15 +260,20 @@ export function etapesDuParcours(dossier) {
 }
 
 /**
- * Avancement d'un dossier : `{ faites, total, echecs, enVol, etat, attente, libelle, ton, icone, phrase,
+ * Avancement d'un dossier : `{ faites, total, echecs, enVol, etat, attente, pastille, libelle, ton, icone, phrase,
  * phraseFaites, resume }` ; `etat` vaut `a_reprendre` (une étape en échec), `inscrit` (toutes faites) ou
  * `en_cours`. `resume` est la phrase qui dit où en est le client. Une étiquette n'a qu'un sens (complément du
  * 2026-11-18) : « Réponse à aller chercher » quand un envoi parti d'ici attend que la personne aille chercher sa réponse
  * (`attente` : `reponse_a_chercher`) ; « En attente du registre » quand une étape envoyée par le client attend sa
  * réponse (`registre`) et « En attente chez le client » quand la suite se fait chez lui (`client`) : dans ces deux
- * cas, la personne n'a rien à faire.
+ * cas, la personne n'a rien à faire. Sixième lecture (même complément) : la pastille dit l'action attendue. Une
+ * inscription qui avance par une action de la personne se dit « À vous d'agir » (et non plus « En cours ») ; toutes
+ * les étapes faites, « Paquet à remettre » tant que la remise du paquet produit n'est pas notée (`remise`, la remise
+ * en vigueur, ou null), puis « Paquet remis ». Tant qu'une action lancée d'ici pour ce client attend son tour ou
+ * s'exécute (`travaux`), la pastille dit « Action en cours », pour ne pas demander d'agir pendant ce temps. Le mot et
+ * son sens viennent de `PASTILLES`.
  */
-export function avancement(dossier) {
+export function avancement(dossier, { remise = null, travaux = [] } = {}) {
   const l = etapesDuParcours(dossier);
   const faites = l.filter((e) => e.rang === "faite").length;
   const echecs = l.filter((e) => e.rang === "echec").length;
@@ -207,16 +281,23 @@ export function avancement(dossier) {
   const total = l.length;
   const phrase = `${faites} ${faites > 1 ? "étapes" : "étape"} sur ${total}`;
   const commun = { faites, total, echecs, enVol, phrase, phraseFaites: `${phrase} ${faites > 1 ? "faites" : "faite"}` };
-  if (echecs > 0) return { ...commun, etat: "a_reprendre", attente: null, libelle: "À reprendre", ton: "refus", icone: "croix", resume: "Une étape a échoué : reprenez-la pour continuer." };
-  if (faites === total) return { ...commun, etat: "inscrit", attente: null, libelle: "Inscrit", ton: "succes", icone: "coche", resume: "Toutes les étapes sont faites : le client est inscrit." };
+  const p = (cle) => ({ pastille: cle, ...mot(cle) });
+  const enCours = (travaux ?? []).some((t) => t?.etat === "en_attente" || t?.etat === "en_cours");
+  if (enCours) return { ...commun, etat: echecs > 0 ? "a_reprendre" : faites === total ? "inscrit" : "en_cours", attente: "action", ...p("client_action_en_cours"), resume: "Une action lancée d'ici pour ce client attend son tour ou s'exécute : attendez qu'elle se termine." };
+  if (echecs > 0) return { ...commun, etat: "a_reprendre", attente: null, ...p("client_a_reprendre"), resume: "Une étape a échoué : reprenez-la pour continuer." };
+  if (faites === total) {
+    return remise
+      ? { ...commun, etat: "inscrit", attente: null, ...p("paquet_remis"), resume: "Toutes les étapes sont faites : le client est inscrit, et la remise de son paquet est notée." }
+      : { ...commun, etat: "inscrit", attente: null, ...p("paquet_a_remettre"), resume: "Toutes les étapes sont faites : le client est inscrit. Il reste à lui remettre son paquet." };
+  }
   // Le même envoi que celui dont `prochaineAction` fait sa consigne : l'étiquette et la consigne disent la même chose.
   const etapes = dossier.steps ?? [];
   const partie = etapes.find((x) => ["envoyee", "incluse"].includes(x.state) && x.transaction_hash);
-  if (partie && ETAPES_ENVOYEES_D_ICI.includes(partie.step)) return { ...commun, etat: "en_cours", attente: "reponse_a_chercher", libelle: "Réponse à aller chercher", ton: "attente", icone: "alerte", resume: "Un envoi est resté sans réponse : une action vous attend." };
-  if (partie) return { ...commun, etat: "en_cours", attente: "registre", libelle: "En attente du registre", ton: "info", icone: "horloge", resume: "Une étape envoyée par le client attend la réponse du registre public : vous n'avez rien à faire." };
+  if (partie && ETAPES_ENVOYEES_D_ICI.includes(partie.step)) return { ...commun, etat: "en_cours", attente: "reponse_a_chercher", ...p("client_reponse_a_chercher"), resume: "Un envoi est resté sans réponse : une action vous attend." };
+  if (partie) return { ...commun, etat: "en_cours", attente: "registre", ...p("client_attente_registre"), resume: "Une étape envoyée par le client attend la réponse du registre public : vous n'avez rien à faire." };
   const suivante = etapes.find((e) => ETATS_ETAPE[e.state]?.rang !== "faite");
-  if (enVol === 0 && suivante && ETAPES_DU_CLIENT.includes(suivante.step) && suivante.state === "a_faire") return { ...commun, etat: "en_cours", attente: "client", libelle: "En attente chez le client", ton: "info", icone: "horloge", resume: "La suite se fait chez le client : vous n'avez rien à faire." };
-  return { ...commun, etat: "en_cours", attente: null, libelle: "En cours", ton: "info", icone: "horloge", resume: "L'inscription est en cours." };
+  if (enVol === 0 && suivante && ETAPES_DU_CLIENT.includes(suivante.step) && suivante.state === "a_faire") return { ...commun, etat: "en_cours", attente: "client", ...p("client_attente_client"), resume: "La suite se fait chez le client : vous n'avez rien à faire." };
+  return { ...commun, etat: "en_cours", attente: null, ...p("client_a_vous"), resume: "L'inscription est en cours : la prochaine action est à vous." };
 }
 
 /**
@@ -235,8 +316,12 @@ export function avancement(dossier) {
  * `capturer` avec `envoi` relit l'envoi qu'il a écrit pour une étape `envoyee`, avec `transaction` range la preuve
  * d'une étape `incluse`. Pour les deux dernières étapes, faites chez le client, la consigne reste neutre : attendre,
  * puis prévenir l'équipe technique.
+ *
+ * Sixième lecture (même complément) : une consigne où il n'y a rien à faire (attendre, ou le paquet remis) n'a pas de
+ * ligne « Ayez sous la main » (`aPreparer` null). Une consigne qui envoie des écritures porte `quiPaie` (`QUI_PAIE`,
+ * la même phrase partout) et, en mode essai (`essai`), `essaiDepense` (`ESSAI_DEPENSE`).
  */
-export function prochaineAction({ slug, dossier, confirmations = [], demandes = [], periodes = [], parties = [], travaux = [], paquet = null, remise = null }) {
+export function prochaineAction({ slug, dossier, confirmations = [], demandes = [], periodes = [], parties = [], travaux = [], paquet = null, remise = null, essai = false }) {
   const etapes = dossier.steps ?? [];
   const faite = (e) => ETATS_ETAPE[e.state]?.rang === "faite";
   const numero = (e) => etapes.indexOf(e) + 2;
@@ -250,8 +335,8 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       surTitre,
       etape: n,
       titre: partie.state === "envoyee" ? `Attendez la réponse du registre public pour l'étape ${n}` : `Attendez que la preuve de l'étape ${n} soit rangée dans le dossier`,
-      phrase: `Cette étape se fait chez le client, avec ses propres outils : vous n'avez rien à lancer d'ici. ${partie.state === "envoyee" ? `Elle est notée « Envoyée »${depuis(partie)} et attend la réponse du registre public` : `Le registre public l'a inscrite${depuis(partie)}, mais sa preuve n'est pas encore rangée dans le dossier`}. Le client a fait sa part : si la fiche n'a pas changé à votre prochaine visite, prévenez l'équipe technique.`,
-      aPreparer: RIEN_A_RASSEMBLER,
+      phrase: `Cette étape se fait chez le client, avec ses propres outils : vous n'avez rien à lancer d'ici. ${partie.state === "envoyee" ? `Elle est notée « ${mot("etape_envoyee_attendre").libelle} »${depuis(partie)} et attend la réponse du registre public` : `Le registre public l'a inscrite${depuis(partie)}, mais sa preuve n'est pas encore rangée dans le dossier`}. Le client a fait sa part : si la fiche n'a pas changé à votre prochaine visite, prévenez l'équipe technique.`,
+      aPreparer: null,
       apres: "Le bouton relit seulement la fiche : rien n'est envoyé, rien n'est dépensé. Cet outil ne sait pas combien de temps le registre public mettra à répondre.",
       bouton: "Actualiser la fiche",
       lien: `/clients/${slug}`,
@@ -281,6 +366,8 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       sousBouton: CHERCHER_LA_REPONSE.sousBouton,
     };
   }
+  // Une consigne qui envoie des écritures dit qui les paie, et ce qu'elles consomment en mode essai.
+  const depense = { quiPaie: QUI_PAIE, essaiDepense: essai ? ESSAI_DEPENSE : null };
   const conduites = etapes.filter((e) => ETAPES_CONDUITES.includes(e.step));
   const restantes = conduites.filter((e) => !faite(e));
   if (restantes.length > 0) {
@@ -301,6 +388,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
         credits: CREDITS_EN_CLAIR,
         versement: VERSEMENT_EN_CLAIR,
         adresse: ADRESSE_A_CONFIRMER,
+        quiPaieExplique: QUI_PAIE,
         aPreparer: "Ayez sous la main : le nom et la fonction de la personne qui a confirmé, le moyen employé, la date et l'heure, et la pièce qui en garde la trace (le courrier signé, ou votre compte rendu de l'appel).",
         apres: "Après le clic : vous arrivez sur l'écran des confirmations de ce client, où vous remplissez le formulaire. Rien n'est envoyé au registre public.",
         bouton: "Aller noter la confirmation",
@@ -311,7 +399,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
     const dernier = 1 + conduites.length;
     const n = numero(restantes[0]);
     const jusqua = n === dernier ? `l'étape ${n}` : `les étapes ${n} à ${dernier}`;
-    const commun = { code: "conduire_etapes", surTitre, commande: "inscrire-client", premiereEtape: n, derniereEtape: dernier };
+    const commun = { code: "conduire_etapes", surTitre, commande: "inscrire-client", premiereEtape: n, derniereEtape: dernier, ...depense };
     if (restantes.some((e) => e.state === "echec")) {
       return {
         ...commun,
@@ -330,7 +418,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
         titre: `Continuez l'inscription à l'étape ${n}`,
         phrase: `Les étapes précédentes sont faites. L'outil fait maintenant ${jusqua}, sans refaire les autres.`,
         aPreparer: RIEN_A_RASSEMBLER,
-        apres: "Après le clic : l'outil travaille seul et la fiche se met à jour. S'il rencontre un refus, il s'arrête et vous dit pourquoi. Chaque écriture sur le registre public coûte des crédits d'écriture.",
+        apres: "Après le clic : l'outil travaille seul et la fiche se met à jour. S'il rencontre un refus, il s'arrête et vous dit pourquoi.",
         bouton: `Continuer à l'étape ${n}`,
       };
     }
@@ -340,7 +428,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       titre: "Lancez l'inscription sur le registre public",
       phrase: `La confirmation du client est notée : elle porte sur le versement de l'étape ${dernier}. L'outil peut maintenant enregistrer les approbateurs, les rattacher au client, contrôler le résultat, puis alimenter le compte technique.`,
       aPreparer: RIEN_A_RASSEMBLER,
-      apres: `Après le clic : l'outil enchaîne les étapes 2 à ${dernier} sans vous et la fiche se met à jour. S'il rencontre un refus, il s'arrête, vous dit pourquoi, et reprendra là où il s'est arrêté. Chaque écriture sur le registre public coûte des crédits d'écriture.`,
+      apres: `Après le clic : l'outil enchaîne les étapes 2 à ${dernier} sans vous et la fiche se met à jour. S'il rencontre un refus, il s'arrête, vous dit pourquoi, et reprendra là où il s'est arrêté.`,
       bouton: `Commencer les étapes 2 à ${dernier}`,
     };
   }
@@ -381,7 +469,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       surTitre,
       titre: "Attendez la première preuve de date du client",
       phrase: "Les deux dernières étapes se font chez le client, sans vous : son enregistreur dépose sa première preuve de date, puis ses approbateurs closent la première période du journal. Vous n'avez rien à lancer.",
-      aPreparer: RIEN_A_RASSEMBLER,
+      aPreparer: null,
       apres: "Cette fiche se met à jour quand ces deux étapes sont enregistrées dans le dossier. Cet outil ne sait pas quand le client les fera : si la fiche n'a pas changé à votre prochaine visite, demandez au client où il en est.",
       bouton: "Actualiser la fiche",
       lien: `/clients/${slug}`,
@@ -445,7 +533,7 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       surTitre: "Inscription terminée",
       titre: "Le paquet a été remis au client",
       phrase: `${phraseRemise(remise)} Vous n'avez plus rien à faire pour ce client.`,
-      aPreparer: RIEN_A_RASSEMBLER,
+      aPreparer: null,
       apres: "Après le clic : vous arrivez sur l'écran du paquet. Si cette remise est notée par erreur, vous pouvez y corriger la note.",
       bouton: "Voir le paquet",
       lien: `/clients/${slug}/paquet`,
@@ -499,6 +587,23 @@ export function confirmationsAttendues({ dossier, confirmations = [], demandes =
 }
 
 /**
+ * Qui paie chaque écriture, et qui fournit les crédits (sixième lecture, même complément) : la même phrase partout où
+ * l'écran en parle (consignes qui envoient des écritures, « Ce que le client doit confirmer », formulaire de la
+ * confirmation, envoi d'un document signé). CT-4 4.5 et EX-4.15 : l'expéditeur d'une transaction est débité du gaz
+ * qu'elle consomme, sans exemption ; EX-4.19 : ont une provision les clés de chaîne des enregistreurs, le relayeur de
+ * l'exploitant, le déployeur et l'administrateur du registre ; EX-4.16 : le NUR ne circule que de la trésorerie de
+ * l'exploitant vers ces expéditeurs, et ne se vend ni ne s'achète. Ce que la personne envoie d'ici part des comptes
+ * de l'exploitant (déployeur, administrateur du registre, trésorerie, relayeur : EX-7.3), sauf l'envoi par un compte
+ * qu'une référence désigne, réservé aux essais ; une preuve de date part de la clé de chaîne de l'enregistreur
+ * (CT-4 8.1). Aucune somme d'argent, aucun équivalent, aucune durée.
+ */
+export const QUI_PAIE = "Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société ; le client ne les paie pas.";
+/**
+ * Ce qu'une écriture consomme en mode essai (registre de nature « developpement ») : des crédits d'écriture, comme
+ * sur le registre réel (CT-4 4.5 : aucune exemption), mais ceux du registre d'essai.
+ */
+export const ESSAI_DEPENSE = "En mode essai, ces écritures consomment aussi des crédits d'écriture, mais ceux du registre d'essai : rien n'est pris sur le registre réel.";
+/**
  * Ce que sont les crédits d'écriture, dit une fois sur chaque écran, là où le mot paraît d'abord (complément du
  * 2026-11-18, quatrième lecture des écrans). Chaque membre de phrase vient de CT-4 : ils n'ont pas d'autre usage
  * que payer les écritures, et ne se vendent, ne s'achètent ni ne s'échangent (EX-4.16) ; toute écriture en consomme,
@@ -506,9 +611,10 @@ export function confirmationsAttendues({ dossier, confirmations = [], demandes =
  * qui en reçoit (EX-4.16, EX-4.19). Ne pouvant être vendus, ils ne sont pas payés par le client. Aucune durée n'est
  * dite : la provision `P_k = provision_days × b_k + gas_limit` dépend de réglages du manifeste du registre que
  * l'interface n'affiche pas, et CT-4 note lui-même que l'exemple de 30 jours ne compte pas les preuves de date des
- * points de contrôle (EX-4.19, note de la révision 0.3).
+ * points de contrôle (EX-4.19, note de la révision 0.3). Sixième lecture : qui paie se dit par `QUI_PAIE`, la même
+ * phrase que sur les écrans qui l'affichent sans rien ouvrir.
  */
-export const CREDITS_EN_CLAIR = "Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public, et chaque écriture en consomme. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas : c'est notre société qui les fournit, et le client ne les paie pas.";
+export const CREDITS_EN_CLAIR = `Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. ${QUI_PAIE}`;
 /** Ce que permettent ceux du versement sur le compte technique : les écritures que la clé de chaîne envoie elle-même (CT-4 8.1, 8.2). */
 export const VERSEMENT_EN_CLAIR = "Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.";
 /**
@@ -570,7 +676,7 @@ export const ADRESSE_A_CONFIRMER = "Ne la dictez pas : 42 caractères ne se lise
  */
 export const PAR_NOTRE_COMPTE = Object.freeze({
   bouton: "Envoyer par notre compte d'envoi",
-  sousBouton: "C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles ».",
+  sousBouton: "C'est le cas habituel : notre compte d'envoi envoie le document signé au registre public. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles ».",
 });
 /**
  * Reprise d'un envoi resté sans réponse (travail `capturer`) : elle ne fait que lire le registre public (le reçu
@@ -601,16 +707,16 @@ export const COMMANDES = Object.freeze({
 export const libelleCommande = (commande) => COMMANDES[commande] ?? `Commande ${commande}`;
 
 const RESULTATS = Object.freeze({
-  reussi: { libelle: "Réussi", ton: "succes", icone: "coche", explication: "L'action est faite." },
-  deja_fait: { libelle: "Déjà fait", ton: "succes", icone: "coche", explication: "Il n'y avait plus rien à faire : c'était déjà fait. Rien n'a été envoyé." },
-  refuse: { libelle: "Refusé avant envoi", ton: "refus", icone: "croix", explication: "L'outil a contrôlé avant d'agir et s'est arrêté : rien n'a été envoyé, rien n'a été dépensé." },
-  echoue: { libelle: "Échec", ton: "refus", icone: "croix", explication: "L'opération a été envoyée, mais elle n'a pas abouti." },
-  incertain: { libelle: "Résultat pas encore connu", ton: "attente", icone: "question", explication: "L'opération est partie, mais la réponse du registre public n'est pas arrivée. Ne relancez pas l'action : allez chercher la réponse du registre public, depuis la fiche du client." },
-  inutilisable: { libelle: "Impossible à exécuter", ton: "", icone: "question", explication: "L'outil n'a pas pu aller au bout et n'affirme rien. La fiche du client dit ce qui est réellement fait." },
+  reussi: { ...mot("action_reussie"), explication: "L'action est faite." },
+  deja_fait: { ...mot("action_deja_faite"), explication: "Il n'y avait plus rien à faire : c'était déjà fait. Rien n'a été envoyé." },
+  refuse: { ...mot("action_refusee_avant_envoi"), explication: "L'outil a contrôlé avant d'agir et s'est arrêté : rien n'a été envoyé, rien n'a été dépensé." },
+  echoue: { ...mot("echec"), explication: "L'opération a été envoyée, mais elle n'a pas abouti." },
+  incertain: { ...mot("action_incertaine"), explication: "L'opération est partie, mais la réponse du registre public n'est pas arrivée. Ne relancez pas l'action : allez chercher la réponse du registre public, depuis la fiche du client." },
+  inutilisable: { ...mot("action_impossible"), explication: "L'outil n'a pas pu aller au bout et n'affirme rien. La fiche du client dit ce qui est réellement fait." },
 });
 
 /** Mot d'un travail d'ensemble fini « réussi » alors qu'une de ses étapes est en échec dans le dossier. */
-const AVEC_ECHEC = Object.freeze({ libelle: "Terminé, avec une étape en échec", ton: "refus", icone: "croix", explication: "L'action est allée au bout, mais le dossier porte une étape en échec : c'est l'étape qui fait foi. Reprenez-la." });
+const AVEC_ECHEC = Object.freeze({ ...mot("action_avec_echec"), explication: "L'action est allée au bout, mais le dossier porte une étape en échec : c'est l'étape qui fait foi. Reprenez-la." });
 
 /**
  * État d'un travail (`etat`, et `sortie.result` s'il est fini) en mots : `{ code, libelle, ton, icone, explication,
@@ -620,10 +726,10 @@ const AVEC_ECHEC = Object.freeze({ libelle: "Terminé, avec une étape en échec
  */
 export function etatTravail(t, { dossier = null, dernier = false } = {}) {
   if (!t) return { code: "", libelle: "", ton: "", icone: "tiret", explication: "", termine: false };
-  if (t.etat === "en_attente") return { code: "en_attente", libelle: "En attente de son tour", ton: "", icone: "horloge", explication: "Le service d'inscription fait une action à la fois : celle-ci attend la fin de la précédente. Vous n'avez rien à faire.", termine: false };
-  if (t.etat === "en_cours") return { code: "en_cours", libelle: "En cours", ton: "info", icone: "horloge", explication: "Le service d'inscription exécute l'action. Laissez cette page ouverte : elle se met à jour toute seule.", termine: false };
-  if (t.etat === "refuse") return { code: "refuse", libelle: "Refusé avant de commencer", ton: "refus", icone: "croix", explication: "Le service d'inscription a refusé l'action avant de commencer : rien n'a été envoyé, rien n'a été dépensé.", termine: true };
-  if (t.etat === "abandonne") return { code: "abandonne", libelle: "Interrompu", ton: "", icone: "tiret", explication: "Le service d'inscription s'est arrêté pendant l'action. La fiche du client dit ce qui est réellement fait : relancez l'action.", termine: true };
+  if (t.etat === "en_attente") return { code: "en_attente", ...mot("action_en_attente"), explication: "Le service d'inscription fait une action à la fois : celle-ci attend la fin de la précédente. Vous n'avez rien à faire.", termine: false };
+  if (t.etat === "en_cours") return { code: "en_cours", ...mot("action_en_cours"), explication: "Le service d'inscription exécute l'action. Laissez cette page ouverte : elle se met à jour toute seule.", termine: false };
+  if (t.etat === "refuse") return { code: "refuse", ...mot("action_refusee"), explication: "Le service d'inscription a refusé l'action avant de commencer : rien n'a été envoyé, rien n'a été dépensé.", termine: true };
+  if (t.etat === "abandonne") return { code: "abandonne", ...mot("action_interrompue"), explication: "Le service d'inscription s'est arrêté pendant l'action. La fiche du client dit ce qui est réellement fait : relancez l'action.", termine: true };
   if (t.etat === "fini") {
     const r = RESULTATS[t.sortie?.result];
     if (r) {

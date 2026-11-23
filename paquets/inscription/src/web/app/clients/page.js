@@ -12,6 +12,10 @@
 // Nom interne (complément du 2026-11-19, décision du porteur sur le suivi interne des clients ; CT-4 EX-7.23) : une
 // carte montre d'abord le nom interne du client, s'il en a un, et son nom court à côté, en petit ; sans nom interne,
 // le nom court reste le titre de la carte.
+//
+// Sixième lecture (même complément) : une recherche, dans la page, par nom interne ou nom court, sur les cartes déjà
+// affichées (aucune requête : `RechercheClients`) ; la pastille de chaque client vient de la table unique de
+// `parcours.mjs` et dit l'action attendue (« À vous d'agir », « Paquet à remettre », « Paquet remis »…).
 
 import { client, clients, confirmations, lignesNotes, notes } from "../../lib/donnees.mjs";
 import { remiseEnVigueur } from "../../../commun/notes.mjs";
@@ -20,6 +24,7 @@ import { ETAPES, ETAPE_PREPARATION, avancement, dateLisible, etatsTravaux, libel
 import Icone from "../../composants/Icone.js";
 import Lexique from "../../composants/Lexique.js";
 import Pastille from "../../composants/Pastille.js";
+import RechercheClients from "../../composants/RechercheClients.js";
 import Valeur from "../../composants/Valeur.js";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +39,7 @@ export default async function PageClients() {
     if (!c) return null;
     const n = notes(resume.slug, lignes);
     const remise = remiseEnVigueur(n, manifesteDuPaquet(c));
-    return { resume, c, nom: n.nom?.valeur ?? null, a: avancement(c.dossier), action: prochaineAction({ ...c, confirmations: confirmations(resume.slug), remise }) };
+    return { resume, c, nom: n.nom?.valeur ?? null, a: avancement(c.dossier, { remise, travaux: c.travaux }), action: prochaineAction({ ...c, confirmations: confirmations(resume.slug), remise }) };
   }).filter(Boolean);
   return (
     <main className="nt-page">
@@ -77,7 +82,7 @@ export default async function PageClients() {
           <a className="nt-bouton nt-bouton-principal" href="/clients/nouveau">Préparer le dossier d'un premier client</a>
         </div>
       ) : (
-        <div className="ins-clients">
+        <RechercheClients cles={liste.map(({ resume, nom }) => ({ slug: resume.slug, nom }))}>
           {liste.map(({ resume, c, nom, a, action }) => {
             const k = resume.dernier_travail ? c.travaux.findIndex((t) => t.id === resume.dernier_travail.id) : -1;
             const dernier = k >= 0 ? c.travaux[k] : null;
@@ -121,7 +126,7 @@ export default async function PageClients() {
               </article>
             );
           })}
-        </div>
+        </RechercheClients>
       )}
       <Lexique />
     </main>

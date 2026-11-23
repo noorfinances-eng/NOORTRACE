@@ -39,6 +39,7 @@
 // calcule par la fonction que partage « Calculer l'empreinte d'une pièce » (`empreinteFichier`). Ce qui part vers la
 // route ne change pas.
 //
+// Sixième lecture (même complément) : sous le repère, qui paie (`QUI_PAIE`, la même phrase que sur la fiche).
 // Cinquième lecture (même complément) : l'explication des crédits d'écriture est un bloc replié (`CreditsEnClair`),
 // une fois sur l'écran ; sous le montant, un repère vrai, calculé depuis ce que l'écran affiche (`repereEnClair`). Le
 // choix de l'opération dit qu'une confirmation ne vaut que pour une opération, et laquelle l'inscription demande.
@@ -49,7 +50,7 @@ import Icone from "./Icone.js";
 import { Refus } from "./FormulaireTravail.js";
 import { CopierValeur } from "./CopierTexte.js";
 import CreditsEnClair from "./CreditsEnClair.js";
-import { ADRESSE_A_CONFIRMER, repereEnClair, VERSEMENT_EN_CLAIR, OPERATIONS_CONFIRMATION, dateLisible, explicationSaisie, jourLisible, nombreLisible } from "../lib/parcours.mjs";
+import { ADRESSE_A_CONFIRMER, QUI_PAIE, repereEnClair, VERSEMENT_EN_CLAIR, OPERATIONS_CONFIRMATION, dateLisible, explicationSaisie, jourLisible, nombreLisible } from "../lib/parcours.mjs";
 
 const MOTIF_INSTANT = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/;
 const deux = (n) => String(n).padStart(2, "0");
@@ -198,6 +199,7 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
               </p>
               <CreditsEnClair versement={VERSEMENT_EN_CLAIR} />
               {montant && repereEnClair(montant) ? <p className="nt-aide" data-repere="">{repereEnClair(montant)}</p> : null}
+              <p className="nt-aide" data-qui-paie="">{QUI_PAIE}</p>
               <p className="nt-aide">L'adresse : {ADRESSE_A_CONFIRMER.charAt(0).toLowerCase()}{ADRESSE_A_CONFIRMER.slice(1)}</p>
             </>
           )}

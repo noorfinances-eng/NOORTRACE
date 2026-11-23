@@ -242,13 +242,13 @@ de CT-7 sont figés.
 | TC-41 | CT-2 §22 (l. 14572) | Même ligne, état attendu « répondue par CT-8 0.1 ». | Ce document, version 0.1. |
 | TC-42 | CT-3 §0 (l. 281) | Note de la version 0.4 : le mode observation demandé par CT-8. | Section 12. |
 | TC-43 | CT-3 §0 (l. 290) | Note de la version 0.4 : l'exception d'EX-11.1 pour l'installation rapide. | EX-7.3 et 7.3 : configuration de l'installation rapide en mode observation. |
-| TC-44 | CT-3 §1 (l. 745) | L'exploitation du service d'approbation et de la console. | Composants `approbation` et `console` : §3 et §4 ; supervision du service : 10.2 et 10.7 ; sauvegarde de son état : 11.2 ; mise à jour : EX-11.12. |
-| TC-45 | CT-3 §1 (l. 773) | La console d'exploitation, son serveur et son authentification par le système d'identité du client ; depuis la révision 0.5, les documents de configuration du service et du serveur de console, l'écoute d'état et la sonde du serveur de console (10.3, 13.20, 13.21). | Serveur de la console de référence et son authentification : EX-3.3, flux FL-14 et FL-16, pas IC-11 ; configurations, écoute d'état et sondes : EX-3.3, EX-3.5, 4.1, 4.3, 4.4 et IC-11 (révision 0.4) ; la console d'exploitation construite à l'étape 6 est le serveur et les pages de l'image `noortrace/console` (4.1, révision 0.5). |
-| TC-46 | CT-3 §11.1 (l. 4616) | CT-3 EX-11.1 : l'installation rapide emploie le mode observation. | EX-7.3 et 7.3. |
-| TC-47 | CT-3 §13.2 (l. 6091) | Publication des empreintes du document et construction reproductible (avec CT-7). | EX-3.13 et EX-3.14 (§3.6) ; publication et comparaison des empreintes : CT-7 EX-3.9, tâche TP-5 d'EX-8.6. |
-| TC-48 | CT-3 §13.15 (l. 7942) | Publication des empreintes du document et construction reproductible (avec CT-7). | EX-3.13 et EX-3.14 (§3.6) ; publication et comparaison des empreintes : CT-7 EX-3.9, tâche TP-5 d'EX-8.6. |
-| TC-49 | CT-3 §15.2 (l. 9329) | Alignement, révision 0.4 : mode observation. | Section 12 ; vecteurs : annexe A.8 ; vérificateur Go : annexe A.13 (OB-6). |
-| TC-50 | CT-3 §16 (l. 9489) | Un mode « avertir » (pratique `warn`). | Introduction de la section 12 ; hors de la version 0.1 (§15). |
+| TC-44 | CT-3 §1 (l. 749) | L'exploitation du service d'approbation et de la console. | Composants `approbation` et `console` : §3 et §4 ; supervision du service : 10.2 et 10.7 ; sauvegarde de son état : 11.2 ; mise à jour : EX-11.12. |
+| TC-45 | CT-3 §1 (l. 777) | La console d'exploitation, son serveur et son authentification par le système d'identité du client ; depuis la révision 0.5, les documents de configuration du service et du serveur de console, l'écoute d'état et la sonde du serveur de console (10.3, 13.20, 13.21). | Serveur de la console de référence et son authentification : EX-3.3, flux FL-14 et FL-16, pas IC-11 ; configurations, écoute d'état et sondes : EX-3.3, EX-3.5, 4.1, 4.3, 4.4 et IC-11 (révision 0.4) ; la console d'exploitation construite à l'étape 6 est le serveur et les pages de l'image `noortrace/console` (4.1, révision 0.5). |
+| TC-46 | CT-3 §11.1 (l. 4627) | CT-3 EX-11.1 : l'installation rapide emploie le mode observation. | EX-7.3 et 7.3. |
+| TC-47 | CT-3 §13.2 (l. 6102) | Publication des empreintes du document et construction reproductible (avec CT-7). | EX-3.13 et EX-3.14 (§3.6) ; publication et comparaison des empreintes : CT-7 EX-3.9, tâche TP-5 d'EX-8.6. |
+| TC-48 | CT-3 §13.15 (l. 7956) | Publication des empreintes du document et construction reproductible (avec CT-7). | EX-3.13 et EX-3.14 (§3.6) ; publication et comparaison des empreintes : CT-7 EX-3.9, tâche TP-5 d'EX-8.6. |
+| TC-49 | CT-3 §15.2 (l. 9343) | Alignement, révision 0.4 : mode observation. | Section 12 ; vecteurs : annexe A.8 ; vérificateur Go : annexe A.13 (OB-6). |
+| TC-50 | CT-3 §16 (l. 9503) | Un mode « avertir » (pratique `warn`). | Introduction de la section 12 ; hors de la version 0.1 (§15). |
 | TC-51 | CT-4 §1 (l. 331) | La supervision et la sauvegarde. | Supervision : 10.6 ; sauvegarde : EX-11.1, point 3 (aucune restauration d'un validateur). |
 | TC-52 | CT-4 §1 (l. 358) | Table des relations : l'image, les topologies, les ports et les volumes (CT-4 §10), les seuils de provision (4.5), la rétention à tenir (CT-4 §9) ; la supervision, la sauvegarde des bases des validateurs, la publication des manifestes. | Image du nœud reprise : EX-3.6 et service `relais` (§4.3) ; ports et volumes : EX-3.5 ; capture et rétention : DM-11 (§9.3) et règle `noortrace_registre_marge_retention` (10.6) ; seuils de provision : règle `noortrace_registre_solde_bas` (10.6) ; sauvegarde des validateurs : EX-11.1, point 3 ; publication des manifestes : hors de la version 0.1 (§15). |
 | TC-53 | CT-4 §4.5 (l. 850) | Seuil d'alerte de la consommation d'un expéditeur (EX-8.18). | Règle `noortrace_registre_examen_requis` (10.6). |
@@ -8732,7 +8732,7 @@ chrony 4.6, CT-9) ; l'architecture `arm64` des images (IP-1) ; le format `.mcpb`
 | R8-F1, R8-F2 | Santé et 43 métriques de l'enregistreur | `spec/CT-2-enregistreur.md` l. 12522-12596 | 2026-10-27 |
 | R8-F7 | Ports et chemins de l'exemple de configuration | `spec/CT-2-enregistreur.md` l. 10734-10958 | 2026-10-27 |
 | R8-F14 | Cibles de performance non mesurées (latence, débit, reprise) | `spec/CT-2-enregistreur.md` l. 12230-12241 | 2026-10-27 |
-| R8-F15 | Interface du service d'approbation, `GET <base>/v0/etat` | `spec/CT-3-approbations.md` l. 4881-4930, 5256-5259 | 2026-10-27 |
+| R8-F15 | Interface du service d'approbation, `GET <base>/v0/etat` | `spec/CT-3-approbations.md` l. 4892-4941, 5267-5270 | 2026-10-27 |
 | R8-F19 | Métriques et alertes du composant d'ancrage | `spec/CT-5-ancrage.md` l. 3508-3607 | 2026-10-27 |
 | R8-F21 | Ports et volumes du nœud | `spec/CT-4-registre.md` l. 4371-4383 | 2026-10-27 |
 | R8-F22, R8-F23 | Validateur jamais restauré ; relais interdit pour capture et soumission, sonde par `eth_blockNumber` | `spec/CT-4-registre.md` l. 4244-4305, 4344-4369 | 2026-10-27 |

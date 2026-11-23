@@ -18,11 +18,11 @@
       },
       {
         "file": "spec/CT-3-approbations.md",
-        "sha256": "df184a11a837fc9a68f654a57f6319c49884833d371f137f18013464d347278d"
+        "sha256": "42fafe3fcae9190f1cf321bb768ba469fa33566f6d40f81a0048bc818dbba5f8"
       },
       {
         "file": "spec/CT-4-registre.md",
-        "sha256": "6fc9afd8097e49d26004ab9a28893a2ad64e3080c9a654ac9cb6ec1ac3625def"
+        "sha256": "9189fb66d7d8767e234ecb8be5731c96906e02d99ddf5f3e22945eb001811ef1"
       },
       {
         "file": "spec/CT-5-ancrage.md",
@@ -34,16 +34,16 @@
       },
       {
         "file": "spec/CT-7-securite-et-conformite.md",
-        "sha256": "aa334d8257f44c7e63db33f8898ed614e483e31017993d05b32a9014842a31ef"
+        "sha256": "4cb0c3bf71272f8aaa88b84a2745b033f20d096729b48e57b7e02b98f72e7ae1"
       },
       {
         "file": "spec/CT-8-deploiement-et-exploitation.md",
-        "sha256": "816c916c8883b3f2180afafb18be992ca56fde5e19e7617bfc652b728b2e794c"
+        "sha256": "9c9582808e55d35f5101b1864521cd1aa85658d16ef3421f6c60303f0eff17b3"
       }
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "9f2e1d94d105dddfda0fd20817ae143dbe4b99711e839351c937fab79cb73e5e"
+      "sha256": "122f33c65a903b963f5f65820591eb72af98b5395ec49f1a53c537c591ef2760"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -776,11 +776,11 @@
       },
       {
         "file": "test/exploitation-console-langage-chromium.test.js",
-        "sha256": "4fb9c93b821f585d3000278f03891eb7f55a17b6aeb26fc7f2dea4ed865f2e5f"
+        "sha256": "daf84ede79ff21780c83e2f59e698c0dfc895c89020c22583234b2fe351231e3"
       },
       {
         "file": "test/exploitation-console-pages-chromium.test.js",
-        "sha256": "2bcd3c53e5009bfc8a5f9bd1bdfd1d9acb70497c3d4f663de058d62e9ad746e5"
+        "sha256": "e0086475039b4e45f784b711d7e15640944f668730a1fb219e45a9719d699cdf"
       },
       {
         "file": "test/exploitation-console-pages.test.js",
@@ -792,7 +792,7 @@
       },
       {
         "file": "test/exploitation-console-presentation-chromium.test.js",
-        "sha256": "44a6c90e1ff23496f838eceba25abaf8484af9195659d8b7c8a3aa9e8e5215ce"
+        "sha256": "0414d16730d67ae5d2e8fbae397a7a945ff1b432807dc2eb603cc139834a924a"
       },
       {
         "file": "test/exploitation-console-prises-unix.test.js",
@@ -852,7 +852,7 @@
       },
       {
         "file": "test/inscription-application.test.js",
-        "sha256": "0f98780d76b19f9082e5c30db9ccc8c50c8936c7d0cbda352dc633b34425f689"
+        "sha256": "bac3d72b8991723f55a3738473462d1cd8f7b5aa8409986d210c19edd5ae1cd3"
       },
       {
         "file": "test/inscription-paquet.test.js",
@@ -860,11 +860,11 @@
       },
       {
         "file": "test/inscription-presentation-chromium.test.js",
-        "sha256": "103ab5c5246df8d683e043d6449fb156bc04ae59a4fd1433f957d9c7a758f7a7"
+        "sha256": "d6f219b48d6a6def1de6b3ab6183c4b5bee6d8553779be1537d431248618121a"
       },
       {
         "file": "test/inscription-presentation.test.js",
-        "sha256": "7abc9581a4dbf6d52045db86e4c871f05b9b7e4ea22da998acbf6a92d2306c0a"
+        "sha256": "58debcc44d5b8ec1a27a8b1325fd17f5a4e2f67e725a92ca29f8abc6133b1ebe"
       },
       {
         "file": "test/inscription-prises-unix.test.js",

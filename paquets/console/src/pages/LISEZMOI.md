@@ -271,3 +271,21 @@ complément du 2026-11-19 de `INTERFACES.md`, 3.4.
   l'annuaire (`approver_names`), ou « adresse inconnue de l'annuaire » ; la
   personne connectée porte le même nom en haut et dans la demande.
 
+## Sixième lecture (complément du 2026-11-18, langage des écrans)
+
+Éprouvée par `test/exploitation-console-langage-chromium.test.js` et les
+essais des pages ; le détail est au dernier complément de `INTERFACES.md`, 3.4.
+
+- **Avant de décider.** Une phrase au-dessus des boutons de décision dit que
+  le reste de la demande, sous eux, est à lire avant de décider. Mutant vu :
+  la phrase retirée.
+- **Valeur à contrôler.** Sous chaque valeur « non vérifiable par la
+  console », la raison : la valeur est masquée dans ce qui est enregistré.
+  Mutant vu : la raison retirée.
+- **Refus dans l'application.** Ni « Approuver » ni « Refuser » tant que la
+  consigne de ne pas réessayer est affichée. Mutant vu : les deux boutons
+  sous la consigne.
+- **Actions définitives.** « Révoquer », « Désactiver » et « Me récuser »
+  ont l'apparence d'une action qu'on ne défait pas. Mutant vu.
+- **Mon adresse.** Avec une adresse en attente, les étapes de l'inscription
+  sont dans un bloc fermé.

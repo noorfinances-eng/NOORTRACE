@@ -79,7 +79,8 @@ function actionAvecMotif(cle, methode, corps, avant = null, definitif = null, se
         etat.confirmation = id;
         rendre();
       },
-      { petit: true },
+      // Révoquer et désactiver ne se défont pas : leur bouton en a l'apparence dès le premier clic.
+      { petit: true, classe: GENRE_ACTION[cle] === "danger" ? "bouton-definitif" : null },
     );
     const mention =
       definitif !== null

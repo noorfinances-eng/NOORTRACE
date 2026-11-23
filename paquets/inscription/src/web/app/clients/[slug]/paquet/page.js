@@ -31,12 +31,17 @@
 // la date, l'heure et la personne connectée ; c'est une déclaration de cette personne, rien de plus. Une remise
 // notée se lit « Paquet remis le … par … » ; elle ne s'efface pas : « Corriger cette note » ajoute une correction,
 // avec son motif, et la remise reste lisible, barrée d'un « corrigée ». Le titre porte le nom interne du client.
+//
+// Sixième lecture (même complément) : la pastille de l'écran vient de la table unique de `parcours.mjs` et dit
+// l'action attendue : « Pas encore produit », « Paquet à remettre », puis « Paquet remis » une fois la remise notée ;
+// le haut de l'écran suit : remise notée, il dit que le paquet est remis, par qui et quand, au lieu de demander de
+// le remettre.
 
 import { notFound } from "next/navigation";
 import { client, notes } from "../../../../lib/donnees.mjs";
 import { remiseEnVigueur } from "../../../../../commun/notes.mjs";
 import { exigerSession } from "../../../../lib/page.mjs";
-import { avancement, dateLisible, etatTravail, explicationErreur, manifesteDuPaquet, nomDuCompte, phraseRemise } from "../../../../lib/parcours.mjs";
+import { PASTILLES, avancement, dateLisible, etatTravail, explicationErreur, manifesteDuPaquet, nomDuCompte, phraseRemise } from "../../../../lib/parcours.mjs";
 import { RemisePaquet } from "../../../../composants/NoteInterne.js";
 import FormulaireTravail from "../../../../composants/FormulaireTravail.js";
 import Icone from "../../../../composants/Icone.js";
@@ -117,7 +122,7 @@ export default async function PagePaquet({ params }) {
           <p className="nt-sous-titre">Le paquet est l'ensemble des fichiers que nous remettons au client à la fin de l'inscription. Avec lui, le client règle son service d'approbation et son enregistreur, et contrôle lui-même que son inscription est exacte. Il ne contient aucun secret.</p>
         </div>
         <div className="nt-entete-etat">
-          {produit ? <Pastille ton="succes" icone="coche" grande>Produit</Pastille> : <Pastille icone="tiret" grande>Pas encore produit</Pastille>}
+          {(() => { const p = PASTILLES[!produit ? "paquet_non_produit" : remise ? "paquet_remis" : "paquet_a_remettre"]; return <Pastille ton={p.ton} icone={p.icone} grande data-etat-paquet={!produit ? "non_produit" : remise ? "remis" : "a_remettre"}>{p.libelle}</Pastille>; })()}
         </div>
       </header>
 
@@ -134,8 +139,9 @@ export default async function PagePaquet({ params }) {
 
       {produit ? (
         <section className="nt-essentiel" aria-labelledby="paquet-titre">
-          <p className="nt-sur-titre">Paquet à remettre</p>
-          <h2 className="nt-essentiel-phrase" id="paquet-titre">Le paquet est prêt : téléchargez-le, remettez-le au client, et donnez-lui son empreinte.</h2>
+          <p className="nt-sur-titre">{remise ? PASTILLES.paquet_remis.libelle : PASTILLES.paquet_a_remettre.libelle}</p>
+          <h2 className="nt-essentiel-phrase" id="paquet-titre">{remise ? "Le paquet est remis au client : vous n'avez plus rien à faire pour lui." : "Le paquet est prêt : téléchargez-le, remettez-le au client, et donnez-lui son empreinte."}</h2>
+          {remise ? <p className="ins-essentiel-texte ins-ligne-icone" data-remise-en-haut=""><Icone nom="coche" />{phraseRemise(remise)} Si cette note est une erreur, corrigez-la plus bas, sous « Remise au client ».</p> : null}
           <dl className="nt-faits">
             {o.manifest_sha256 ? (
               <div className="nt-fait ins-fait-large">
@@ -208,7 +214,7 @@ export default async function PagePaquet({ params }) {
 
       {suivi.remises.length > 0 ? (
         <details className="nt-detail ins-replie" data-historique-remises="">
-          <summary>Remises notées<span className="nt-detail-note">{suivi.remises.length} {suivi.remises.length > 1 ? "notes" : "note"}, les plus anciennes d'abord ; aucune ne s'efface</span></summary>
+          <summary>Remises notées<span className="nt-detail-note" data-remises-compte="">{(() => { const n = suivi.remises.length; const c = suivi.remises.filter((r) => r.correction).length; return `${n} ${n > 1 ? "remises notées" : "remise notée"}${c > 0 ? `, dont ${c} ${c > 1 ? "corrigées" : "corrigée"}` : ""}, les plus anciennes d'abord ; aucune ne s'efface`; })()}</span></summary>
           <div className="nt-detail-corps">
           <ul className="ins-liste">
             {suivi.remises.map((r) => (

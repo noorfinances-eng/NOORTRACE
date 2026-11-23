@@ -35,6 +35,17 @@
 // s'arrête plus au premier. Le contrôle natif du navigateur, qui ne montrait que le premier champ vide, est remplacé
 // par celui de la page (`noValidate`) : un champ requis laissé vide est refusé par sa phrase. Rien n'est envoyé tant
 // qu'un champ est refusé ; ce que la route reçoit ne change pas.
+//
+// Sixième lecture (même complément ; CT-4 EX-7.23, complément du 2026-11-19, et EX-7.25) : deux ajouts, pour l'écran du
+// pas 1, qui ne changent rien à ce que la route des travaux reçoit.
+// - Un champ `note: "nom_interne"` (le nom interne du client, type texte, 80 caractères au plus) se contrôle avec les
+//   autres mais n'entre jamais dans les paramètres du travail : une fois le travail fini « réussi », et seulement
+//   alors, la page le remet par POST /api/clients/<slug>/notes, au corps `{ sorte: "nom_interne", nom }`, celui de la
+//   fiche. S'il n'est pas noté, la page le dit, et la fiche le redemande.
+// - Une section `releve` porte, au-dessus de ses champs, une consigne mise en avant et une case à cocher, sans nom de
+//   champ, jamais cochée d'avance, envoyée à aucune route ; tant qu'elle n'est pas cochée, la page refuse de remettre
+//   le travail, comme une saisie refusée. La case ne prouve rien : elle dit que la personne déclare avoir fait la
+//   relecture, que l'outil ne peut pas vérifier (CT-4 EX-7.8).
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -42,6 +53,7 @@ import { lireChamp, lireFiches } from "./champs-page.js";
 import CreditsEnClair from "./CreditsEnClair.js";
 import Icone from "./Icone.js";
 import Pastille from "./Pastille.js";
+import { NOM_INTERNE_MAX } from "../../commun/notes.mjs";
 import { CHAMP_VIDE, etatTravail, explicationErreur, explicationFiche, explicationSaisie, libelleCommande } from "../lib/parcours.mjs";
 
 const ATTENTE_MS = 1000;
@@ -95,7 +107,7 @@ function Champ({ champ, prefixe, erreur, regle, saisies, zones, ajouter, retirer
   if (champ.fiches) return <ChampFiches champ={champ} id={id} saisies={saisies} zones={zones} ajouter={ajouter} retirer={retirer} />;
   const decrit = [champ.aide ? `${id}-aide` : null, champ.exemple ? `${id}-exemple` : null, erreur ? `${id}-erreur` : null].filter(Boolean).join(" ") || undefined;
   const classes = ["nt-saisie", TYPES_FIXES.has(champ.type) ? "nt-saisie-fixe" : ""].filter(Boolean).join(" ");
-  const commun = { id, name: champ.nom, className: classes, "data-type": champ.type, required: !champ.facultatif && !champ.obligatoire, "aria-required": champ.obligatoire ? "true" : undefined, defaultValue: champ.defaut ?? undefined, autoComplete: "off", spellCheck: false, "aria-describedby": decrit, "aria-invalid": erreur ? "true" : undefined };
+  const commun = { id, name: champ.nom, className: classes, "data-type": champ.type, "data-nom-interne-creation": champ.note === "nom_interne" ? "" : undefined, required: !champ.facultatif && !champ.obligatoire, "aria-required": champ.obligatoire ? "true" : undefined, defaultValue: champ.defaut ?? undefined, autoComplete: "off", spellCheck: false, "aria-describedby": decrit, "aria-invalid": erreur ? "true" : undefined };
   let entree;
   // Une liste dont les choix viennent des données (noms, adresses) est marquée comme une valeur.
   if (champ.options) entree = <select {...commun} data-valeur={champ.donnees ? "" : undefined}>{champ.options.map((o) => <option key={o.valeur} value={o.valeur}>{o.libelle}</option>)}</select>;
@@ -118,6 +130,28 @@ function Champ({ champ, prefixe, erreur, regle, saisies, zones, ajouter, retirer
       {champ.aide ? <p className="nt-aide" id={`${id}-aide`}>{champ.aide}</p> : null}
       {champ.apres ? <p className="nt-aide ins-a-retenir" data-a-retenir={champ.nom}><Icone nom="info" /><span>{champ.apres}</span></p> : null}
       {champ.exemple ? <p className="nt-aide ins-exemple" id={`${id}-exemple`} data-exemple="">Exemple : <span className="nt-fixe" data-valeur="">{champ.exemple}</span></p> : null}
+    </div>
+  );
+}
+
+/**
+ * Consigne mise en avant au-dessus des champs d'une section, avec sa case à cocher (sixième lecture) : la case n'a pas
+ * de nom de champ, n'est jamais cochée d'avance et n'est envoyée à aucune route ; la page la contrôle avant d'envoyer.
+ */
+function Releve({ r, id, erreur }) {
+  return (
+    <div className="nt-bandeau nt-bandeau-avertissement ins-releve" data-releve-consigne={r.nom}>
+      <Icone nom="alerte" />
+      <div className="nt-bandeau-texte ins-releve-texte">
+        <p className="nt-bandeau-titre">{r.titre}</p>
+        <p>{r.texte}</p>
+        <div className="ins-case">
+          <input type="checkbox" id={id} data-releve={r.nom} data-adresses-relues="" aria-describedby={[`${id}-aide`, erreur ? `${id}-erreur` : null].filter(Boolean).join(" ")} aria-invalid={erreur ? "true" : undefined} />
+          <label htmlFor={id}>{r.libelle}</label>
+        </div>
+        <p className="nt-aide" id={`${id}-aide`}>{r.aide}</p>
+        {erreur ? <p className="nt-erreur" id={`${id}-erreur`} role="alert" data-regle="releve"><Icone nom="alerte" /><span>{erreur}</span></p> : null}
+      </div>
     </div>
   );
 }
@@ -155,6 +189,8 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
   const prefixe = useId();
   const router = useRouter();
   const [etat, setEtat] = useState({ saisie: null, refus: null, travail: null, envoi: false });
+  // Le nom interne remis après le travail : null, `{ fait: nom }` ou `{ refus: { code, message } }`.
+  const [noteNom, setNoteNom] = useState(null);
   // Zones du champ des fiches : une clé stable par zone (une zone retirée garde le texte des autres).
   const [zones, setZones] = useState([0]);
   const [prochaineZone, setProchaineZone] = useState(1);
@@ -180,10 +216,10 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
       if (!r || !r.ok || typeof t?.etat !== "string") {
         // Le suivi est perdu (connexion finie, outil injoignable) : l'action lancée, elle, n'est pas annulée.
         setEtat({ saisie: null, refus: { code: "suivi_interrompu", message: r ? `réponse ${r.status} à la lecture de ${id} : ${t?.error?.code ?? "sans code"}` : `aucune réponse à la lecture de ${id}` }, travail: null, envoi: false });
-        return;
+        return null;
       }
       setEtat({ saisie: null, refus: null, travail: t, envoi: false });
-      if (["fini", "refuse", "abandonne"].includes(t.etat)) return;
+      if (["fini", "refuse", "abandonne"].includes(t.etat)) return t;
       await new Promise((ok) => setTimeout(ok, ATTENTE_MS));
     }
   };
@@ -199,9 +235,25 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
      */
     const refuses = [];
     const refuser = (c, message, regle, zone = null) => { refuses.push({ champ: c.nom, libelle: c.libelle, message, regle, zone }); };
+    // La case de relecture d'une section, contrôlée à sa place, avant les champs de sa section : non cochée, rien ne
+    // part (elle n'est pas un paramètre du travail).
+    const releves = new Map((sections ?? []).filter((s) => s.releve && s.champs.length > 0).map((s) => [s.champs[0], s.releve]));
+    let nomInterne = null;
     for (const c of tous) {
+      const rel = releves.get(c);
+      if (rel && !formulaire.querySelector(`input[data-releve="${rel.nom}"]`)?.checked) refuser({ nom: rel.nom, libelle: rel.libelle }, rel.refus, "releve");
       const brut = String(f.get(c.nom) ?? "");
       const cle = c.parametre ?? c.nom;
+      if (c.note === "nom_interne") {
+        // Contrôlé comme sur la fiche (texte d'EX-7.25, 80 caractères au plus), gardé à part : jamais dans le travail.
+        const t = brut.trim();
+        if (t === "") { refuser(c, CHAMP_VIDE, "vide"); continue; }
+        if ([...t].length > NOM_INTERNE_MAX) { refuser(c, `Ce texte est trop long : ${NOM_INTERNE_MAX} caractères au plus.`, "texte"); continue; }
+        const v = lireChamp({ nom: c.nom, type: "texte" }, t);
+        if (v.erreur) { refuser(c, explicationSaisie("texte"), v.erreur); continue; }
+        nomInterne = v.valeur;
+        continue;
+      }
       if (c.fiches) {
         const v = lireFiches(c, f.getAll(c.nom));
         if (v.erreur) {
@@ -238,6 +290,7 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
     }
     // Ce que le bouton porte d'office vient après les champs, comme le paramètre que portait autrefois un champ.
     Object.assign(parametres, fixe);
+    setNoteNom(null);
     setEtat({ saisie: null, refus: null, travail: null, envoi: true });
     const slugTravail = commande === "inscrire-client-preparer" ? parametres.org : slug;
     let r;
@@ -252,7 +305,21 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
       setEtat({ saisie: null, refus: { code: corps?.error?.code ?? `http_${r.status}`, message: corps?.error?.message ?? `refus (${r.status})` }, travail: null, envoi: false });
       return;
     }
-    await suivre(corps.id);
+    const fin = await suivre(corps.id);
+    // Le nom interne, seulement si le dossier vient d'être préparé par ce travail (jamais pour un dossier qui existait).
+    if (nomInterne !== null && commande === "inscrire-client-preparer" && fin?.etat === "fini" && fin.sortie?.result === "reussi") {
+      let rn = null;
+      try {
+        rn = await fetch(`/api/clients/${encodeURIComponent(slugTravail)}/notes`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sorte: "nom_interne", nom: nomInterne }) });
+      } catch {
+        rn = null;
+      }
+      if (rn?.ok) setNoteNom({ fait: nomInterne });
+      else {
+        const j = rn ? await rn.json().catch(() => null) : null;
+        setNoteNom({ refus: { code: j?.error?.code ?? (rn ? `http_${rn.status}` : "outil_injoignable"), message: j?.error?.message ?? (rn ? `refus (${rn.status})` : "aucune réponse de l'outil à l'envoi du nom interne") } });
+      }
+    }
     // Le dossier a pu changer : la fiche rendue par le serveur est relue.
     router.refresh();
   };
@@ -271,6 +338,7 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
       <fieldset className="nt-groupe-champs ins-section" key={s.titre}>
         <legend>{s.titre}</legend>
         {s.texte ? <p className="nt-aide">{s.texte}</p> : null}
+        {s.releve ? <Releve r={s.releve} id={`${prefixe}-${s.releve.nom}`} erreur={refusDe(s.releve)[0]?.message ?? null} /> : null}
         {s.credits ? <CreditsEnClair /> : null}
         {s.champs.map(rendreChamp)}
       </fieldset>
@@ -305,7 +373,23 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
         {t && e.termine && e.ton === "succes" ? (
           <div className="nt-bandeau nt-bandeau-succes" data-etat-travail={e.code}>
             <Icone nom="coche" />
-            <div className="nt-bandeau-texte"><p className="nt-bandeau-titre">{libelleCommande(t.commande)} : {e.libelle.toLowerCase()}.</p><p>{e.explication} Cette page est à jour.</p>{t.commande === "inscrire-client-preparer" && t.slug ? <p><a href={`/clients/${t.slug}`}>Ouvrir la fiche du client pour continuer</a></p> : null}</div>
+            <div className="nt-bandeau-texte"><p className="nt-bandeau-titre">{libelleCommande(t.commande)} : {e.libelle.toLowerCase()}.</p><p>{e.explication} Cette page est à jour.</p>{noteNom?.fait ? <p data-nom-interne-note="">Le nom interne « <span data-valeur="">{noteNom.fait}</span> » est enregistré : seule notre équipe le voit.</p> : null}{t.commande === "inscrire-client-preparer" && t.slug ? <p><a href={`/clients/${t.slug}`}>Ouvrir la fiche du client pour continuer</a></p> : null}</div>
+          </div>
+        ) : null}
+        {noteNom?.refus ? (
+          <div className="nt-bandeau nt-bandeau-avertissement" data-nom-interne-refus={noteNom.refus.code}>
+            <Icone nom="alerte" />
+            <div className="nt-bandeau-texte">
+              <p className="nt-bandeau-titre">Le dossier est préparé, mais le nom interne n'est pas enregistré.</p>
+              <p>Rien n'a été envoyé au registre public. Ouvrez la fiche du client : elle vous redemande son nom interne.</p>
+              <details className="ins-detail">
+                <summary>Détail à transmettre à l'équipe technique</summary>
+                <dl className="nt-definitions ins-detail-corps">
+                  <dt>Code</dt><dd><span className="nt-fixe">{noteNom.refus.code}</span></dd>
+                  <dt>Message exact</dt><dd><span className="nt-fixe">{noteNom.refus.message}</span></dd>
+                </dl>
+              </details>
+            </div>
           </div>
         ) : null}
       </div>

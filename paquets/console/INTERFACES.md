@@ -1314,6 +1314,34 @@ du serveur et du service.
   compte approbateur-1, fourni par le service d'identité … ») ; la demande lui
   donne le même nom, suivi de « (vous) ».
 
+Complément du 2026-11-18, décision du porteur (langage des écrans), sixième
+lecture. Il remplace, dans les compléments ci-dessus, ce qui suit ; il est
+éprouvé par l'essai du langage et par les essais des pages.
+
+- **Demande.** Au-dessus des boutons de décision, et à la confirmation, une
+  phrase (`#avant-decision`) dit que le reste de la demande, sous eux, est à
+  lire avant de décider, avec un lien vers lui (`#reste`) ; CT-3 EX-9.4,
+  complément du 2026-11-18, point 4. Sous chaque valeur « non vérifiable par
+  la console » du groupe à contrôler, une phrase (`.valeur-raison`) dit
+  pourquoi : la valeur est masquée dans ce qui est enregistré (point 2). Le
+  demandeur s'intitule « Demandé par ». Une demande approuvée dit ce que son
+  état établit de l'exécution, et lui seul (point 6).
+- **Refus dans l'application** (CT-3 EX-13.29, complément du 2026-11-18).
+  Tant que la consigne de ne pas réessayer est affichée, ni « Approuver » ni
+  « Refuser » : une phrase les remplace (`#decision-apres-refus`) ; le lien
+  « J'ai refusé par erreur » reprend la décision confirmée.
+- **Mon adresse.** Avec une adresse en attente de validation, les trois
+  étapes de l'inscription passent dans le bloc fermé « Inscrire quand même
+  une autre adresse » (`details#inscription-autre`) ; une seconde
+  inscription n'est pas refusée (CT-3 EX-13.15).
+- **Actions définitives.** « Révoquer », « Désactiver » et « Me récuser »
+  ont, dès le premier bouton, l'apparence d'une action qu'on ne défait pas
+  (`.bouton-definitif`, couleur d'alerte du thème), distincte d'un bouton
+  ordinaire ; leur confirmation garde le bouton de danger.
+- **Panne du service.** La phrase dit qui prévenir : l'administrateur de
+  l'organisation, par le moyen qu'elle a indiqué ; la console n'en donne
+  aucun nom (CT-3 13.17, « Qui prévenir, et comment »).
+
 ### 3.5 Réauthentification avant une signature
 
 Avant `personal_sign`, la page appelle `session` et fait réauthentifier

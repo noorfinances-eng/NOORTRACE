@@ -14867,6 +14867,79 @@
           "apres": "0bbc0fdff9df14b4c617c4f2e2aac4a92b0ee587c190be8a64c9256dde888657"
         }
       ]
+    },
+    {
+      "id": "MC-109",
+      "date": "2026-11-19",
+      "etape": 8,
+      "motif": "compléments du 2026-11-18 (langage des écrans) réécrits en place après une sixième lecture des écrans : dans la console, ni « Approuver » ni « Refuser » tant que la réponse à un refus dans l'application est affichée (CT-3 EX-13.29), raison courte sous une valeur non vérifiable, reste de la demande signalé au-dessus des boutons de décision, exécution d'une demande approuvée dite d'après l'état lu (CT-3 EX-9.4, points 2, 4 et 6) ; dans l'outil d'inscription, case de relecture des adresses jamais cochée d'avance et recherche des clients sans requête (CT-4 EX-7.25), nom interne demandé dès le pas 1 et remis par une note (CT-4 EX-7.23, complément du 2026-11-19) ; en-têtes de CT-3 et CT-4, table des versions de spec/README.md ; renvois par numéro de ligne de CT-7, CT-8 et CT-9 recollés ; catalogue de CT-9 régénéré (empreintes des fichiers d'essai), inventaire recompté",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-3-approbations.md",
+          "avant": "df184a11a837fc9a68f654a57f6319c49884833d371f137f18013464d347278d",
+          "apres": "42fafe3fcae9190f1cf321bb768ba469fa33566f6d40f81a0048bc818dbba5f8"
+        },
+        {
+          "chemin": "spec/CT-4-registre.md",
+          "avant": "6fc9afd8097e49d26004ab9a28893a2ad64e3080c9a654ac9cb6ec1ac3625def",
+          "apres": "9189fb66d7d8767e234ecb8be5731c96906e02d99ddf5f3e22945eb001811ef1"
+        },
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "aa334d8257f44c7e63db33f8898ed614e483e31017993d05b32a9014842a31ef",
+          "apres": "4cb0c3bf71272f8aaa88b84a2745b033f20d096729b48e57b7e02b98f72e7ae1"
+        },
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "816c916c8883b3f2180afafb18be992ca56fde5e19e7617bfc652b728b2e794c",
+          "apres": "9c9582808e55d35f5101b1864521cd1aa85658d16ef3421f6c60303f0eff17b3"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "4a2330d84506ad32f1a73f04fe61f906a275c101bfe472f3d9dc4ccd963f1f67",
+          "apres": "fa55e4990a1ec020aafe831c2f74dcbccf6afbe44a33e38236991f5eb532ac89"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "d6a21d55fe2186fd7e9ff10dd80ed082f9fc1b3d69e56d694714a3bd10dc27d6",
+          "apres": "a2f306ef67db7beb87a16460e657d1611a2088a5f1f0fcf279b411dcb4122708"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "9f2e1d94d105dddfda0fd20817ae143dbe4b99711e839351c937fab79cb73e5e",
+          "apres": "122f33c65a903b963f5f65820591eb72af98b5395ec49f1a53c537c591ef2760"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "16d8ba5438ab5102e0edf092529f6bbdc406384ac11c2fb44d6b40ba9095dabc",
+          "apres": "e7550295abd5819c8736e5c899440de3a719b71f66283e4453fc3a5e704fb30a"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "0bbc0fdff9df14b4c617c4f2e2aac4a92b0ee587c190be8a64c9256dde888657",
+          "apres": "5faf44b67b5a9491cc2bad25c6c6972d2941743ac7d50e4b833b4e2532af05d5"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "88b0d9e0bd00106d48002225e829889b2796630f9c2bd3451f86fb2ede4ed15a",
+          "apres": "efbf1ad06621de51226a6f209f15364702245ea38f517de416e52d66e5f28a36"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "3a87a56019b594214008164d00b9e3f92ffec8b05bdc13bc9e01e2419e42363d",
+          "apres": "855abbdfa93b13aa9c1501f5d6280f55e6a02524506abfc80deda99ae214546f"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "c9765bc6c2b5fde5cd6ae8f88599072f1e7fa19903d65573608faf3a2802cf97",
+          "apres": "b68d76e3d62eb04a7cd06d02321d72d449e83f9816aeb0682c897b2f7f4b995e"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "2b850737f2dbe95b16b39498ee46599f7706ef910350e3f4acd508ec2b542eed",
+          "apres": "2bae8cb2a901f389e69bd65c1504b6b1097a4d012eb482ca033d8c41cec92ea5"
+        }
+      ]
     }
   ]
 }

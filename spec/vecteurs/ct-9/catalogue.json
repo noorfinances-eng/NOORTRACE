@@ -21247,21 +21247,21 @@
     {
       "id": "TC-12",
       "key": "CT-3 §1",
-      "line": 745,
+      "line": 749,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-13",
       "key": "CT-3 §1",
-      "line": 774,
+      "line": 778,
       "delegated": "EX-, AP-, TK-, SG-, AN-, CS-, vecteurs `ct-3`, épreuve à trois relecteurs, épreuve de lecture de la console.",
       "response": "TR-1 (A.5, trois relecteurs) et TR-2 (A.11, console) en §12 ; EX-, AP-, TK-, SG-, AN-, CS- et vecteurs ct-3 : TU-, TV- (§6, §7)."
     },
     {
       "id": "TC-14",
       "key": "CT-3 §7.12",
-      "line": 2684,
+      "line": 2688,
       "delegated": "Rattachement des TK-1 à TK-13 aux tests.",
       "response": "TV- `ct-3/tickets/` et TU- tickets (§6, §7) : `covers` CT-3 TK-1 à TK-13."
     },

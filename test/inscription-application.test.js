@@ -253,6 +253,7 @@ describe("inscription : application d'exploitant, interface Next.js et agent ré
       expect([...TYPES_DECLARES].sort(), "liste du module égale à celle du texte").to.deep.equal([...TYPES].sort());
       const pages = ["/connexion", "/clients", "/clients/nouveau", `/clients/${slug}`, `/clients/${slug}/confirmations`, `/clients/${slug}/paquet`];
       let n = 0;
+      const horsChamps = [];
       for (const p of pages) {
         const r = await req(p);
         expect(r.statut, p).to.equal(200);
@@ -265,12 +266,23 @@ describe("inscription : application d'exploitant, interface Next.js et agent ré
             expect(type).to.equal("mot_de_passe_compte");
             continue;
           }
+          // Complément du 2026-11-18 d'EX-7.25, sixième lecture : deux éléments de page qui ne sont pas des champs, sans
+          // nom de champ, envoyés à aucune route et qui ne remplissent aucun champ : la case de relecture des adresses du
+          // pas 1 et la recherche de la liste des clients ; aucun autre.
+          const horsChamp = /data-adresses-relues=""/.test(attributs) ? "/clients/nouveau" : /data-recherche-clients=""/.test(attributs) ? "/clients" : null;
+          if (horsChamp !== null) {
+            expect([p, nom, type ?? null, /type="(checkbox|search)"/.exec(attributs)?.[1]], `${p} : élément hors champ`).to.deep.equal([horsChamp, "", null, horsChamp === "/clients" ? "search" : "checkbox"]);
+            expect(attributs, "jamais cochée d'avance").to.not.match(/\bchecked\b/);
+            horsChamps.push(horsChamp);
+            continue;
+          }
           expect(TYPES.has(type), `${p} : ${nom} de type ${type}`).to.equal(true);
           expect(nom, p).to.not.match(/cle_privee|private|graine|seed|mnemoni|jeton|token|password|mot_de_passe|secret/i);
           expect(attributs, `${p} : ${nom}`).to.not.match(/type="password"/);
         }
       }
       expect(n).to.be.greaterThan(20);
+      expect(horsChamps.sort(), "les deux éléments hors champ, chacun une fois").to.deep.equal(["/clients", "/clients/nouveau"]);
     });
 
     it("une valeur nue dans un champ de référence ou de texte est refusée (400), jamais recopiée ni consignée", async function () {

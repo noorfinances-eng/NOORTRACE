@@ -224,7 +224,9 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect((await lire("client-inscrit")).code).to.equal("remettre_paquet");
     // L'état se lit en mots, pas par la seule couleur : une pastille avec une icône et un mot.
     expect(await page.locator('article[data-client="client-en-echec"] .nt-pastille-refus').innerText()).to.match(/À reprendre/);
-    expect(await page.locator('article[data-client="client-inscrit"] .nt-pastille-succes svg.nt-icone').count()).to.be.greaterThan(0);
+    // Sixième lecture : toutes les étapes faites et le paquet pas encore remis, la pastille dit ce qui reste à faire.
+    expect(await page.locator('article[data-client="client-inscrit"] .nt-pastille-attente svg.nt-icone').count()).to.be.greaterThan(0);
+    expect(await page.locator('article[data-client="client-inscrit"] .nt-pastille-attente').first().innerText()).to.equal("Paquet à remettre");
     expect(await visible()).to.not.match(CODE_BRUT);
     const detail = page.locator('article[data-client="client-en-cours"] details');
     expect(await detail.evaluate((d) => d.open)).to.equal(false);
@@ -237,19 +239,19 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     const { page, ecarts, aller, visible } = await ouvrir();
     await aller("/clients/client-en-cours");
     expect(await page.locator("h1").innerText()).to.equal("client-en-cours");
-    expect(await page.locator("[data-etat-client]").innerText()).to.equal("En cours");
+    expect(await page.locator("[data-etat-client]").innerText()).to.equal("À vous d'agir");
     const essentiel = page.locator("section.nt-essentiel[data-prochaine-action]");
     expect(await essentiel.getAttribute("data-prochaine-action")).to.equal("relayer_demande");
     expect(await essentiel.innerText()).to.match(/Prochaine action/i);
     // Troisième lecture : le bouton dit qui envoie ; la phrase dessous, lue avec lui, dit que c'est le cas habituel.
     const envoyerSigne = essentiel.locator('form[data-commande="inscrire-cle"] button[type="submit"]');
     expect(await envoyerSigne.innerText()).to.equal("Envoyer par notre compte d'envoi");
-    expect(await page.locator(`[id="${await envoyerSigne.getAttribute("aria-describedby")}"]`).innerText()).to.equal("C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles ».");
+    expect(await page.locator(`[id="${await envoyerSigne.getAttribute("aria-describedby")}"]`).innerText()).to.equal("C'est le cas habituel : notre compte d'envoi envoie le document signé au registre public. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles ».");
     expect(await essentiel.locator("h2").innerText()).to.equal("Faites signer le document par les approbateurs du client, puis envoyez-le");
     // La consigne dit aussi quoi avoir sous la main et ce qui se passe après le clic.
     expect(await essentiel.locator("[data-a-preparer]").innerText()).to.equal("Ensuite : Ayez sous la main : le document signé, tel que le client vous l'a rendu.");
     expect(await essentiel.locator("> [data-apres-clic]").innerText()).to.match(/^Après le clic : l'outil contrôle les signatures, puis envoie le document signé au registre public/);
-    expect(await page.locator(".nt-sous-titre").innerText()).to.equal("Inscription sur le registre public, un registre que personne ne peut modifier après coup : 5 étapes sur 8 faites. L'inscription est en cours.");
+    expect(await page.locator(".nt-sous-titre").innerText()).to.equal("Inscription sur le registre public, un registre que personne ne peut modifier après coup : 5 étapes sur 8 faites. L'inscription est en cours : la prochaine action est à vous.");
     // La carte « essentiel » précède les étapes dans l'ordre de lecture.
     expect(await page.evaluate(() => Boolean(document.querySelector("section.nt-essentiel").compareDocumentPosition(document.querySelector("ol.nt-etapes")) & Node.DOCUMENT_POSITION_FOLLOWING))).to.equal(true);
     const etapes = await page.locator("ol.nt-etapes > li.nt-etape").evaluateAll((l) => l.map((x) => ({ code: x.getAttribute("data-etape"), etat: x.getAttribute("data-etat"), classes: x.className, developpee: x.getAttribute("data-developpee"), titre: x.querySelector(".nt-etape-titre").innerText.replace(/\s+/g, " ").trim(), texte: [...x.querySelectorAll(".nt-etape-texte")].map((p) => p.innerText).join(" "), ligne: x.innerText.replace(/\s+/g, " ").trim(), detail: x.querySelector("details[data-detail-etape]").textContent, hauteur: Math.round(x.getBoundingClientRect().height) })));
@@ -294,10 +296,10 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(await page.locator("section.nt-essentiel > [data-apres-clic]").innerText()).to.contain("Si l'étape échoue une deuxième fois, n'insistez pas : prévenez l'équipe technique.");
     expect(await visible()).to.not.match(CODE_BRUT);
 
-    // Envoi sans reçu : « Envoyée », en cours.
+    // Envoi sans reçu : « Envoyée », en cours ; parti d'ici, c'est à la personne d'agir (sixième lecture).
     await aller("/clients/client-envoye");
     expect(await page.locator('li.nt-etape[data-etape="jeu_approbateurs"]').getAttribute("class")).to.contain("nt-etape-en-cours");
-    expect(await page.locator('li.nt-etape[data-etape="jeu_approbateurs"] .nt-pastille-info').innerText()).to.equal("Envoyée");
+    expect(await page.locator('li.nt-etape[data-etape="jeu_approbateurs"] .nt-pastille-attente').innerText()).to.equal("Envoyée — à vous d'agir");
 
     expect(await page.locator("[data-etat-client]").innerText()).to.equal("Réponse à aller chercher");
     // Envoi resté sans réponse : l'écran ne dit qu'une chose, aller chercher la réponse du registre public. La consigne ne parle pas de la
@@ -341,7 +343,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(await neuf.locator("[data-credits-en-clair]").evaluate((x) => x.tagName === "DETAILS" && !x.open)).to.equal(true);
     expect(await neuf.locator("[data-credits-en-clair] > summary").innerText()).to.equal("Qu'est-ce qu'un crédit d'écriture ?");
     await neuf.locator("[data-credits-en-clair] > summary").click();
-    expect((await neuf.locator("[data-credits-en-clair] > .ins-detail-corps").innerText()).replace(/\s+/g, " ")).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public, et chaque écriture en consomme. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas : c'est notre société qui les fournit, et le client ne les paie pas. Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
+    expect((await neuf.locator("[data-credits-en-clair] > .ins-detail-corps").innerText()).replace(/\s+/g, " ")).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société ; le client ne les paie pas. Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
     expect((await neuf.locator("[data-montant-en-clair]").innerText()).replace(/\s+/g, " ")).to.equal("Le montant est calculé à partir de la consommation prévue pour son enregistreur, réglée à 10 800 000 crédits par jour ; si le compte en a déjà, l'outil ne verse que la différence.");
     expect(await neuf.locator("[data-adresse-a-confirmer]").innerText()).to.equal("Ne la dictez pas : 42 caractères ne se lisent pas à voix haute sans erreur. Envoyez-la au client par écrit, par un autre moyen que cet outil, et demandez-lui de vous répondre par écrit qu'elle est bien, en entier, celle du compte technique de son enregistreur. Gardez sa réponse avec la pièce de la confirmation.");
     expect(aConfirmer).to.not.match(/à lui lire/);
@@ -349,7 +351,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
 
     // Client inscrit : tout est fait.
     await aller("/clients/client-inscrit");
-    expect(await page.locator("[data-etat-client]").innerText()).to.equal("Inscrit");
+    expect(await page.locator("[data-etat-client]").innerText()).to.equal("Paquet à remettre");
     expect(await page.locator("ol.nt-etapes > li.nt-etape-faite").count()).to.equal(8);
     expect(ecarts).to.deep.equal([]);
   });
@@ -501,18 +503,19 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(await avances.evaluate((x) => x.open)).to.equal(false);
     expect(await avances.locator("[name]").evaluateAll((l) => l.map((x) => [x.getAttribute("name"), x.required]))).to.deep.equal([["budget_jour", false], ["tresorerie", false]]);
     const champs = await forme.locator("[name]").evaluateAll((l) => l.map((x) => ({ nom: x.getAttribute("name"), type: x.getAttribute("data-type"), libelles: x.id ? document.querySelectorAll(`label[for="${x.id}"]`).length : 0, aide: document.getElementById(`${x.id}-aide`)?.textContent ?? "", decrit: (x.getAttribute("aria-describedby") ?? "").split(" "), exemple: document.getElementById(`${x.id}-exemple`)?.textContent ?? "", fantome: x.getAttribute("placeholder"), id: x.id })));
-    expect(champs.map((x) => x.nom)).to.deep.equal(["org", "journaux", "approbateurs", "seuil", "admin_jeu", "cles_enregistreur", "budget_jour", "tresorerie"]);
+    expect(champs.map((x) => x.nom)).to.deep.equal(["nom_interne", "org", "journaux", "approbateurs", "seuil", "admin_jeu", "cles_enregistreur", "budget_jour", "tresorerie"]);
     for (const x of champs) {
       expect(x.libelles, `libellé de ${x.nom}`).to.equal(1);
       expect(x.aide, `aide de ${x.nom}`).to.match(/\.$/);
       // L'aide dit d'où vient l'information : le client la donne par écrit, ou le champ se laisse vide.
-      expect(x.aide, `origine de ${x.nom}`).to.match(/Le client vous|Laissez vide|cliquez sur « Tirer un nom au hasard »/);
+      // Le nom interne (sixième lecture) est celui que notre équipe choisit pour reconnaître le client.
+      expect(x.aide, `origine de ${x.nom}`).to.match(x.nom === "nom_interne" ? /^Le nom sous lequel notre équipe reconnaîtra ce client/ : /Le client vous|Laissez vide|cliquez sur « Tirer un nom au hasard »/);
       // L'exemple s'écrit sous le champ, jamais dans le champ ; il est lu avec l'aide par les lecteurs d'écran.
       expect(x.fantome, `texte fantôme de ${x.nom}`).to.equal(null);
       expect(x.exemple, `exemple de ${x.nom}`).to.match(/^Exemple : ./);
       expect(x.decrit, x.nom).to.include.members([`${x.id}-aide`, `${x.id}-exemple`]);
     }
-    expect(await forme.locator('label[for]').first().innerText()).to.equal("Nom court du client");
+    expect(await forme.locator('label[for]').first().innerText()).to.equal("Nom interne du client");
     expect(await page.locator(".nt-sur-titre").first().innerText()).to.match(/^Étape 1 sur 8$/i);
     expect(await page.locator("[data-avant-de-commencer]").innerText()).to.contain("il ne peut pas savoir si une adresse est bien celle du client");
     const texte = await visible();
@@ -527,11 +530,15 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     page.on("request", (r) => {
       if (r.method() === "POST") envois.push(r.url());
     });
+    // Sixième lecture : le nom interne et la case de relecture des adresses sont remplis ; leurs refus sont éprouvés
+    // dans l'essai de la sixième lecture.
+    await forme.locator('[name="nom_interne"]').fill("Assureur Démo SA");
     await forme.locator('[name="org"]').fill("Assureur Démo SA");
     await forme.locator('[name="journaux"]').fill("journal-demo");
     await forme.locator('[name="approbateurs"]').fill("0x70997970c51812dc3a010c7d01b50e0d17dc79c8");
     await forme.locator('[name="seuil"]').fill("1");
     await forme.locator('[name="admin_jeu"]').fill("0x15d34aaf54267db7d7c367839aaf71a00a2c6a65");
+    await forme.locator("input[data-adresses-relues]").check();
     await forme.locator('[name="cles_enregistreur"]').fill("[]");
     await forme.locator('button[type="submit"]').click();
     // Cinquième lecture des écrans : tous les champs fautifs sont signalés d'un coup, chacun sous lui-même ; le
@@ -609,11 +616,13 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       await aller("/clients/nouveau");
       await controler(page, "nouveau client");
       const forme = page.locator('form[data-commande="inscrire-client-preparer"]').first();
+      await forme.locator('[name="nom_interne"]').fill("Assureur Démo SA");
       await forme.locator('[name="org"]').fill("Assureur Démo SA");
       await forme.locator('[name="journaux"]').fill("journal-demo");
       await forme.locator('[name="approbateurs"]').fill("0x70997970c51812dc3a010c7d01b50e0d17dc79c8");
       await forme.locator('[name="seuil"]').fill("1");
       await forme.locator('[name="admin_jeu"]').fill("0x15d34aaf54267db7d7c367839aaf71a00a2c6a65");
+      await forme.locator("input[data-adresses-relues]").check();
       await forme.locator('[name="cles_enregistreur"]').fill("[]");
       await forme.locator('button[type="submit"]').click();
       await forme.locator('p.nt-erreur[role="alert"]').first().waitFor();
@@ -834,7 +843,11 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     for (const e of ["/clients/nouveau", "/clients/client-neuf", "/clients/client-en-cours", "/clients/client-envoye", "/clients/client-en-echec", "/clients/client-inscrit", "/clients/client-neuf/confirmations", "/clients/client-en-cours/confirmations", "/clients/client-inscrit/paquet"]) {
       await aller(e);
       await page.evaluate(() => document.querySelectorAll("details").forEach((x) => (x.open = true)));
-      expect(await page.locator('input[type="radio"], input[type="checkbox"], [aria-pressed], [data-choix], input[type="hidden"][name]').count(), `${e} : aucun choix ni valeur cachée`).to.equal(0);
+      // Sixième lecture (CT-4 EX-7.25, complément du 2026-11-18) : la seule case admise est celle de la relecture des
+      // adresses, sur l'écran du nouveau client ; elle n'est pas un choix d'envoi, n'a pas de nom de champ et n'est
+      // jamais cochée à l'arrivée.
+      expect(await page.locator('input[type="radio"], input[type="checkbox"]:not([data-adresses-relues]), [aria-pressed], [data-choix], input[type="hidden"][name]').count(), `${e} : aucun choix ni valeur cachée`).to.equal(0);
+      expect(await page.locator("input[data-adresses-relues]").evaluateAll((l) => l.map((x) => [x.type, x.name, x.checked])), `${e} : case de relecture`).to.deep.equal(e === "/clients/nouveau" ? [["checkbox", "", false]] : []);
     }
     await aller("/clients/client-en-cours");
     const forme = page.locator('section.nt-essentiel form[data-commande="inscrire-cle"]');
@@ -846,7 +859,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(await bouton.innerText()).to.equal("Envoyer par notre compte d'envoi");
     expect(await bouton.evaluate((b) => b.classList.contains("nt-bouton-principal") && b.closest("details") === null)).to.equal(true);
     const dessous = forme.locator("[data-sous-bouton]");
-    expect(await dessous.innerText()).to.equal("C'est le cas habituel : notre société envoie le document signé au registre public et paie cet envoi. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles ».");
+    expect(await dessous.innerText()).to.equal("C'est le cas habituel : notre compte d'envoi envoie le document signé au registre public. L'autre cas, l'envoi par un compte que désigne l'équipe technique, ne sert qu'à ses essais ; il est rangé dans « Actions rarement utiles ».");
     expect(await bouton.getAttribute("aria-describedby")).to.equal(await dessous.getAttribute("id"));
     expect(await bouton.evaluate((b) => Boolean(b.compareDocumentPosition(b.closest("form").querySelector("[data-sous-bouton]")) & Node.DOCUMENT_POSITION_FOLLOWING)), "la phrase est sous le bouton").to.equal(true);
     expect(await page.locator("section.nt-essentiel").innerText(), "plus de question à trancher").to.not.match(/Choisissez qui envoie|rien n'est choisi d'avance|essais seulement/);
@@ -1129,21 +1142,21 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       await sansMotTechnique("fiche, en attente chez le client");
       await aller("/clients/essai-registre");
       expect(await page.locator("[data-etat-client]").innerText()).to.equal("En attente du registre");
-      expect(await page.locator('li.nt-etape[data-etape="premiere_ancre"] .nt-pastille').innerText()).to.equal("Envoyée");
+      expect(await page.locator('li.nt-etape[data-etape="premiere_ancre"] .nt-pastille').innerText()).to.equal("Envoyée — attendez la réponse");
       expect(await page.locator('li.nt-etape[data-etape="premiere_cloture"] .nt-pastille').innerText()).to.equal("À faire par le client");
       const attente = page.locator("section.nt-essentiel[data-prochaine-action]");
-      expect(await attente.locator(".ins-essentiel-texte").first().innerText()).to.equal("Cette étape se fait chez le client, avec ses propres outils : vous n'avez rien à lancer d'ici. Elle est notée « Envoyée » depuis le 12 novembre 2026 à 10:00 UTC et attend la réponse du registre public. Le client a fait sa part : si la fiche n'a pas changé à votre prochaine visite, prévenez l'équipe technique.");
+      expect(await attente.locator(".ins-essentiel-texte").first().innerText()).to.equal("Cette étape se fait chez le client, avec ses propres outils : vous n'avez rien à lancer d'ici. Elle est notée « Envoyée — attendez la réponse » depuis le 12 novembre 2026 à 10:00 UTC et attend la réponse du registre public. Le client a fait sa part : si la fiche n'a pas changé à votre prochaine visite, prévenez l'équipe technique.");
       expect(await attente.locator("form").count(), "aucune action à lancer").to.equal(0);
       expect(await attente.innerText(), "aucune durée inventée").to.not.match(/[0-9]+ (?:minutes?|heures?|jours?)|quelques (?:minutes|heures|jours)|une heure/);
       await sansMotTechnique("fiche, en attente du registre");
       // Un nom tiré au hasard ne dit pas qui est le client : la fiche et le formulaire renvoient au nom interne (sixième
       // tour, complément du 2026-11-19 : l'outil garde ce nom, que seule l'équipe voit).
       await aller(`/clients/${TIRE}`);
-      expect(await page.locator("[data-nom-tire]").innerText()).to.equal("Ce nom court ne dit pas qui est le client : donnez-lui un nom interne, ci-dessous, que seule notre équipe voit.");
+      expect(await page.locator("[data-nom-tire]").innerText()).to.equal("Ce nom court ne dit pas qui est le client : donnez-lui un nom interne, que seule notre équipe voit.");
       await aller("/clients/client-neuf");
-      expect(await page.locator("[data-nom-tire]").count(), "un nom libre n'est pas dit « tiré au hasard »").to.equal(0);
+      expect(await page.locator("[data-nom-tire]").innerText(), "un nom libre n'est pas dit « tiré au hasard »").to.equal("Pas encore de nom interne : donnez-lui-en un, que seule notre équipe voit.");
       await aller("/clients/nouveau");
-      expect(plat(await page.locator('form[data-commande="inscrire-client-preparer"]').first().locator('[data-a-retenir="org"]').innerText())).to.equal("Ce nom ne dit pas qui est le client : une fois le dossier préparé, donnez-lui sur sa fiche un nom interne, que seule notre équipe voit.");
+      expect(plat(await page.locator('form[data-commande="inscrire-client-preparer"]').first().locator('[data-a-retenir="org"]').innerText())).to.equal("Ce nom court ne dit pas qui est le client : c'est le nom interne, ci-dessus, qui permet à notre équipe de le reconnaître.");
 
       // 3. Formulaire de confirmation : en haut, ce que le client confirme (le montant et le compte) ; avant l'envoi,
       // un récapitulatif à relire ; rien ne part avant le second clic, qui envoie le corps que la route recevait déjà.
@@ -1157,7 +1170,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       // Cinquième lecture : l'explication des crédits est repliée sous son titre ; ouverte, elle dit la même chose.
       expect(plat(await rappel.innerText())).to.contain("Qu'est-ce qu'un crédit d'écriture ?");
       await rappel.locator("[data-credits-en-clair] > summary").click();
-      expect(plat(await rappel.innerText())).to.contain("c'est notre société qui les fournit, et le client ne les paie pas. Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
+      expect(plat(await rappel.innerText())).to.contain("Tous ces crédits viennent de notre société ; le client ne les paie pas. Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
       expect(plat(await rappel.innerText())).to.contain("L'adresse : ne la dictez pas : 42 caractères ne se lisent pas à voix haute sans erreur.");
       await f.locator('[name="operation"]').selectOption("approvisionner");
       expect(plat(await rappel.innerText())).to.contain(`Un nouveau versement, qui complète le compte jusqu'à 327 000 000 crédits d'écriture, sur le compte technique de son enregistreur rec-client-neuf-01, dont l'adresse est ${compte}.`);
@@ -1252,11 +1265,13 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
         if (r.method() === "POST") envois.push(r.postData());
       });
       const APP = ["0x70997970c51812dc3a010c7d01b50e0d17dc79c8", "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"];
+      await forme.locator('[name="nom_interne"]').fill("Essai des fiches");
       await forme.locator('[name="org"]').fill("essai-fiches");
       await forme.locator('[name="journaux"]').fill("journal-principal");
       await forme.locator('[name="approbateurs"]').fill(APP.join("\n"));
       await forme.locator('[name="seuil"]').fill("2");
       await forme.locator('[name="admin_jeu"]').fill("0x15d34aaf54267db7d7c367839aaf71a00a2c6a65");
+      await forme.locator("input[data-adresses-relues]").check();
       const fiche = (n) => F.clients[n].dossier.recorders[0];
       const t1 = JSON.stringify(fiche("client-neuf"), null, 2);
       const t2 = `\n${JSON.stringify(fiche("client-en-cours"), null, 4)}\n\n`;
@@ -1426,7 +1441,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     try {
       const { page, ecarts, aller } = await ouvrir();
       const plat = (x) => x.replace(/\s+/g, " ").trim();
-      const CREDITS = "Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public, et chaque écriture en consomme. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas : c'est notre société qui les fournit, et le client ne les paie pas.";
+      const CREDITS = "Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société ; le client ne les paie pas.";
       const VERSEMENT = "Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.";
       // Le premier texte de l'écran (hors des blocs repliés fermés et hors de l'explication elle-même) qui nomme les
       // crédits, et l'explication : une seule, un bloc replié « Qu'est-ce qu'un crédit d'écriture ? » fermé à
@@ -1609,10 +1624,11 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     await forme.locator('button[type="submit"]').click();
     await forme.locator('p.nt-erreur[role="alert"]').first().waitFor();
     const fautifs = await forme.locator('[aria-invalid="true"]').evaluateAll((l) => l.map((x) => x.getAttribute("name")));
-    expect(fautifs).to.deep.equal(["org", "journaux", "approbateurs", "seuil", "admin_jeu", "cles_enregistreur"]);
-    expect(await forme.locator('p.nt-erreur[role="alert"]').count()).to.equal(6);
-    expect(plat(await page.locator("[data-saisie-refusee]").first().innerText())).to.equal("Rien n'a été envoyé : 6 champs sont à corriger, chacun signalé en rouge : « Nom court du client », « Noms des journaux du client », « Adresses de signature des approbateurs », « Nombre d'approbations requises », « Adresse de signature du responsable des approbateurs », « Fiche de l'enregistreur du client ».");
-    expect(await page.evaluate(() => document.activeElement?.getAttribute("name")), "le premier champ fautif est visé").to.equal("org");
+    // Sixième lecture : le nom interne et la case de relecture des adresses (sans nom de champ) sont signalés à leur place.
+    expect(fautifs).to.deep.equal(["nom_interne", "org", "journaux", null, "approbateurs", "seuil", "admin_jeu", "cles_enregistreur"]);
+    expect(await forme.locator('p.nt-erreur[role="alert"]').count()).to.equal(8);
+    expect(plat(await page.locator("[data-saisie-refusee]").first().innerText())).to.equal("Rien n'a été envoyé : 8 champs sont à corriger, chacun signalé en rouge : « Nom interne du client », « Nom court du client », « Noms des journaux du client », « J'ai relu chaque adresse avec le client », « Adresses de signature des approbateurs », « Nombre d'approbations requises », « Adresse de signature du responsable des approbateurs », « Fiche de l'enregistreur du client ».");
+    expect(await page.evaluate(() => document.activeElement?.getAttribute("name")), "le premier champ fautif est visé").to.equal("nom_interne");
     // Deux zones de fiche fautives : chacune signalée sous elle-même.
     await forme.locator("[data-ajouter-fiche]").click();
     await forme.locator('[name="cles_enregistreur"]').nth(0).fill("[]");
@@ -1834,6 +1850,207 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     } finally {
       if (avant === null) fs.rmSync(registre, { force: true });
       else fs.writeFileSync(registre, avant);
+    }
+  });
+
+  it("sixième lecture : le nom interne se demande à la création et ne part jamais avec le travail ; la liste se cherche dans la page, sans requête ; une case « J'ai relu chaque adresse avec le client », jamais cochée d'avance, conditionne « Préparer le dossier » ; une seule table de pastilles, qui disent l'action attendue ; « qui paie » dit la même phrase partout, et le mode essai ce qu'il consomme", async function () {
+    const P = await import("../paquets/inscription/src/web/lib/parcours.mjs");
+    const { lireChamp } = await import("../paquets/inscription/src/web/composants/champs-page.js");
+    const registre = path.join(donneesFictives, "notes-internes.ndjson");
+    const avant = fs.existsSync(registre) ? fs.readFileSync(registre, "utf8") : null;
+    const ligne = (n, sorte, plus, recu_a) => JSON.stringify({ id: `not-${String(n).padStart(32, "0")}`, sorte, org_id: F.clients["client-inscrit"].dossier.organisation.org_id, ...plus, exploitant: `exploitant ${NOM}`, recu_a }) + "\n";
+    const plat = (x) => x.replace(/\s+/g, " ").trim();
+    const A = "a_faire";
+    const plus = [
+      ajouterClientFictif(donneesFictives, "essai-lancement", [A, A, A, A, A, A, A], { confirmation: true, histoire: true }),
+      ajouterClientFictif(donneesFictives, "essai-attente-client", ["capturee", "capturee", "faite", "capturee", "capturee", "envoyee", A], { histoire: true }),
+    ];
+    try {
+      fs.writeFileSync(registre, ligne(1, "nom_interne", { nom: "Assurances du Léman" }, "2026-11-19T09:00:00.000Z"));
+      const { page, ecarts, aller } = await ouvrir();
+      const requetes = [];
+      page.on("request", (r) => requetes.push(`${r.method()} ${new URL(r.url()).pathname}`));
+      // Une seule table, un sens par pastille : chaque mot n'y paraît qu'une fois, et chaque pastille affichée en vient.
+      const libelles = new Set(Object.values(P.PASTILLES).map((x) => x.libelle));
+      expect(libelles.size, "un mot par sens").to.equal(Object.keys(P.PASTILLES).length);
+      const depuisLaTable = async (ecran) => {
+        for (const t of await page.locator(".nt-pastille:not([data-avancement])").evaluateAll((l) => l.map((x) => x.textContent.trim()))) expect(libelles.has(t) || /^[0-9]+ prêtes? à servir$/.test(t), `${ecran} : « ${t} »`).to.equal(true);
+      };
+      const carte = (slug) => page.locator(`article[data-client="${slug}"] .ins-pastilles .nt-pastille:not([data-avancement])`);
+
+      // 1. Liste : la pastille dit l'action attendue ; la recherche réduit la liste dans la page, sans requête.
+      await aller("/clients");
+      await depuisLaTable("liste");
+      expect(await carte("client-inscrit").innerText()).to.equal("Paquet à remettre");
+      expect(await carte("client-envoye").innerText()).to.equal("Réponse à aller chercher");
+      expect(await carte("client-en-cours").innerText()).to.equal("À vous d'agir");
+      expect(await carte("essai-attente-client").innerText()).to.equal("En attente du registre");
+      const recherche = page.locator("[data-recherche-clients]");
+      expect(await recherche.evaluate((x) => [x.tagName, x.type, x.getAttribute("name"), x.getAttribute("data-type"), x.value, x.labels.length])).to.deep.equal(["INPUT", "search", null, null, "", 1]);
+      const toutes = await page.locator("article[data-client]").count();
+      const n0 = requetes.length;
+      const cartes = () => page.locator("article[data-client]").evaluateAll((l) => l.map((x) => x.getAttribute("data-client")));
+      await recherche.fill("leman");
+      await page.waitForFunction(() => document.querySelectorAll("article[data-client]").length === 1);
+      expect(await cartes(), "par le nom interne, sans tenir compte des accents ni des majuscules").to.deep.equal(["client-inscrit"]);
+      expect(plat(await page.locator("[data-recherche-compte]").innerText())).to.equal(`1 client correspond à « leman », sur ${toutes}.`);
+      await recherche.fill("ECHEC");
+      await page.waitForFunction(() => document.querySelectorAll("article[data-client]").length === 1);
+      expect(await cartes(), "par le nom court").to.deep.equal(["client-en-echec"]);
+      await recherche.fill("aucun client de ce nom");
+      await page.locator("[data-recherche-vide]").waitFor();
+      expect(await page.locator("article[data-client]").count()).to.equal(0);
+      await recherche.fill("");
+      await page.waitForFunction((n) => document.querySelectorAll("article[data-client]").length === n, toutes);
+      expect(requetes.length, "la recherche ne fait aucune requête").to.equal(n0);
+      expect(motsTechniquesDans(await page.evaluate(textePremierNiveau))).to.deep.equal([]);
+
+      // 2. Nouveau client : le nom interne, demandé en premier ; la relecture des adresses, mise en avant au-dessus
+      // de leur champ, avec sa case, sans laquelle rien ne part.
+      await aller("/clients/nouveau");
+      const forme = page.locator('form[data-commande="inscrire-client-preparer"]').first();
+      expect(await forme.locator('[name="nom_interne"]').evaluate((x) => [x.getAttribute("data-type"), x.required, x.closest("details")])).to.deep.equal(["texte", true, null]);
+      const consigne = forme.locator("[data-releve-consigne]");
+      expect(await consigne.getAttribute("class")).to.contain("nt-bandeau-avertissement");
+      expect(plat(await consigne.innerText())).to.equal("Relisez chaque adresse avec le client avant de préparer le dossier. L'outil ne peut pas voir qu'une adresse est fausse. Avec une adresse d'approbateur fausse, une autre personne que prévu pourrait approuver à la place d'un approbateur du client ; avec une adresse fausse du responsable, une autre personne pourrait changer la liste des approbateurs. Collez chaque adresse depuis l'écrit du client, sans la retaper. Puis relisez-les avec lui, par un autre moyen que cet outil : envoyez-lui par écrit les adresses telles que vous les avez collées, et demandez-lui de vous confirmer par écrit que chacune est bien, en entier, celle de la bonne personne. J'ai relu chaque adresse avec le client Tant que cette case n'est pas cochée, « Préparer le dossier » n'envoie rien.");
+      expect(plat(await consigne.innerText()), "jamais une comparaison partielle").to.not.match(/premiers|derniers|début|abrég/);
+      const caseRelue = forme.locator("input[data-adresses-relues]");
+      expect(await caseRelue.evaluate((x) => [x.type, x.name, x.checked, x.closest("details"), x.labels[0]?.textContent, Boolean(x.compareDocumentPosition(x.form.querySelector('[name="approbateurs"]')) & Node.DOCUMENT_POSITION_FOLLOWING)])).to.deep.equal(["checkbox", "", false, null, "J'ai relu chaque adresse avec le client", true]);
+      const APP = ["0x70997970c51812dc3a010c7d01b50e0d17dc79c8", "0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc"];
+      const t1 = JSON.stringify(F.clients["client-neuf"].dossier.recorders[0], null, 2);
+      await forme.locator('[name="nom_interne"]').fill("Assurances du Rhône NI9Z2");
+      await forme.locator('[name="org"]').fill("essai-septieme");
+      await forme.locator('[name="journaux"]').fill("journal-principal");
+      await forme.locator('[name="approbateurs"]').fill(APP.join("\n"));
+      await forme.locator('[name="seuil"]').fill("2");
+      await forme.locator('[name="admin_jeu"]').fill("0x15d34aaf54267db7d7c367839aaf71a00a2c6a65");
+      await forme.locator('textarea[name="cles_enregistreur"]').first().fill(t1);
+      const travaux = [];
+      const notes = [];
+      let resultat = "reussi";
+      let reponseNote = { status: 200, contentType: "application/json", body: JSON.stringify({ id: `not-${"e".repeat(32)}` }) };
+      await page.route("**/api/travaux", (r) => {
+        if (r.request().method() !== "POST") return r.continue();
+        travaux.push(r.request().postData());
+        return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: `trv-${"7".repeat(32)}` }) });
+      });
+      await page.route("**/api/travaux/*", (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: `trv-${"7".repeat(32)}`, etat: "fini", commande: "inscrire-client-preparer", slug: "essai-septieme", sortie: { result: resultat, outputs: {} } }) }));
+      await page.route("**/api/clients/*/notes", (r) => {
+        notes.push({ url: new URL(r.request().url()).pathname, corps: r.request().postData() });
+        return r.fulfill(reponseNote);
+      });
+      // Case non cochée : refusée comme une saisie, à sa place, sans rien envoyer.
+      await forme.locator('button[type="submit"]').click();
+      const refusCase = forme.locator('p.nt-erreur[data-regle="releve"]');
+      await refusCase.waitFor();
+      expect(await refusCase.innerText()).to.equal("Rien n'a été envoyé : relisez chaque adresse avec le client, comme dit ci-dessus, puis cochez cette case.");
+      expect(await forme.locator('p.nt-erreur[role="alert"]').count(), "seule la case est refusée").to.equal(1);
+      expect(await page.evaluate(() => document.activeElement?.hasAttribute("data-adresses-relues")), "la case est visée").to.equal(true);
+      expect(plat(await page.locator("[data-saisie-refusee]").innerText())).to.equal("Rien n'a été envoyé : un champ est à corriger, il est signalé en rouge : « J'ai relu chaque adresse avec le client ».");
+      expect([travaux, notes]).to.deep.equal([[], []]);
+      // Case cochée : le travail part, avec le corps d'avant, sans le nom interne ; le dossier préparé, le nom part
+      // par la note de la fiche, au corps de la fiche.
+      await caseRelue.check();
+      await forme.locator('button[type="submit"]').click();
+      await page.locator("[data-nom-interne-note]").waitFor();
+      expect(travaux).to.deep.equal([JSON.stringify({ commande: "inscrire-client-preparer", slug: "essai-septieme", parametres: { org: "essai-septieme", journaux: ["journal-principal"], approbateurs: APP, seuil: 2, admin_jeu: "0x15d34aaf54267db7d7c367839aaf71a00a2c6a65", cles_enregistreur: lireChamp({ nom: "cles_enregistreur", type: "liste_documents" }, `[${t1}]`).valeur } })]);
+      expect(travaux[0]).to.not.match(/NI9Z2|Rhône|nom_interne/);
+      expect(notes).to.deep.equal([{ url: "/api/clients/essai-septieme/notes", corps: '{"sorte":"nom_interne","nom":"Assurances du Rhône NI9Z2"}' }]);
+      expect(plat(await page.locator("[data-nom-interne-note]").innerText())).to.equal("Le nom interne « Assurances du Rhône NI9Z2 » est enregistré : seule notre équipe le voit.");
+      // Une note refusée se dit, et renvoie à la fiche ; le dossier, lui, est préparé.
+      reponseNote = { status: 503, contentType: "application/json", body: JSON.stringify({ error: { code: "agent_injoignable", message: "l'agent ne répond pas" } }) };
+      await forme.locator('button[type="submit"]').click();
+      await page.locator('[data-nom-interne-refus="agent_injoignable"]').waitFor();
+      expect(plat(await page.locator("[data-nom-interne-refus] .nt-bandeau-titre").innerText())).to.equal("Le dossier est préparé, mais le nom interne n'est pas enregistré.");
+      // Un travail qui n'est pas « réussi » (le dossier existait déjà) : aucune note ne part.
+      resultat = "deja_fait";
+      notes.length = 0;
+      await forme.locator('button[type="submit"]').click();
+      await page.locator('.nt-bandeau-succes[data-etat-travail="deja_fait"]').waitFor();
+      await page.waitForLoadState("networkidle");
+      expect(notes, "aucun nom posé sur un dossier qui n'a pas été préparé par ce travail").to.deep.equal([]);
+      await page.unroute("**/api/travaux");
+      await page.unroute("**/api/travaux/*");
+      await page.unroute("**/api/clients/*/notes");
+
+      // 3. Fiche : sans nom interne, le formulaire en haut, sans repli ; avec un nom, « Changer » reste replié.
+      await aller("/clients/client-en-cours");
+      await depuisLaTable("fiche, document à faire signer");
+      const manque = page.locator("[data-nom-interne-manque]");
+      expect(await manque.evaluate((x) => [x.closest("details"), Boolean(x.closest("header")), x.querySelector('input[name="nom"]')?.getAttribute("data-type")])).to.deep.equal([null, true, "texte"]);
+      expect(await page.locator("[data-nom-tire]").innerText()).to.equal("Pas encore de nom interne : donnez-lui-en un, que seule notre équipe voit.");
+      await aller("/clients/client-inscrit");
+      expect(await page.locator("[data-nom-interne-manque]").count()).to.equal(0);
+      expect(await page.locator("details[data-nom-interne-action]").evaluate((d) => d.open)).to.equal(false);
+      // Étapes : « Envoyée » parti d'ici, à vous d'agir ; parti de chez le client, attendre.
+      await aller("/clients/client-envoye");
+      expect(await page.locator('li.nt-etape[data-etape="jeu_approbateurs"] .nt-pastille').innerText()).to.equal("Envoyée — à vous d'agir");
+      await aller("/clients/essai-attente-client");
+      await depuisLaTable("fiche, étape du client envoyée");
+      expect(await page.locator('li.nt-etape[data-etape="premiere_ancre"] .nt-pastille').innerText()).to.equal("Envoyée — attendez la réponse");
+      expect(await page.locator("section.nt-essentiel").getAttribute("data-prochaine-action")).to.equal("attendre_envoi");
+      expect(await page.locator("[data-a-preparer]").count(), "rien à faire : pas de « Ayez sous la main »").to.equal(0);
+
+      // 4. Qui paie : la même phrase partout où l'écran le dit ; le mode essai dit ce qu'il consomme, au lancement.
+      expect(P.QUI_PAIE).to.equal("Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société ; le client ne les paie pas.");
+      expect(P.ESSAI_DEPENSE).to.equal("En mode essai, ces écritures consomment aussi des crédits d'écriture, mais ceux du registre d'essai : rien n'est pris sur le registre réel.");
+      for (const t of [P.QUI_PAIE, P.ESSAI_DEPENSE]) expect(t, "aucune somme d'argent, aucun équivalent, aucune durée").to.not.match(/€|euro|franc|[0-9]|jours?|semaines?|mois\b|environ/i);
+      await aller("/clients/essai-lancement");
+      expect(await page.locator("section.nt-essentiel").getAttribute("data-prochaine-action")).to.equal("conduire_etapes");
+      expect(plat(await page.locator("section.nt-essentiel [data-qui-paie]").innerText())).to.equal(P.QUI_PAIE);
+      expect(plat(await page.locator("section.nt-essentiel [data-essai-depense]").innerText())).to.equal(P.ESSAI_DEPENSE);
+      await aller("/clients/client-neuf");
+      expect(plat(await page.locator("dd[data-qui-paie]").innerText())).to.equal(P.QUI_PAIE);
+      await aller("/clients/client-en-cours");
+      await page.locator("section.nt-essentiel details[data-credits-en-clair] > summary").click();
+      expect(plat(await page.locator("section.nt-essentiel details[data-credits-en-clair]").innerText())).to.contain(P.QUI_PAIE);
+      expect(await page.locator("main").innerText(), "plus de « paie cet envoi » à côté d'un versement sur le compte du client").to.not.contain("paie cet envoi");
+      await aller("/clients/client-neuf/confirmations");
+      expect(plat(await page.locator('form[data-formulaire="confirmation"] [data-qui-paie]').innerText())).to.equal(P.QUI_PAIE);
+
+      // 5. Confirmations : la pastille du haut dit l'action attendue, sans ton d'alerte quand il n'y a rien à faire.
+      await depuisLaTable("confirmations, une attendue");
+      expect(await page.locator("[data-etat-confirmations]").evaluate((x) => [x.getAttribute("data-etat-confirmations"), x.textContent.trim()])).to.deep.equal(["confirmation_a_noter", "Confirmation à noter"]);
+      await aller("/clients/client-en-cours/confirmations");
+      await depuisLaTable("confirmations, toutes utilisées");
+      expect(await page.locator("[data-etat-confirmations]").evaluate((x) => [x.getAttribute("data-etat-confirmations"), x.textContent.trim(), x.className])).to.deep.equal(["confirmation_rien_a_noter", "Rien à noter", "nt-pastille nt-pastille-grande"]);
+      await aller("/clients/essai-lancement/confirmations");
+      expect(await page.locator("[data-etat-confirmations]").innerText()).to.equal("1 prête à servir");
+
+      // 6. Paquet : « Paquet à remettre », puis, la remise notée, « Paquet remis » en haut de l'écran, de la fiche et de la liste.
+      await aller("/clients/client-inscrit/paquet");
+      await depuisLaTable("paquet à remettre");
+      expect(await page.locator("[data-etat-paquet]").innerText()).to.equal("Paquet à remettre");
+      fs.appendFileSync(registre, ligne(2, "remise_paquet", { manifest_sha256: F.manifestePaquet }, "2026-11-19T10:30:00.000Z"));
+      await aller("/clients/client-inscrit/paquet");
+      expect(await page.locator("[data-etat-paquet]").innerText()).to.equal("Paquet remis");
+      expect(await page.locator("#paquet-titre").innerText()).to.equal("Le paquet est remis au client : vous n'avez plus rien à faire pour lui.");
+      expect(plat(await page.locator("[data-remise-en-haut]").innerText())).to.equal("Paquet remis le 19 novembre 2026 à 10:30 UTC par operateur-1. Si cette note est une erreur, corrigez-la plus bas, sous « Remise au client ».");
+      await aller("/clients/client-inscrit");
+      expect(await page.locator("[data-etat-client]").innerText()).to.equal("Paquet remis");
+      expect(await page.locator("section.nt-essentiel [data-a-preparer]").count()).to.equal(0);
+      await aller("/clients");
+      expect(await carte("client-inscrit").innerText()).to.equal("Paquet remis");
+      // Une remise corrigée se compte avec sa correction ; le paquet redevient « à remettre ».
+      fs.appendFileSync(registre, ligne(3, "correction_remise", { remise: `not-${"2".padStart(32, "0")}`, motif: "Bouton cliqué par erreur." }, "2026-11-19T11:00:00.000Z"));
+      await aller("/clients/client-inscrit/paquet");
+      expect(await page.locator("[data-etat-paquet]").innerText()).to.equal("Paquet à remettre");
+      expect(await page.locator("[data-remises-compte]").innerText()).to.equal("1 remise notée, dont 1 corrigée, les plus anciennes d'abord ; aucune ne s'efface");
+      expect(ecarts).to.deep.equal([]);
+
+      // 7. À 390 px : rien ne déborde ; la case offre une cible de 44 px.
+      const tel = await ouvrir({ largeur: 390, hauteur: 844 });
+      for (const ecran of ["/clients", "/clients/nouveau", "/clients/client-en-cours"]) {
+        await tel.aller(ecran);
+        expect(await tel.page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `${ecran} à 390 px`).to.equal(true);
+      }
+      await tel.aller("/clients/nouveau");
+      expect(await tel.page.locator("input[data-adresses-relues]").evaluate((x) => Math.round(x.getBoundingClientRect().height))).to.be.at.least(44);
+      expect(tel.ecarts).to.deep.equal([]);
+    } finally {
+      if (avant === null) fs.rmSync(registre, { force: true });
+      else fs.writeFileSync(registre, avant);
+      for (const x of plus) x.retirer();
     }
   });
 });

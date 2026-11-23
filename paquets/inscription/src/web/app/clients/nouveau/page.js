@@ -19,6 +19,15 @@
 // libres »), et l'aide ne le dit qu'en mode essai. Le second formulaire, qui prend approbateurs et enregistreur dans
 // le fichier de clés que l'équipe technique a déposé (réseau de développement seulement), s'appelle « client de
 // démonstration ». L'explication des crédits ne paraît qu'une fois sur l'écran, dans le formulaire principal.
+//
+// Sixième lecture (même complément ; CT-4 EX-7.23, complément du 2026-11-19, et EX-7.25) : le formulaire principal
+// demande le nom interne du client, avec le nom court ; il ne part pas avec le travail (le corps que reçoit la
+// route des travaux ne change pas) mais, le dossier préparé, par la note de la fiche. Au-dessus des adresses des
+// approbateurs, une consigne mise en avant dit de relire chaque adresse avec le client, par écrit et en entier
+// (comme l'adresse du compte technique, EX-7.26), et une case « J'ai relu chaque adresse avec le client », jamais
+// cochée d'avance, sans laquelle la page ne remet pas le travail. L'outil ne peut pas vérifier cette relecture
+// (EX-7.8) : la case dit seulement que la personne déclare l'avoir faite. La comparaison d'une partie de l'adresse
+// n'est pas proposée.
 
 import FormulaireTravail from "../../../composants/FormulaireTravail.js";
 import Icone from "../../../composants/Icone.js";
@@ -33,7 +42,21 @@ const AIDE_ORG_ESSAI = " En mode essai seulement, vous pouvez aussi écrire un n
 const ORG = {
   nom: "org", libelle: "Nom court du client", type: "slug", tirage: "Tirer un nom au hasard",
   aide: AIDE_ORG,
-  apres: "Ce nom ne dit pas qui est le client : une fois le dossier préparé, donnez-lui sur sa fiche un nom interne, que seule notre équipe voit.",
+  apres: "Ce nom court ne dit pas qui est le client : c'est le nom interne, ci-dessus, qui permet à notre équipe de le reconnaître.",
+};
+/** Le nom interne (CT-4 EX-7.23, complément du 2026-11-19) : demandé ici, remis par une note une fois le dossier préparé. */
+const NOM_INTERNE = { nom: "nom_interne", note: "nom_interne", libelle: "Nom interne du client", type: "texte", exemple: "Assurances du Léman", aide: "Le nom sous lequel notre équipe reconnaîtra ce client dans cet outil, en 80 caractères au plus : par exemple sa raison sociale. Seule notre équipe le voit : il ne part jamais vers le registre public, ni dans le paquet du client. Vous pourrez le changer sur sa fiche." };
+/**
+ * Relecture des adresses avec le client (sixième lecture) : une adresse fausse ne se voit pas (EX-7.8) ; la consigne
+ * dit de la faire par écrit et sur l'adresse entière, comme pour l'adresse du compte technique (EX-7.26).
+ */
+const RELECTURE = {
+  nom: "adresses_relues",
+  titre: "Relisez chaque adresse avec le client avant de préparer le dossier.",
+  texte: "L'outil ne peut pas voir qu'une adresse est fausse. Avec une adresse d'approbateur fausse, une autre personne que prévu pourrait approuver à la place d'un approbateur du client ; avec une adresse fausse du responsable, une autre personne pourrait changer la liste des approbateurs. Collez chaque adresse depuis l'écrit du client, sans la retaper. Puis relisez-les avec lui, par un autre moyen que cet outil : envoyez-lui par écrit les adresses telles que vous les avez collées, et demandez-lui de vous confirmer par écrit que chacune est bien, en entier, celle de la bonne personne.",
+  libelle: "J'ai relu chaque adresse avec le client",
+  aide: "Tant que cette case n'est pas cochée, « Préparer le dossier » n'envoie rien.",
+  refus: "Rien n'a été envoyé : relisez chaque adresse avec le client, comme dit ci-dessus, puis cochez cette case.",
 };
 /** En mode essai, l'aide dit aussi qu'un nom libre est admis, et l'exemple en montre un. */
 const ORG_ESSAI = { ...ORG, aide: AIDE_ORG + AIDE_ORG_ESSAI, exemple: "assureur-demo" };
@@ -48,7 +71,8 @@ const TRESORERIE = { nom: "tresorerie", libelle: "Référence de notre réserve 
 const VERSEMENT = { titre: "Le versement sur le compte technique", replie: "Réglages avancés", texte: "Ce qui sera versé, en crédits d'écriture, sur le compte technique de l'enregistreur, pour qu'il puisse payer ses écritures. Les valeurs habituelles s'appliquent quand ces champs restent vides ; le service d'inscription recalcule lui-même le montant du versement.", credits: true, champs: [BUDGET, TRESORERIE] };
 /** Le même, dans le formulaire du client de démonstration : l'explication des crédits est déjà sur l'écran. */
 const VERSEMENT_DEMONSTRATION = { ...VERSEMENT, credits: false };
-const APRES = "Après le clic : l'outil contrôle la forme de ce que vous avez saisi et crée le dossier ; le client apparaît dans la liste, à l'étape 1 sur 8. Rien n'est envoyé au registre public, rien n'est dépensé.";
+const APRES_DEMONSTRATION = "Après le clic : l'outil contrôle la forme de ce que vous avez saisi et crée le dossier ; le client apparaît dans la liste, à l'étape 1 sur 8. Rien n'est envoyé au registre public, rien n'est dépensé.";
+const APRES = "Après le clic : l'outil contrôle la forme de ce que vous avez saisi et crée le dossier, puis enregistre le nom interne ; le client apparaît dans la liste, à l'étape 1 sur 8. Rien n'est envoyé au registre public, rien n'est dépensé.";
 
 export default async function PageNouveau() {
   await exigerSession();
@@ -75,12 +99,13 @@ export default async function PageNouveau() {
         <FormulaireTravail
           commande="inscrire-client-preparer"
           sections={[
-            { titre: "Le client", champs: [developpement ? ORG_ESSAI : ORG, JOURNAUX] },
+            { titre: "Le client", champs: [NOM_INTERNE, developpement ? ORG_ESSAI : ORG, JOURNAUX] },
             {
               titre: "Ses approbateurs",
               texte: "Les approbateurs sont les personnes du client qui donnent leur accord en signant. Chacun est désigné par son adresse de signature, qui n'est pas un secret.",
+              releve: RELECTURE,
               champs: [
-                { nom: "approbateurs", libelle: "Adresses de signature des approbateurs", type: "liste_adresses", exemple: "0x1111111111111111111111111111111111111111", aide: "Le client vous donne par écrit l'adresse de signature de chacun de ses approbateurs : « 0x » suivi de 40 caractères. Une adresse par ligne ; copiez-les sans les retaper. Si une adresse est fausse, l'outil ne peut pas le voir, et une autre personne que prévu pourrait approuver à la place du client." },
+                { nom: "approbateurs", libelle: "Adresses de signature des approbateurs", type: "liste_adresses", exemple: "0x1111111111111111111111111111111111111111", aide: "Le client vous donne par écrit l'adresse de signature de chacun de ses approbateurs : « 0x » suivi de 40 caractères. Une adresse par ligne ; copiez-les sans les retaper." },
                 SEUIL,
                 { nom: "admin_jeu", libelle: "Adresse de signature du responsable des approbateurs", type: "adresse", exemple: "0x2222222222222222222222222222222222222222", aide: "La personne du client qui pourra, plus tard, ajouter ou retirer un approbateur. Le client vous donne son adresse par écrit. C'est toujours une adresse du client, jamais une des nôtres : sur le registre réel, l'outil refuse une de nos adresses." },
               ],
@@ -110,7 +135,7 @@ export default async function PageNouveau() {
                 { titre: "Le fichier de clés de démonstration", champs: [{ nom: "cles_essai", libelle: "Fichier des clés de démonstration", type: "chemin", defaut: "cles-essai.json", aide: "Le nom du fichier que l'équipe technique a déposé. Gardez la valeur proposée, sauf consigne contraire." }] },
                 VERSEMENT_DEMONSTRATION,
               ]}
-              note={APRES}
+              note={APRES_DEMONSTRATION}
               bouton="Préparer le dossier de démonstration"
               principal={false}
             />

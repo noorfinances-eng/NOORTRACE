@@ -33,12 +33,19 @@
 // interne du client, s'il en a un, avec son nom court en petit dessous ; « Le client en bref » permet de le donner,
 // le changer ou le retirer, dans un bloc replié dont le titre dit s'il y en a un (la fiche garde sa hauteur). Une remise du paquet notée et non corrigée se lit dans « Confirmations et paquet »
 // (« remis le … par … ») et clôt la consigne.
+//
+// Sixième lecture (même complément) : sans nom interne, le formulaire « Donner un nom interne » n'est pas replié : il se
+// lit en haut de la fiche, à côté de l'état du client ; avec un nom, « Changer le nom interne » reste replié. Les pastilles
+// viennent de la table unique de `parcours.mjs` (`PASTILLES`) : « Paquet à remettre » puis « Paquet remis » quand
+// toutes les étapes sont faites, « Envoyée — à vous d'agir » ou « Envoyée — attendez la réponse » selon qui a envoyé.
+// Une consigne qui envoie des écritures dit qui les paie (`QUI_PAIE`, la même phrase partout) et, en mode essai, ce
+// qu'elles consomment ; une consigne où il n'y a rien à faire n'a pas de ligne « Ayez sous la main ».
 
 import { notFound } from "next/navigation";
 import { client, confirmations, notes } from "../../../lib/donnees.mjs";
 import { remiseEnVigueur } from "../../../../commun/notes.mjs";
 import { exigerSession, nature } from "../../../lib/page.mjs";
-import { CHERCHER_LA_REPONSE, OPERATIONS_JEU, PAR_NOTRE_COMPTE, avancement, dateLisible, etapesDuParcours, etatsTravaux, explicationErreur, jourLisible, libelleCommande, manifesteDuPaquet, montantEnClair, nombreLisible, nommeLesCredits, prochaineAction, repereEnClair } from "../../../lib/parcours.mjs";
+import { CHERCHER_LA_REPONSE, OPERATIONS_JEU, PAR_NOTRE_COMPTE, PASTILLES, avancement, dateLisible, etapesDuParcours, etatsTravaux, explicationErreur, jourLisible, libelleCommande, manifesteDuPaquet, montantEnClair, nombreLisible, nommeLesCredits, prochaineAction, repereEnClair } from "../../../lib/parcours.mjs";
 import CopierTexte, { CopierValeur } from "../../../composants/CopierTexte.js";
 import CreditsEnClair from "../../../composants/CreditsEnClair.js";
 import FormulaireTravail from "../../../composants/FormulaireTravail.js";
@@ -277,12 +284,12 @@ export default async function PageClient({ params }) {
   const d = c.dossier;
   const registre = confirmations(slug);
   const etapes = etapesDuParcours(d);
-  const a = avancement(d);
   const suivi = notes(slug);
   const nom = suivi.nom?.valeur ?? null;
   const remise = remiseEnVigueur(suivi, manifesteDuPaquet(c));
-  const action = prochaineAction({ ...c, confirmations: registre, remise });
+  const a = avancement(d, { remise, travaux: c.travaux });
   const production = nature() === "production";
+  const action = prochaineAction({ ...c, confirmations: registre, remise, essai: !production });
   const toutes = actions({ d, c, action, etapes });
   // L'action de la consigne. Aller chercher la réponse d'un envoi : l'envoi est connu, la personne n'a rien à choisir
   // ni à recopier. Envoyer le document signé : par notre compte d'envoi, que le bouton nomme.
@@ -343,6 +350,7 @@ export default async function PageClient({ params }) {
     ["cles", action.cles ? "crédits d'écriture" : ""],
     ["a-preparer", action.aPreparer],
     ["apres", action.apres],
+    ["qui-paie", action.quiPaie ?? ""],
   ];
   const placeCredits = places.find(([, texte]) => nommeLesCredits(texte))?.[0] ?? null;
   const credits = (place, classe = "") => (placeCredits === place ? <CreditsEnClair key={`credits-${place}`} versement={action.cles ? action.versement : null} classe={classe} /> : null);
@@ -359,8 +367,14 @@ export default async function PageClient({ params }) {
           </p>
           <progress className="nt-jauge ins-jauge" value={a.faites} max={a.total} aria-label={a.phraseFaites} />
         </div>
-        <div className="nt-entete-etat">
+        <div className={nom ? "nt-entete-etat" : "nt-entete-etat ins-entete-etat-nom"}>
           <Pastille ton={a.ton} icone={a.icone} grande data-etat-client={a.etat}>{a.libelle}</Pastille>
+          {nom ? null : (
+            // Sixième lecture : sans nom interne, le formulaire n'est pas replié ; il se lit en haut de la fiche.
+            <section className="nt-encart ins-nom-a-donner" id="nom-interne" aria-label="Donner un nom interne" data-nom-interne-action="" data-nom-interne-manque="">
+              <NomInterne slug={slug} nom={null} compact invite={nomTire ? "Ce nom court ne dit pas qui est le client : donnez-lui un nom interne, que seule notre équipe voit." : "Pas encore de nom interne : donnez-lui-en un, que seule notre équipe voit."} />
+            </section>
+          )}
         </div>
       </header>
 
@@ -425,7 +439,7 @@ export default async function PageClient({ params }) {
                 <strong>D'abord :</strong> copiez le document et envoyez-le au client (<a href="#demandes-titre">voir son texte</a>). <CopierTexte texte={JSON.stringify(aRemettre.document, null, 2)} libelle="Copier le document" cible={idTexte(aRemettre.nom)} faite="Copié : collez-le dans votre message au client." />
               </p>
             ) : null}
-            <p className="ins-essentiel-texte" data-a-preparer="">{aRemettre ? <><strong>Ensuite :</strong> </> : null}{action.aPreparer}</p>
+            {action.aPreparer || aRemettre ? <p className="ins-essentiel-texte" data-a-preparer="">{aRemettre ? <><strong>Ensuite :</strong> </> : null}{action.aPreparer}</p> : null}
             {credits("a-preparer")}
           </div>
           {principale ? (
@@ -438,6 +452,8 @@ export default async function PageClient({ params }) {
         </div>
         <p className="ins-essentiel-texte nt-attenue nt-petit" data-apres-clic="">{action.apres}</p>
         {credits("apres")}
+        {action.quiPaie ? <p className="ins-essentiel-texte nt-attenue nt-petit"><span data-qui-paie="">{action.quiPaie}</span>{action.essaiDepense ? <> <span data-essai-depense="">{action.essaiDepense}</span></> : null}</p> : null}
+        {credits("qui-paie")}
         {action.cles ? (
           <dl className="nt-definitions ins-pour-expliquer" data-pour-expliquer="">
             <dt>Si le client demande d'où vient ce montant</dt>
@@ -445,6 +461,8 @@ export default async function PageClient({ params }) {
               <span className="ins-ligne" data-montant-en-clair="">{montantEnClair(d.funding.daily_budget_gas)}</span>
               {repereEnClair(d.funding.amount_wei, d.funding.daily_budget_gas) ? <span className="ins-ligne" data-repere="">{repereEnClair(d.funding.amount_wei, d.funding.daily_budget_gas)}</span> : null}
             </dd>
+            <dt>Si le client demande qui paie</dt>
+            <dd data-qui-paie="">{action.quiPaieExplique}</dd>
             <dt>Pour lui faire confirmer l'adresse</dt>
             <dd data-adresse-a-confirmer="">{action.adresse}</dd>
           </dl>
@@ -493,11 +511,12 @@ export default async function PageClient({ params }) {
               <dt>{d.recorders.length > 1 ? "Enregistreurs" : "Enregistreur"}</dt><dd>{d.recorders.length === 0 ? "Aucun" : d.recorders.map((r) => <Valeur key={r.key_id}>{r.key_id}</Valeur>)}</dd>
               <dt>Dossier préparé</dt><dd><span>le <time dateTime={d.prepared_at}>{dateLisible(d.prepared_at)}</time></span></dd>
             </dl>
-            {nomTire && !nom ? <p className="nt-attenue nt-petit" data-nom-tire="">Ce nom court ne dit pas qui est le client : donnez-lui un nom interne, ci-dessous, que seule notre équipe voit.</p> : null}
-            <details className="nt-detail ins-replie" data-nom-interne-action="">
-              <summary>{nom ? "Changer le nom interne" : "Donner un nom interne"}<span className="nt-detail-note">visible seulement de notre équipe</span></summary>
-              <div className="nt-detail-corps"><NomInterne slug={slug} nom={nom} /></div>
-            </details>
+            {nom ? (
+              <details className="nt-detail ins-replie" data-nom-interne-action="">
+                <summary>Changer le nom interne<span className="nt-detail-note">visible seulement de notre équipe</span></summary>
+                <div className="nt-detail-corps"><NomInterne slug={slug} nom={nom} /></div>
+              </details>
+            ) : null}
             <details className="ins-detail" data-detail-organisation>
               <summary>Détail technique</summary>
               <dl className="nt-definitions ins-detail-corps">
@@ -549,7 +568,7 @@ export default async function PageClient({ params }) {
                   <li key={x.nom} data-demande={x.nom}>
                     <div className="ins-ligne-tete">
                       <strong>{NOMS_DEMANDE[x.document?.operation] ?? "Document à faire signer"}</strong>
-                      {relayee ? <Pastille ton="succes" icone="coche">Signé et envoyé</Pastille> : suivie ? <Pastille icone="coche">Remplacé par sa version signée</Pastille> : <Pastille ton="attente" icone="horloge">À faire signer par le client</Pastille>}
+                      {(() => { const p = PASTILLES[relayee ? "document_envoye" : suivie ? "document_remplace" : "document_a_faire_signer"]; return <Pastille ton={p.ton} icone={p.icone}>{p.libelle}</Pastille>; })()}
                     </div>
                     <p className="nt-attenue nt-petit">
                       {x.document?.prepared_at ? <>Préparé le <time dateTime={x.document.prepared_at}>{dateLisible(x.document.prepared_at)}</time>. </> : null}

@@ -18,7 +18,7 @@ import { lancerDecouverte, rendreFournisseurs, demanderComptes, appelFournisseur
 const decouverte = lancerDecouverte();
 
 import { analyserComptes, controleDefi, donneesPersonalSign, requetePersonalSign, verifierReponse, echeanceAttente, decoderInstant, utf8, entreeDeSession } from "noortrace-console/index.mjs";
-import { el, actions, ajouter, bouton, code, definitions, donnee, icone, message, pastille, remplacer, vider } from "../commun/dom.mjs";
+import { el, actions, ajouter, bouton, code, definitions, detail, donnee, icone, message, pastille, remplacer, vider } from "../commun/dom.mjs";
 import { t } from "../commun/libelles.mjs";
 import { ErreurAppel, appeler, allerConnexion, envoiDepuis, methodesDepuis, lireSession, maintenant } from "../commun/client.mjs";
 import { afficherErreur, demarrerEcran, entete, instant, paragrapheCode, principal, sensCode } from "../commun/cadre.mjs";
@@ -55,6 +55,13 @@ const zones = {
 // plus à inscrire : posés une fois, leur texte suit l'annuaire lu.
 const titreInscription = el("h2", { attributs: { id: "inscription-titre" } });
 const attenteInscription = el("p", { classe: "inscription-attente", attributs: { id: "inscription-attente", hidden: "" } });
+const sensInscription = el("p", { classe: "nt-attenue" });
+const listeEtapes = el("ol", { classe: "nt-etapes" });
+// Avec une adresse en attente de validation, il n'y a rien de plus à inscrire : les trois étapes passent dans un bloc
+// fermé, « Inscrire quand même une autre adresse » (une seconde inscription n'est pas refusée, CT-3 EX-13.15) ; il
+// reste ouvert, d'une lecture de l'annuaire à la suivante, si la personne l'a ouvert.
+const blocAutre = detail("", null, el("p", { classe: "nt-attenue", attributs: { id: "inscription-autre-sens" } }));
+blocAutre.setAttribute("id", "inscription-autre");
 
 // Les trois étapes de l'inscription : portefeuille, compte, texte à signer.
 // Chaque étape garde son élément ; `rendreEtapes` en met l'état à jour.
@@ -217,7 +224,8 @@ function actionRevocation(e, a) {
           etat.revocation = a.address;
           rendreEntree();
         },
-        { petit: true },
+        // La révocation ne se défait pas : le bouton en a l'apparence dès le premier clic.
+        { petit: true, classe: "bouton-definitif" },
       ),
       // La conséquence se lit avant le premier clic : la révocation est définitive. Pour une adresse en attente, ce
       // n'est pas une clé perdue : c'est une inscription que la personne ne veut pas, ou n'a pas demandée.
@@ -260,14 +268,24 @@ function rendreFournisseursEtComptes() {
     vider(zones.inscription);
     return;
   }
-  if (etapes[0].element.parentNode === null || zones.inscription.firstChild === null) {
-    remplacer(zones.inscription, titreInscription, attenteInscription, el("p", { classe: "nt-attenue", texte: t("inscription.sens") }), el("ol", { classe: "nt-etapes" }, ...etapes.map((e) => e.element)));
-  }
   // Une personne qui a déjà une adresse lit « une nouvelle adresse » ; avec une adresse en attente de validation, la
-  // page dit qu'elle n'a rien de plus à inscrire (relu à chaque lecture de l'annuaire).
+  // page dit qu'elle n'a rien de plus à inscrire, et les étapes ne sont offertes que dans le bloc fermé (relu à chaque
+  // lecture de l'annuaire).
   const adresses = entree()?.addresses ?? [];
-  titreInscription.textContent = t(adresses.some((a) => a.state === "active" || a.state === "en_attente") ? "inscription.nouvelle_autre" : "inscription.nouvelle");
   const attente = adresses.some((a) => a.state === "en_attente");
+  if (listeEtapes.firstChild === null) ajouter(listeEtapes, ...etapes.map((e) => e.element));
+  sensInscription.textContent = t("inscription.sens");
+  if (attente) {
+    if (blocAutre.parentNode !== zones.inscription) {
+      remplacer(blocAutre.querySelector("summary > span"), document.createTextNode(t("inscription.autre")));
+      blocAutre.querySelector("#inscription-autre-sens").textContent = t("inscription.autre_sens");
+      ajouter(blocAutre.querySelector(".nt-detail-corps"), sensInscription, listeEtapes);
+      remplacer(zones.inscription, titreInscription, attenteInscription, blocAutre);
+    }
+  } else if (zones.inscription.firstChild === null || blocAutre.parentNode === zones.inscription) {
+    remplacer(zones.inscription, titreInscription, attenteInscription, sensInscription, listeEtapes);
+  }
+  titreInscription.textContent = t(adresses.some((a) => a.state === "active" || a.state === "en_attente") ? "inscription.nouvelle_autre" : "inscription.nouvelle");
   attenteInscription.textContent = attente ? t("inscription.attente_deja") : "";
   attenteInscription.hidden = !attente;
   rendreFournisseurs(zones.fournisseurs, decouverte, etat.fournisseur, choisirFournisseur, true, false);

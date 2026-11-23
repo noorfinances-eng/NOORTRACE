@@ -360,6 +360,40 @@ is tagged.
   evidential value taken as satisfied, approvers declared by the dossier
   counted as proven, a refused entry no longer stopping the send, the amount
   to confirm folded).
+  After a sixth cold reading of the console and the onboarding tool: in the
+  console, while the answer to a refusal in the wallet application is shown,
+  neither "Approuver" nor "Refuser" is offered (EX-9.5: neither one nor the
+  other); the instruction and the link for a refusal made by mistake stay.
+  Under each value the console cannot verify, one short sentence says why
+  (the value is masked in the recorded piece, CT-2 section 10). A sentence
+  above the decision buttons says that the rest of the request, below them,
+  is to be read before deciding, the signature coming after it. The warning
+  on the separation of duties speaks of the organisation's rules, not of
+  what the person cannot know, and gives a step the person can take. An
+  approved request says only what the state read establishes about the
+  execution (`approuve`: not yet reported as launched; `consomme`: launched,
+  outcome not read). "Mon adresse" folds the steps to register another
+  address while one is pending. Final actions (revoke, disable, recuse) look
+  final, in the theme's alert colour. A failure of the approval service says
+  to warn the organisation's administrator by the means it gave, the console
+  naming no one. In the onboarding tool, the new client form asks for the
+  internal name, sent as an internal note only once the job that prepared
+  the file has succeeded, never in the job; the client list can be searched
+  in the page, with no request; above the approvers' signing addresses, a
+  warning and a box "J'ai relu chaque adresse avec le client", never
+  pre-ticked, without which the page does not prepare the file; one table of
+  badges, one meaning each, which say the expected action ("Paquet à
+  remettre", "Paquet remis", "À vous d'agir", "Action en cours",
+  "Envoyée — à vous d'agir" or "Envoyée — attendez la réponse",
+  "Confirmation à noter", "Rien à noter"); one sentence says who pays each
+  write on the public registry, the same on every screen, with no amount of
+  money, and test mode says that it consumes the test registry's credits.
+  The bodies sent to the existing routes are byte-identical. Each change is
+  red on the former screens and green after, with both font sets, and
+  mutants are killed (both decision buttons under the refusal instruction,
+  the reason dropped, the sentence above the buttons dropped, the review box
+  ignored or pre-ticked, the internal name put in the job or sent after a
+  job that did not succeed, the search asking the server).
   No dependency,
   font, image or external resource is added; no content security policy,
   header or subresource-integrity rule is loosened; the console and the
@@ -370,7 +404,8 @@ is tagged.
   EX-13.7, EX-13.29, 13.1), CT-6 (EX-18.2, EX-18.5, EX-18.7, EX-18.9) and
   CT-4 (EX-7.25, EX-7.26), those of CT-3 and CT-6 rewritten in place after
   the third reading, those of CT-3, CT-4 and CT-6 after the fourth, and
-  those of CT-3 and CT-6 after the fifth;
+  those of CT-3 and CT-6 after the fifth, and those of CT-3 and CT-4
+  after the sixth (with the CT-4 EX-7.23 supplement of 2026-11-19);
   no control rule, schema, report, exit code or vector changes; the line
   citations of CT-7, CT-8 and CT-9 follow the moved texts. Tests:
   `test/exploitation-console-langage-chromium.test.js` (new), and new cases

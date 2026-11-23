@@ -122,6 +122,10 @@ const etat = {
   lectureEchouee: false,
 };
 
+// La consigne d'un refus dans l'application est affichée : tant qu'elle l'est, ni « Approuver » ni « Refuser »
+// (CT-3 EX-13.29, complément du 2026-11-18).
+const refusAffiche = () => zones.resultat.querySelector("#panne-consigne") !== null;
+
 const zones = {
   lecture: el("div", { classe: "zone", attributs: { id: "zone-lecture" } }),
   modele: el("div", { classe: "nt-pile nt-pile-large pile-demande", attributs: { id: "zone-modele" } }),
@@ -359,8 +363,12 @@ function nomDansLaVue(adresse) {
   return nomValide && (x.role === null || x.role === "approbateur" || x.role === "administrateur") ? x : null;
 }
 
-/** Une valeur de la demande : son libellé courant, son chemin exact, sa valeur telle qu'elle est signée ou fournie, sa marque. */
-function ligneValeur(a) {
+/**
+ * Une valeur de la demande : son libellé courant, son chemin exact, sa valeur telle qu'elle est signée ou fournie, sa
+ * marque. `raison` : sous une valeur « non vérifiable par la console » du groupe à contrôler, pourquoi, en une phrase
+ * (EX-9.16 : la console n'a pas pu la comparer à la pièce enregistrée, où la politique de rédaction l'a masquée).
+ */
+function ligneValeur(a, raison = false) {
   const nom = libelleValeur(a.pointer);
   const racine = a.pointer === "";
   const libelle = racine ? t("valeurs.racine") : nom === null ? null : t(`valeur.${nom}`);
@@ -377,6 +385,7 @@ function ligneValeur(a) {
     // Valeur sous sa forme JSON, caractères invisibles écrits `\uXXXX` et marqués (EX-9.16, revue de sécurité de l'étape 8).
     el("span", { classe: "valeur-contenu" }, code(texteValeur(a.value), "nt-fixe valeur"), contientInvisibles(a.value) ? marqueInvisibles() : null),
     marqueArgument(a.status),
+    raison && a.status === "non_verifiable" ? el("span", { classe: "valeur-raison", texte: t("controle.raison") }) : null,
   );
 }
 
@@ -391,7 +400,7 @@ function rendreValeurs(modele, clos) {
   const g = groupesValeurs(modele);
   const total = modele.arguments.length;
   const classeListe = total > 8 ? "liste-nue liste-valeurs valeurs-denses" : "liste-nue liste-valeurs";
-  const liste = (feuilles, id) => el("ul", { classe: classeListe, attributs: { id } }, ...feuilles.map(ligneValeur));
+  const liste = (feuilles, id, raison = false) => el("ul", { classe: classeListe, attributs: { id } }, ...feuilles.map((a) => ligneValeur(a, raison)));
   const parties = [
     el("h3", { classe: "nt-sur-titre valeurs-titre", texte: t(clos ? "valeurs.titre_clos" : "valeurs.titre"), attributs: { id: "arguments-titre" } }),
   ];
@@ -423,7 +432,7 @@ function rendreValeurs(modele, clos) {
         { classe: clos ? "groupe-valeurs" : "groupe-valeurs groupe-controle", attributs: { id: "a-controler", role: "note", "data-deja": deja === null ? null : deja.decision } },
         el("h4", { classe: "groupe-valeurs-titre" }, icone(clos ? "question" : "alerte"), el("span", { texte: t(cleTitre) })),
         el("p", { texte: t(cleSens), attributs: { id: "controle-sens" } }),
-        liste(g.aControler, "valeurs-a-controler"),
+        liste(g.aControler, "valeurs-a-controler", true),
       ),
     );
   }
@@ -575,7 +584,7 @@ function rendreModele() {
   // en train d'en choisir une autre, ce sur quoi porte sa décision ; rien sur une demande décidée.
   const mienne = maDecisionEnregistree();
   const sensReste = clos ? null : mienne !== null && etat.decision === null && etat.aConfirmer === null ? t(`groupe.reste_sens_deja.${mienne.decision}`) : t("groupe.reste_sens");
-  parties.push(el("div", { classe: "titre-groupe" }, el("h2", { texte: t("groupe.reste") }), sensReste === null ? null : el("p", { classe: "nt-attenue", texte: sensReste, attributs: { id: "reste-sens" } })));
+  parties.push(el("div", { classe: "titre-groupe", attributs: { id: "reste" } }, el("h2", { texte: t("groupe.reste") }), sensReste === null ? null : el("p", { classe: "nt-attenue", texte: sensReste, attributs: { id: "reste-sens" } })));
   const d = modele.delegation;
   const cartes = [];
 
@@ -1035,6 +1044,14 @@ function rendreDecision() {
     vider(zones.decision);
     return;
   }
+  // Après un refus dans l'application, « ne réessayez pas » : aucun des deux boutons n'est offert tant que la consigne
+  // est affichée ; le lien « J'ai refusé par erreur » de la consigne reprend la décision confirmée.
+  if (refusAffiche() && etat.decision === null && etat.aConfirmer === null) {
+    remplacer(zones.decision, el("h2", { classe: "titre-decision", texte: t("decision.titre") }), el("p", { classe: "nt-attenue", texte: t("decision.apres_refus"), attributs: { id: "decision-apres-refus" } }));
+    majParcours();
+    sensContestation();
+    return;
+  }
   // Un nouveau vote remplace le précédent tant que la demande accepte des décisions (EX-7.26) : les deux
   // boutons restent offerts, de même poids, sous un intitulé et une phrase qui disent ce que cela fait.
   const deja = maDecisionEnregistree() !== null;
@@ -1074,6 +1091,7 @@ function rendreDecision() {
       el("p", { classe: "decision-question", texte: t(`decision.confirmer_question.${d}`) }),
       // Ce qui se passe après « Confirmer » : la page amène au portefeuille ; rien n'est enregistré avant la signature.
       el("p", { classe: "nt-attenue nt-petit", texte: t("decision.confirmer_suite"), attributs: { id: "confirmer-suite" } }),
+      avantDecision(),
       zones.motif,
       actions(
         bouton(
@@ -1100,9 +1118,11 @@ function rendreDecision() {
     });
     remplacer(zones.decision, bloc);
   } else {
-    // « Votre décision », puis les deux boutons, sur une ligne quand la place le permet.
+    // « Votre décision », puis les deux boutons, sur une ligne quand la place le permet. Au-dessus des boutons, le
+    // reste de la demande, qu'EX-9.4 veut affiché avant la signature, est signalé : il est sous les boutons.
     remplacer(
       zones.decision,
+      ouvert ? avantDecision() : null,
       el("div", { classe: "decision-tete" }, el("h2", { classe: "titre-decision", texte: titreDecision }), boutonsDecision(ouvert, titreDecision)),
       // Ce n'est pas une panne : sans code.
       ouvert ? el("p", { classe: "nt-attenue nt-petit", attributs: { id: "decision-suite", "data-code": "decision_absente" } }, el("span", { texte: t("console.decision_absente") }), " ", el("span", { texte: t("decision.etapes") })) : el("p", { classe: "nt-attenue nt-petit", texte: t("decision.inactifs") }),
@@ -1131,6 +1151,11 @@ function confirmerDecision(d) {
 }
 
 /** Les deux boutons de décision (EX-9.5) : même poids, aucun présélectionné ; chacun demande une confirmation. */
+/** Au-dessus des boutons de décision : le reste de la demande, sous eux, est à lire avant de signer (EX-9.4). */
+function avantDecision() {
+  return el("p", { classe: "avant-decision", attributs: { id: "avant-decision" } }, el("span", { texte: t("decision.avant_reste") }), " ", el("a", { texte: t("decision.avant_reste_lien"), attributs: { href: "#reste" } }), el("span", { texte: t("decision.avant_reste_fin") }));
+}
+
 function boutonsDecision(ouvert, libelleGroupe) {
   const groupe = el("div", { classe: "nt-actions boutons-decision", attributs: { role: "group", "aria-label": libelleGroupe } });
   for (const d of ["approuve", "refuse"]) {
@@ -1430,7 +1455,7 @@ function rendreRappel(modele) {
           "div",
           { classe: "groupe-valeurs groupe-controle", attributs: { id: "rappel-a-controler", role: "note" } },
           el("h4", { classe: "groupe-valeurs-titre" }, icone("alerte"), el("span", { texte: t("controle.titre") })),
-          el("ul", { classe: "liste-nue liste-valeurs valeurs-denses" }, ...g.aControler.map(ligneValeur)),
+          el("ul", { classe: "liste-nue liste-valeurs valeurs-denses" }, ...g.aControler.map((a) => ligneValeur(a))),
         ),
   );
 }
@@ -1781,6 +1806,8 @@ function afficherPanne(codePanne, erreur, recouvree, decision) {
     parties.push(actions(reessayer));
   }
   montrerResultat(message("erreur", ...parties));
+  // Après un refus dans l'application, les deux boutons de décision se retirent avec le reste du geste.
+  if (codePanne === "refus_approbateur") rendreDecision();
 }
 
 // ---------------------------------------------------------------------------
@@ -1852,7 +1879,8 @@ function rendreRecusation() {
             etat.confirmation = "recuser";
             rendreRecusation();
           },
-          { actif: c.reason === null, petit: true },
+          // La récusation ne se défait pas (EX-10.4) : le bouton en a l'apparence dès le premier clic.
+          { actif: c.reason === null, petit: true, classe: "bouton-definitif" },
         ),
       ),
     );

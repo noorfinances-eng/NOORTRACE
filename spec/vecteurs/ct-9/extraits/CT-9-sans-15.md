@@ -178,9 +178,9 @@ les lignes.
 | TC-9 | CT-2 §16.2 (l. 12280) | Seuil de régression des mesures de performance, à décider par CT-9. | §11.4 : seuil de régression EX-11.15 ; proposition PD- à CT-2 EX-16.2 pas 7 (§17.2). |
 | TC-10 | CT-2 §21 (l. 14365) | « Les tests » hors de CT-2. | Ce document. |
 | TC-11 | CT-3 §0 (l. 58) | Rattachement aux EX-. | §5.1, règle (a). |
-| TC-12 | CT-3 §1 (l. 745) | Périmètre. | Ce document. |
-| TC-13 | CT-3 §1 (l. 774) | EX-, AP-, TK-, SG-, AN-, CS-, vecteurs `ct-3`, épreuve à trois relecteurs, épreuve de lecture de la console. | TR-1 (A.5, trois relecteurs) et TR-2 (A.11, console) en §12 ; EX-, AP-, TK-, SG-, AN-, CS- et vecteurs ct-3 : TU-, TV- (§6, §7). |
-| TC-14 | CT-3 §7.12 (l. 2684) | Rattachement des TK-1 à TK-13 aux tests. | TV- `ct-3/tickets/` et TU- tickets (§6, §7) : `covers` CT-3 TK-1 à TK-13. |
+| TC-12 | CT-3 §1 (l. 749) | Périmètre. | Ce document. |
+| TC-13 | CT-3 §1 (l. 778) | EX-, AP-, TK-, SG-, AN-, CS-, vecteurs `ct-3`, épreuve à trois relecteurs, épreuve de lecture de la console. | TR-1 (A.5, trois relecteurs) et TR-2 (A.11, console) en §12 ; EX-, AP-, TK-, SG-, AN-, CS- et vecteurs ct-3 : TU-, TV- (§6, §7). |
+| TC-14 | CT-3 §7.12 (l. 2688) | Rattachement des TK-1 à TK-13 aux tests. | TV- `ct-3/tickets/` et TU- tickets (§6, §7) : `covers` CT-3 TK-1 à TK-13. |
 | TC-15 | CT-4 §0 (l. 115) | Rattachement aux EX-. | §5.1, règle (a). |
 | TC-16 | CT-4 §1 (l. 331) | Périmètre. | Ce document. |
 | TC-17 | CT-4 §1 (l. 359) | EX-, RG-, vecteurs `ct-4`, épreuve d'acceptation sur le réseau de développement. | TR-3 (§7.12, relecteur sur le réseau de développement) en §12 ; EX-, RG- et vecteurs ct-4 : TV- (§7), TE- (§9). |
@@ -3837,7 +3837,7 @@ Docker Compose (2026-11-02).
 | R11-F37, R11-F38 | reproductibilité : « Results Reproduced », « Functional » | NISO RP-31-2021 (2021-01-28), annexe A | 2026-11-01 |
 | R11-F5, R11-F53 | horloge injectée de CT-5 ; minuteries simulées de Node v22.22.0 | `scripts/lib/ancrage.mjs` l. 1098 ; exécution locale | 2026-11-01 |
 | R11-NV5 | aucune source dédiée à la mesure par paire | — | non vérifié |
-| R10-F4 à R10-F15 | épreuves déléguées : participants, matériel, grilles, verdicts | `spec/CT-3-approbations.md` l. 9691-9727, 10214-10246 ; `CT-4` l. 2944-2977 ; `CT-5` l. 924, 6167 ; `CT-6` l. 2133-2157, 2783-2896 ; `CT-7` l. 4034-4110, 4763-4775 ; `CT-8` l. 8456-8597 | 2026-11-01 |
+| R10-F4 à R10-F15 | épreuves déléguées : participants, matériel, grilles, verdicts | `spec/CT-3-approbations.md` l. 9705-9741, 10228-10260 ; `CT-4` l. 2944-2977 ; `CT-5` l. 924, 6167 ; `CT-6` l. 2133-2157, 2783-2896 ; `CT-7` l. 4034-4110, 4763-4775 ; `CT-8` l. 8456-8597 | 2026-11-01 |
 | R10-F16 à R10-F25 | cibles et méthode : CT-2 §16 ; CT-5 §3.6, §7.2, §15 ; CT-8 EX-7.1, EX-8.1, §9.2, §10, EX-11.5, §12.2, EX-13.1 | `spec/CT-2-enregistreur.md` l. 12220-12313 ; `CT-5` l. 1165-1178, 2548-2569, 6221-6230 ; `CT-8` l. 3135-3144, 3534-3551, 3588-3608, 4204-4229, 4588-4594, 5645-5664, 6302-6322, 6781-6819 | 2026-11-01 |
 | exécution | tailles des lignes du segment de la démonstration | `node -e` et `awk` sur `spec/vecteurs/ct-2/evenements/journal-demo/segment.ndjson` : 9 lignes, 14 293 octets, moyenne 1 588,11 | 2026-11-01 |
 | exécution | durée de vérification d'un dossier (illustration de la méthode) | `chronometrer.mjs`, 3 échauffements, 20 répétitions, horloge monotone : p50 454,14 ms, p99 563,47 ms | 2026-11-01 |

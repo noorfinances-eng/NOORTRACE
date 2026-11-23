@@ -3502,3 +3502,45 @@ html[data-barre="12"] { scroll-padding-top: 12.25rem; }
     grid-row: auto;
   }
 }
+
+/* Sixième lecture. Au-dessus des boutons de décision : le reste de la demande, sous eux, est signalé. */
+.avant-decision {
+  margin: 0;
+  color: var(--nt-encre);
+  font-size: var(--nt-t-s);
+}
+
+/* Sous une valeur à contrôler : pourquoi la console n'a pas pu la vérifier, en petit, sous la valeur et sa marque (le
+   chemin exact, quand il passe à la ligne, reste sous le libellé, à la même hauteur). */
+.valeur-raison {
+  grid-column: 2 / -1;
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-xs);
+  line-height: 1.4;
+}
+
+@media (min-width: 37.5001rem) {
+  .ligne-valeur:has(> .valeur-raison) > .valeur-nom {
+    grid-row: span 2;
+  }
+}
+
+@media (max-width: 37.5rem) {
+  .valeur-raison {
+    flex: 1 1 100%;
+  }
+}
+
+/* Une action qu'on ne peut pas défaire (révoquer, désactiver, se récuser) : couleur d'alerte dès le premier bouton,
+   distincte d'un bouton ordinaire ; sa confirmation garde le bouton plein du thème. */
+.bouton-definitif:not(:disabled),
+.bouton-definitif:not(:disabled):hover,
+.bouton-definitif:not(:disabled):active {
+  border-color: var(--nt-action-danger);
+  background: var(--nt-refus-fond);
+  color: var(--nt-refus);
+}
+
+.bouton-definitif:not(:disabled):hover {
+  text-decoration: underline;
+}

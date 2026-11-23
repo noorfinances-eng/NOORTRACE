@@ -36,31 +36,34 @@ async function noter(slug, corps) {
 }
 
 /** Un texte saisi : `{ valeur }` ou `{ erreur }` (phrase sans la valeur). */
-function lireTexte(nom, brut, max) {
+function lireTexte(nom, brut, max, vide = CHAMP_VIDE) {
   const t = String(brut ?? "").trim();
-  if (t === "") return { erreur: CHAMP_VIDE };
+  if (t === "") return { erreur: vide };
   if ([...t].length > max) return { erreur: `Ce texte est trop long : ${max} caractères au plus.` };
   const v = lireChamp({ nom, type: "texte" }, t);
   return v.erreur ? { erreur: explicationSaisie("texte") } : { valeur: v.valeur };
 }
 
 /** Champ texte d'une note : libellé, saisie, refus, aide, exemple. */
-function ChampTexte({ id, nom, libelle, aide, exemple, erreur, zone = false }) {
-  const decrit = [`${id}-aide`, exemple ? `${id}-exemple` : null, erreur ? `${id}-erreur` : null].filter(Boolean).join(" ");
+function ChampTexte({ id, nom, libelle, aide, exemple, erreur, zone = false, libelleAttributs = {} }) {
+  const decrit = [aide ? `${id}-aide` : null, exemple ? `${id}-exemple` : null, erreur ? `${id}-erreur` : null].filter(Boolean).join(" ") || undefined;
   const commun = { id, name: nom, className: "nt-saisie", "data-type": "texte", autoComplete: "off", "aria-required": "true", "aria-describedby": decrit, "aria-invalid": erreur ? "true" : undefined };
   return (
     <div className="nt-champ">
-      <label className="nt-libelle" htmlFor={id}>{libelle}</label>
+      <label className="nt-libelle" htmlFor={id} {...libelleAttributs}>{libelle}</label>
       {zone ? <textarea {...commun} rows={3} /> : <input {...commun} type="text" />}
       {erreur ? <p className="nt-erreur" id={`${id}-erreur`} role="alert"><Icone nom="alerte" /><span>{erreur}</span></p> : null}
-      <p className="nt-aide" id={`${id}-aide`}>{aide}</p>
+      {aide ? <p className="nt-aide" id={`${id}-aide`}>{aide}</p> : null}
       {exemple ? <p className="nt-aide ins-exemple" id={`${id}-exemple`} data-exemple="">Exemple : <span className="nt-fixe" data-valeur="">{exemple}</span></p> : null}
     </div>
   );
 }
 
-/** Donner, changer ou retirer le nom interne d'un client. `nom` : le nom en vigueur, ou null. */
-export function NomInterne({ slug, nom = null }) {
+/**
+ * Donner, changer ou retirer le nom interne d'un client. `nom` : le nom en vigueur, ou null. `compact` (sixième lecture :
+ * sans nom interne, le formulaire est sur la fiche, sous la consigne, sans repli) : le champ et son bouton sur une ligne ; le libellé est l'invitation que la fiche donne (`invite`).
+ */
+export function NomInterne({ slug, nom = null, compact = false, invite = null }) {
   const id = useId();
   const router = useRouter();
   const [etat, setEtat] = useState({ erreur: null, refus: null, envoi: false, fait: null });
@@ -74,7 +77,8 @@ export function NomInterne({ slug, nom = null }) {
   const enregistrer = async (ev) => {
     ev.preventDefault();
     const formulaire = ev.currentTarget;
-    const v = lireTexte("nom", new FormData(formulaire).get("nom"), NOM_MAX);
+    // Le formulaire compact n'a pas d'aide dessous : le refus d'un champ vide n'y renvoie pas.
+    const v = lireTexte("nom", new FormData(formulaire).get("nom"), NOM_MAX, compact ? "Ce champ est vide : écrivez le nom sous lequel notre équipe reconnaîtra ce client." : CHAMP_VIDE);
     if (v.erreur) {
       setEtat({ erreur: v.erreur, refus: null, envoi: false, fait: null });
       document.getElementById(`${id}-nom`)?.focus();
@@ -85,14 +89,15 @@ export function NomInterne({ slug, nom = null }) {
   };
   return (
     <div className="nt-pile" data-nom-interne-formulaire="">
-      <form className="nt-formulaire" onSubmit={enregistrer} noValidate data-note="nom_interne">
+      <form className={compact ? "nt-formulaire ins-nom-compact" : "nt-formulaire"} onSubmit={enregistrer} noValidate data-note="nom_interne">
         <ChampTexte
           id={`${id}-nom`}
           nom="nom"
-          libelle={nom ? "Nouveau nom interne" : "Nom interne"}
+          libelle={nom ? "Nouveau nom interne" : invite ?? "Nom interne"}
+          libelleAttributs={invite ? { "data-nom-tire": "" } : {}}
           erreur={etat.erreur}
-          aide="Le nom sous lequel notre équipe reconnaît ce client, en 80 caractères au plus. Seule notre équipe le voit, dans cet outil : il ne part jamais vers le registre public, ni dans le paquet du client. Vous pourrez le changer."
-          exemple="Assurances du Léman"
+          aide={compact ? null : "Le nom sous lequel notre équipe reconnaît ce client, en 80 caractères au plus. Seule notre équipe le voit, dans cet outil : il ne part jamais vers le registre public, ni dans le paquet du client. Vous pourrez le changer."}
+          exemple={compact ? null : "Assurances du Léman"}
         />
         <div className="nt-actions ins-actions-bouton">
           <button type="submit" className="nt-bouton" disabled={etat.envoi}>{nom ? "Changer le nom interne" : "Enregistrer ce nom"}</button>

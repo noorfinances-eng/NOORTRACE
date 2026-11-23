@@ -29,11 +29,16 @@
 // enregistrée ; une seule opération chacune. Pour l'inscription, c'est le versement de l'étape 5 ; les étapes 2 à 4
 // n'en demandent pas, mais l'action qui fait les étapes 2 à 5 ne commence pas sans elle (le service d'inscription
 // refuse de l'admettre). Les valeurs qui engagent, sur chaque carte, restent où elles sont.
+//
+// Sixième lecture (même complément) : la pastille du haut dit l'action attendue, d'après la même règle que le
+// formulaire (`confirmationsAttendues`) : « Confirmation à noter » quand une confirmation est attendue ; sinon le
+// nombre de celles qui sont prêtes à servir ; sinon « Rien à noter », sans ton d'alerte. Les mots viennent de la
+// table unique de `parcours.mjs`.
 
 import { notFound } from "next/navigation";
 import { client, confirmations } from "../../../../lib/donnees.mjs";
 import { exigerSession } from "../../../../lib/page.mjs";
-import { OPERATIONS_CONFIRMATION, confirmationsAttendues, dateLisible, libelleCommande } from "../../../../lib/parcours.mjs";
+import { OPERATIONS_CONFIRMATION, PASTILLES, confirmationsAttendues, dateLisible, libelleCommande, pretesAServir } from "../../../../lib/parcours.mjs";
 import { CopierValeur } from "../../../../composants/CopierTexte.js";
 import CalculerEmpreinte from "../../../../composants/CalculerEmpreinte.js";
 import FormulaireConfirmation from "../../../../composants/FormulaireConfirmation.js";
@@ -69,7 +74,11 @@ export default async function PageConfirmations({ params }) {
           <p className="nt-sous-titre">Le client confirme par un autre moyen que cet outil (un appel, un courrier signé) chaque versement sur son compte technique et, une fois ses approbateurs enregistrés, chaque changement de leur liste. Vous notez ici chaque confirmation ; sans elle, l'outil n'envoie pas l'opération. La liste garde tout : rien ne s'en efface.</p>
         </div>
         <div className="nt-entete-etat">
-          <Pastille ton={disponibles > 0 ? "info" : ""} icone={disponibles > 0 ? "info" : "tiret"} grande>{disponibles === 0 ? "Aucune prête à servir" : `${disponibles} ${disponibles > 1 ? "prêtes à servir" : "prête à servir"}`}</Pastille>
+          {(() => {
+            const cle = attendues.length > 0 ? "confirmation_a_noter" : disponibles > 0 ? "confirmation_prete" : "confirmation_rien_a_noter";
+            const p = PASTILLES[cle];
+            return <Pastille ton={p.ton} icone={p.icone} grande data-etat-confirmations={cle}>{cle === "confirmation_prete" ? pretesAServir(disponibles) : p.libelle}</Pastille>;
+          })()}
         </div>
       </header>
 
@@ -89,7 +98,7 @@ export default async function PageConfirmations({ params }) {
             <article className="nt-carte" key={x.id} data-confirmation={x.id}>
               <div className="nt-carte-titre">
                 <h3>{OPERATIONS_CONFIRMATION[x.operation] ?? x.operation}</h3>
-                {x.consommee_par ? <Pastille icone="coche">Déjà utilisée</Pastille> : <Pastille ton="info" icone="info">Prête à servir</Pastille>}
+                {(() => { const p = PASTILLES[x.consommee_par ? "confirmation_utilisee" : "confirmation_prete"]; return <Pastille ton={p.ton} icone={p.icone}>{p.libelle}</Pastille>; })()}
               </div>
               <dl className="nt-definitions">
                 <dt>Personne qui a confirmé</dt><dd><span data-valeur="">{x.personne_client}</span></dd>

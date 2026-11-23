@@ -2644,6 +2644,114 @@ html[data-theme="clair"] .nt-case input {
   }
 }
 
+/* Sixième lecture : la case de relecture des adresses, mise en avant au-dessus de leur champ ; la recherche de la liste ;
+   le nom interne à donner, sur la fiche, quand il manque. */
+.ins-releve-texte {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-2);
+}
+
+.ins-case {
+  display: flex;
+  align-items: center;
+  gap: var(--nt-e-3);
+  min-height: 2.75rem;
+  font-weight: 600;
+}
+
+.ins-case input[type="checkbox"] {
+  flex: none;
+  width: 1.375rem;
+  height: 1.375rem;
+  margin: 0;
+  accent-color: currentColor;
+}
+
+.ins-ligne-icone {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--nt-e-2);
+}
+
+.ins-recherche {
+  max-width: 32rem;
+}
+
+.ins-entete-etat-nom {
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.ins-nom-a-donner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-2);
+  width: 26rem;
+  max-width: 100%;
+  padding: var(--nt-e-3);
+}
+
+@media (max-width: 37.5rem) {
+  .ins-entete-etat-nom {
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .ins-nom-a-donner {
+    width: auto;
+  }
+}
+
+/* Le champ du nom interne et son bouton côte à côte sur un écran large ; l'aide et l'exemple dessous. */
+.ins-nom-compact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: var(--nt-e-2) var(--nt-e-3);
+}
+
+.ins-nom-compact p,
+.ins-nom-compact label {
+  margin: 0;
+}
+
+.ins-nom-compact > div:first-child {
+  display: contents;
+}
+
+.ins-nom-compact > div:first-child > label,
+.ins-nom-compact > div:first-child > p {
+  grid-column: 1 / -1;
+}
+
+.ins-nom-compact > div:first-child > input {
+  grid-column: 1;
+}
+
+.ins-nom-compact > .ins-actions-bouton {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+@media (max-width: 37.5rem) {
+  .ins-nom-compact {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ins-nom-compact > .ins-actions-bouton {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+@media (pointer: coarse), (max-width: 37.5rem) {
+  .ins-case input[type="checkbox"] {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+}
+
 @media print {
   .ins-reseau {
     border: 1px solid;
