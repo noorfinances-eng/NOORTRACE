@@ -279,8 +279,12 @@ async function cloreEtVerifier(banc, evts) {
     for (const [nom, rap] of [["JavaScript", v.js], ["Go", v.go]]) {
       expect(rap, `vérificateur ${nom}`).to.be.an("object");
       expect(rap.sans_reseau, `${nom} sans réseau`).to.equal(true);
-      expect(rap.code, `${nom} seq ${e.seq} : ${rap.stderr}`).to.equal(0);
-      expect(rap.rapport?.verdict, `${nom} seq ${e.seq}`).to.equal("valide");
+      // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : le banc signe avec la clé d'essai rec-test-01 (pièce d'essai,
+      // EX-6.24) : rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+      expect(rap.code, `${nom} seq ${e.seq} : ${rap.stderr}`).to.equal(3);
+      expect(rap.rapport?.verdict, `${nom} seq ${e.seq}`).to.equal("incomplet");
+      expect(rap.rapport?.incomplete_reasons, `${nom} seq ${e.seq}`).to.deep.equal(["piece_essai"]);
+      expect(rap.rapport?.failed_checks, `${nom} seq ${e.seq}`).to.deep.equal([]);
       const statuts = Object.fromEntries((rap.rapport.controls ?? []).map((k) => [k.number, k.status]));
       // Contrôles 1 à 3 (forme, chaîne, manifeste) réussis pour tout événement ; 4 et 5 (date, Bitcoin) non exécutés
       // (démonstration hors ligne, aucune ancre) ; 6 à 8 réussis ou sans objet selon l'événement, jamais en échec ;

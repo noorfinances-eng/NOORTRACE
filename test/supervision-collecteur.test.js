@@ -664,7 +664,7 @@ describe("CT-9 TE-17 : supervision en charge — démon réel de l'enregistreur 
     expect(ecarts).to.deep.equal([]);
   });
 
-  it("TE-17, dossier : un appel d'écriture relayé pendant la fenêtre de charge, exporté après la clôture de sa période (noortrace-ctl close-period --now, développement), est vérifié par les deux vérificateurs de CT-6 : code 0, verdict valide, énoncé identique", async function () {
+  it("TE-17, dossier : un appel d'écriture relayé pendant la fenêtre de charge, exporté après la clôture de sa période (noortrace-ctl close-period --now, développement), est vérifié par les deux vérificateurs de CT-6 : aucune vérification en échec, clé d'enregistreur d'essai : verdict incomplet, code 3, raison piece_essai seule, énoncé identique", async function () {
     await s.hote.arreter();
     const env = { ...process.env, ...s.m.env };
     const ctl = (args) => spawnSync(process.execPath, [BIN_CTL, ...args, "--configuration", s.m.chemin], { encoding: "utf8", env });
@@ -680,17 +680,19 @@ describe("CT-9 TE-17 : supervision en charge — démon réel de l'enregistreur 
     expect(exporte.status, exporte.stdout + exporte.stderr).to.equal(0);
     expect(JSON.parse(exporte.stdout.trim().split("\n").at(-1))).to.deep.include({ event: "dossier_exported" });
     const js = spawnSync(process.execPath, [path.join(RACINE, "scripts", "verify", "dossier.mjs"), destination, "--json"], { cwd: RACINE, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-    expect(js.status, js.stdout + js.stderr).to.equal(0);
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : le montage signe avec la clé d'essai rec-test-01 (pièce d'essai,
+    // EX-6.24) : rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+    expect(js.status, js.stdout + js.stderr).to.equal(3);
     const rapportJs = JSON.parse(js.stdout);
-    expect(rapportJs.verdict).to.equal("valide");
+    expect([rapportJs.verdict, rapportJs.incomplete_reasons, rapportJs.failed_checks]).to.deep.equal(["incomplet", ["piece_essai"], []]);
     expect(rapportJs.statement.fr).to.include(`seq ${choisi.seq} `);
     const bin = [process.env.NOORTRACE_VERIFIER_BIN, process.env.NOORTRACE_GO_BIN, path.join(RACINE, "verificateur", "dist", "noortrace-verifier-linux-amd64")].find((x) => x && fs.existsSync(x));
     executions.push({ dossier: { seq: choisi.seq, verificateur_js: { code: js.status, verdict: rapportJs.verdict }, verificateur_go: bin ? "lancé" : "absent" } });
     if (!bin) return enAttente(this, "vérificateur Go de CT-6 (NOORTRACE_VERIFIER_BIN, NOORTRACE_GO_BIN ou verificateur/dist/noortrace-verifier-linux-amd64) : vérification JavaScript faite, vérification Go non faite");
     const go = spawnSync(bin, [destination, "--json"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
-    expect(go.status, go.stdout + go.stderr).to.equal(0);
+    expect(go.status, go.stdout + go.stderr).to.equal(3);
     const rapportGo = JSON.parse(go.stdout);
-    expect(rapportGo.verdict).to.equal("valide");
+    expect([rapportGo.verdict, rapportGo.incomplete_reasons, rapportGo.failed_checks]).to.deep.equal(["incomplet", ["piece_essai"], []]);
     expect(rapportGo.statement).to.deep.equal(rapportJs.statement);
     expect(Object.fromEntries(rapportGo.checks.map((x) => [x.id, x.status]))).to.deep.equal(Object.fromEntries(rapportJs.checks.map((x) => [x.id, x.status])));
   });

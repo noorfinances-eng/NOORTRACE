@@ -180,16 +180,19 @@ describe("Étape 7 : banc client fictif — installation complète IC-1 à IC-18
     for (const id of ["IP-1", "IP-2", "IP-4", "IP-7", "IP-8", "IP-10", "IP-11", "IP-12", "IP-13"]) expect(controle.checks.find((x) => x.id === id).status, id).to.equal("reussi");
   });
 
-  it("TE-7, IC-15 : un appel d'outil soumis à approbation, une décision signée par la console (deux approbateurs, portefeuille d'essai), la clôture réelle de l'heure, l'export du dossier ; noortrace-verifier (image et binaire) et npm run verify:dossier avec --exiger 7 : code 0, verdict valide, contrôles 4, 7 et 8 réussis", function () {
+  it("TE-7, IC-15 : un appel d'outil soumis à approbation, une décision signée par la console (deux approbateurs, portefeuille d'essai), la clôture réelle de l'heure, l'export du dossier ; noortrace-verifier (image et binaire) et npm run verify:dossier avec --exiger 7 : contrôles 4, 7 et 8 réussis, rien n'échoue ; approbateurs d'essai : incomplet, code 3, les deux raisons", function () {
     if (!pret(this)) return;
     const v = path.join(s.travail, "banc", "verificateurs");
     for (const f of ["verificateur-conteneur.json", "noortrace-verifier.json", "verify-dossier.json"]) {
       const r = lireJson(path.join(v, f));
       const ctl = Object.fromEntries(r.controls.map((x) => [x.number, x.status]));
-      expect(r.verdict, f).to.equal("valide");
+      // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : les approbateurs du banc sont des comptes d'essai (EX-6.24) :
+      // rien n'échoue, verdict « incomplet », code 3, le contrôle 7 exigé étant sans valeur de preuve (EX-6.25) et le
+      // dossier reposant sur des pièces d'essai (EX-8.12).
+      expect([r.verdict, r.incomplete_reasons, r.failed_checks], f).to.deep.equal(["incomplet", ["exigence_non_remplie", "piece_essai"], []]);
       expect([ctl[4], ctl[7], ctl[8]], f).to.deep.equal(["reussi", "reussi", "reussi"]);
     }
-    for (const f of ["noortrace-verifier.code", "verify-dossier.code"]) expect(fs.readFileSync(path.join(v, f), "utf8").trim(), f).to.equal("0");
+    for (const f of ["noortrace-verifier.code", "verify-dossier.code"]) expect(fs.readFileSync(path.join(v, f), "utf8").trim(), f).to.equal("3");
     const appel = lireJson(path.join(s.pv, "IC-15-appel.json"));
     expect(appel.decision.approvers).to.have.length(2);
     expect(s.banc.dossier_sha256).to.match(/^[0-9a-f]{64}$/);

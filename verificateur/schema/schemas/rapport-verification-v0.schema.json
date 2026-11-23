@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://noortrace.example/schemas/v0/rapport-verification.schema.json",
-  "title": "Rapport de vérification NOORTRACE, version 0 (CT-6 §8.6 ; révision 0.2 : facts.checkpoint, famille K-, R-11)",
+  "title": "Rapport de vérification NOORTRACE, version 0 (CT-6 §8.6 ; révision 0.2 : facts.checkpoint, famille K-, R-11 ; complément du 2026-11-23 : incomplete_reasons)",
   "description": "Sortie JSON du vérificateur (option --json) : soit un rapport de vérification (codes de retour 0, 1 et 3), soit un rapport d'erreur quand l'entrée est inutilisable (code 2). Clés en anglais, valeurs énumérées en français sans accent. Les identifiants de vérification (D-, E-, C-, M-, P-, A- et, depuis la révision 0.3 de CT-1, K- de CT-1 §11.4 ; T-, O-, R-, N- de CT-6) et les numéros de contrôle (1 à 8) sont stables. Révision 0.2 de CT-6 (ajouts compatibles : un rapport de la version 0.1 reste valide) : identifiants K-1 à K-9 et R-11, avertissements AV-K-, membre facultatif facts.checkpoint (point de contrôle du journal qui couvre l'événement), rôle ancre_point_de_controle dans facts.registry.entries.",
   "oneOf": [
     {
@@ -1659,6 +1659,18 @@
             3
           ]
         },
+        "incomplete_reasons": {
+          "description": "Complément du 2026-11-23 de CT-6 (EX-8.12) : pourquoi le verdict est incomplet, dans cet ordre : exigence_non_remplie (un contrôle exigé par --exiger non réussi, ou réussi sans valeur de preuve, EX-6.25), piece_essai (au moins un avertissement de pièce d'essai, EX-6.24, EX-6.26) ; vide pour valide et invalide ; facultatif, absent d'un rapport antérieur au complément.",
+          "type": "array",
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "exigence_non_remplie",
+              "piece_essai"
+            ]
+          }
+        },
         "statement": {
           "$ref": "#/$defs/enonce"
         },
@@ -1683,6 +1695,9 @@
             },
             "exit_code": {
               "const": 0
+            },
+            "incomplete_reasons": {
+              "maxItems": 0
             }
           }
         },
@@ -1694,6 +1709,9 @@
             },
             "exit_code": {
               "const": 1
+            },
+            "incomplete_reasons": {
+              "maxItems": 0
             }
           }
         },
@@ -1705,6 +1723,9 @@
             },
             "exit_code": {
               "const": 3
+            },
+            "incomplete_reasons": {
+              "minItems": 1
             }
           }
         }

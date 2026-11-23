@@ -388,7 +388,10 @@ describe("ancrage, registre : recalculs, capture et export du registre (CT-6 §1
     const r = spawnSync(binaire, [dossier, "--ancres", ancres, "--entetes-bitcoin", entetes, "--json"], { encoding: "utf8" });
     expect(r.status, r.stderr).to.equal(attendu.exit_code);
     const rapport = JSON.parse(r.stdout);
-    expect(rapport.verdict).to.equal(attendu.valid ? "valide" : "invalide");
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : le vecteur repose sur des pièces d'essai ; valide au sens de CT-1,
+    // il rend « incomplet », code 3, sans contrôle en échec (EX-8.12).
+    expect([rapport.verdict, rapport.incomplete_reasons, rapport.failed_checks]).to.deep.equal(attendu.valid ? ["incomplet", ["piece_essai"], []] : ["invalide", [], rapport.failed_checks]);
+    expect(rapport.verdict).to.equal(attendu.valid ? "incomplet" : "invalide");
     expect(rapport.exit_code).to.equal(attendu.exit_code);
     expect(rapport.controls.map((c) => c.status)).to.deep.equal(Object.values(attendu.control_statuses));
     expect(rapport.failed_checks).to.deep.equal(attendu.failed_checks);

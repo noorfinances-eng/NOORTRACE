@@ -89,7 +89,10 @@ describe("TE-18 avec le composant d'ancrage branché : dossier produit par l'exp
     expect(lignes("dossier_reexport_due")).to.deep.equal([]);
     expect((await demon.commande({ cmd: "reexports" })).dus).to.deep.equal([]);
     const js = verifierJs(destination);
-    expect(js.code, js.stderr).to.equal(0);
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : la clé d'enregistreur rec-test-01 est une pièce d'essai (EX-6.24) :
+    // rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+    expect(js.code, js.stderr).to.equal(3);
+    expect([js.rapport.verdict, js.rapport.incomplete_reasons, js.rapport.failed_checks]).to.deep.equal(["incomplet", ["piece_essai"], []]);
   });
 
   it("mise à niveau OpenTimestamps : dossier_reexport_due (component ancrage, request_id null) nomme la destination demandée et les raisons ; un nouvel export vers une destination neuve porte entetes-bitcoin.json (bitcoin_headers, files compté) et n'est plus dû ; le dossier antérieur est inchangé", async function () {
@@ -136,11 +139,13 @@ describe("TE-18 avec le composant d'ancrage branché : dossier produit par l'exp
     await new Promise((x) => setTimeout(x, 1500));
     expect(lignes("dossier_reexport_due").length).to.equal(n);
     const js = verifierJs(destination, { entetes: path.join(destination, "entetes-bitcoin.json") });
-    expect(js.code, js.stderr).to.equal(0);
+    expect(js.code, js.stderr).to.equal(3);
+    expect([js.rapport.verdict, js.rapport.incomplete_reasons, js.rapport.failed_checks]).to.deep.equal(["incomplet", ["piece_essai"], []]);
     const bin = binaireGo();
     if (!bin) return enAttente(this, "vérificateur Go de CT-6 : vérification JavaScript faite, vérification Go non faite");
     const go = verifierGo(destination, { entetes: path.join(destination, "entetes-bitcoin.json"), bin });
-    expect(go.code, go.stderr).to.equal(0);
+    expect(go.code, go.stderr).to.equal(3);
+    expect([go.rapport.verdict, go.rapport.incomplete_reasons, go.rapport.failed_checks]).to.deep.equal(["incomplet", ["piece_essai"], []]);
     expect(statuts(go.rapport)).to.deep.equal(statuts(js.rapport));
   });
 });

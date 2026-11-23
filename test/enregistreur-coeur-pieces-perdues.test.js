@@ -313,7 +313,9 @@ describe("enregistreur, cœur : pièces d'événements en attente perdues (CT-2 
           expect(e6(r).detail, nom).to.include(ev.A.sha256.slice(2));
         } else {
           // Pièces absentes (non fournies), lues comme des pièces purgées : aucune erreur, verdict inchangé.
-          expect([code, r.verdict, r.failed_checks, e6(r).status], nom).to.deep.equal([0, "valide", [], "reussi"]);
+          // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : la clé d'enregistreur rec-test-01 est une pièce d'essai (EX-6.24) :
+          // rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+          expect([code, r.verdict, r.incomplete_reasons, r.failed_checks, e6(r).status], nom).to.deep.equal([3, "incomplet", ["piece_essai"], [], "reussi"]);
         }
       }
       expect(rapports.find((x) => x[0] === "js-avec")[2].inputs.pieces.files).to.equal(2);

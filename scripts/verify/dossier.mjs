@@ -32,7 +32,10 @@
 // Codes de retour (section 8.3) : 0 valide ; 1 invalide ; 2 entrée inutilisable
 // (usage, dossier, schémas, fichier d'ancres ou entrée à part illisibles, limite
 // dépassée, erreur interne) ; 3 incomplet (un contrôle exigé par --exiger n'a
-// pas réussi). Les codes 0, 1 et 2 gardent le sens de la version CT-1.
+// pas réussi ou est sans valeur de preuve, ou, depuis le complément du
+// 2026-11-23 de CT-6, le dossier porte au moins une pièce d'essai, EX-6.26).
+// Les codes 0, 1 et 2 gardent le sens de la version CT-1, à ceci près qu'un
+// dossier signé par une clé d'essai rend 3 et non plus 0.
 
 import crypto from "node:crypto";
 import fs from "node:fs";
@@ -119,13 +122,13 @@ function aide(langue) {
       "  --entetes-bitcoin   Bitcoin header chain (schema entetes-bitcoin-v0) for control 5",
       "  --pieces            directory of pieces named by their sha256 (E-6)",
       "  --second-manifeste  previous or next manifest of the same journal (P-5)",
-      "  --exiger            controls (1 to 8, comma-separated, or tous) that must pass, otherwise code 3",
+      "  --exiger            controls (1 to 8, comma-separated, or tous) that must pass without resting on a test piece, otherwise code 3",
       "  --langue            language of the readable report and of the JSON texts (fr by default)",
       "  --json              JSON report (schema rapport-verification-v0) instead of the readable report",
       "  --detail            readable report: every check, not only those that did not pass",
       "The optional thirteenth part points-de-controle.json (journal checkpoint, CT-1 revision 0.3) is verified by K-1 to K-9 when the index declares it present.",
       "The optional fourteenth part attestation-perimetre.json (perimeter attestation, CT-1 revision 0.4, CT-7) is verified by AT-1 to AT-7 when the index declares it present; the perimeter is declared, not proven, and these checks do not change the verdict.",
-      "Exit codes: 0 valid, 1 invalid, 2 unusable input, 3 incomplete (--exiger).",
+      "Exit codes: 0 valid, 1 invalid, 2 unusable input, 3 incomplete (--exiger not met, or at least one test piece, CT-6 EX-6.26).",
     ].join("\n");
   }
   return [
@@ -139,13 +142,13 @@ function aide(langue) {
     "  --entetes-bitcoin   chaîne d'en-têtes Bitcoin (schéma entetes-bitcoin-v0) pour le contrôle 5",
     "  --pieces            répertoire de pièces nommées par leur sha256 (E-6)",
     "  --second-manifeste  manifeste précédent ou suivant du même journal (P-5)",
-    "  --exiger            contrôles (1 à 8, séparés par des virgules, ou tous) qui doivent réussir, sinon code 3",
+    "  --exiger            contrôles (1 à 8, séparés par des virgules, ou tous) qui doivent réussir sans reposer sur une pièce d'essai, sinon code 3",
     "  --langue            langue du rapport lisible et des textes du rapport JSON (fr par défaut)",
     "  --json              rapport JSON (schéma rapport-verification-v0) au lieu du rapport lisible",
     "  --detail            rapport lisible : toutes les vérifications, pas seulement celles qui n'ont pas réussi",
     "La treizième partie facultative points-de-controle.json (point de contrôle du journal, CT-1 révision 0.3) est vérifiée par K-1 à K-9 quand l'index la déclare présente.",
     "La quatorzième partie facultative attestation-perimetre.json (attestation de périmètre, CT-1 révision 0.4, CT-7) est vérifiée par AT-1 à AT-7 quand l'index la déclare présente ; le périmètre est déclaré, non prouvé, et ces vérifications ne changent pas le verdict.",
-    "Codes de retour : 0 valide, 1 invalide, 2 entrée inutilisable, 3 incomplet (--exiger).",
+    "Codes de retour : 0 valide, 1 invalide, 2 entrée inutilisable, 3 incomplet (exigence non remplie, ou au moins une pièce d'essai, CT-6 EX-6.26).",
   ].join("\n");
 }
 

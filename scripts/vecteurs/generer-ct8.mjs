@@ -96,7 +96,7 @@ function entete(familles) {
     "```bash",
     "npm run vecteurs:ct8",
     "npm run deploiement:conteneurs   # code 0",
-    "node scripts/paquet-reviseur/verifier.mjs spec/vecteurs/ct-8/paquets/valide.tar   # code 0",
+    "node scripts/paquet-reviseur/verifier.mjs spec/vecteurs/ct-8/paquets/valide.tar   # code 3 : dossiers d'essai (CT-6 EX-6.26)",
     "node scripts/deploiement/verifier-journal.mjs spec/vecteurs/ct-8/journaux/valide --cles spec/vecteurs/ct-8/journaux/valide/cles.json   # code 0",
     "```",
   ].join("\n");

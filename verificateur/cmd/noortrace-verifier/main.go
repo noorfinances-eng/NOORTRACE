@@ -191,13 +191,15 @@ Options:
   --pieces <directory>        pieces named by their sha256 (CT-6 EX-4.6)
   --second-manifeste <file>   previous or next manifest of the same journal
   --exiger <controls>         controls 1 to 8 separated by "," or "tous":
-                              a required control not passed gives code 3
+                              a required control not passed, or resting on a
+                              test piece, gives code 3
   --langue fr|en              language of the output (default: fr)
   --json                      JSON report (rapport-verification-v0)
   --detail                    readable report: every check
   --version, --aide, --help   print the version or this help, then exit
 
-Exit codes: 0 valid, 1 invalid, 2 unusable input (no verdict), 3 incomplete.
+Exit codes: 0 valid, 1 invalid, 2 unusable input (no verdict), 3 incomplete
+(a requirement not met, or at least one test piece, CT-6 EX-6.26).
 The verifier opens no network connection and reads no system certificate store.
 `
 	}
@@ -216,13 +218,15 @@ Options :
   --pieces <répertoire>         pièces nommées par leur sha256 (CT-6 EX-4.6)
   --second-manifeste <fichier>  manifeste précédent ou suivant du même journal
   --exiger <contrôles>          contrôles de 1 à 8 séparés par « , », ou « tous » :
-                                un contrôle exigé non réussi donne le code 3
+                                un contrôle exigé non réussi, ou qui repose sur
+                                une pièce d'essai, donne le code 3
   --langue fr|en                langue de la sortie (défaut : fr)
   --json                        rapport JSON (rapport-verification-v0)
   --detail                      rapport lisible : toutes les vérifications
   --version, --aide, --help     imprime la version ou cette aide, puis sort
 
-Codes de retour : 0 valide, 1 invalide, 2 entrée inutilisable (aucun verdict), 3 incomplet.
+Codes de retour : 0 valide, 1 invalide, 2 entrée inutilisable (aucun verdict), 3 incomplet
+(exigence non remplie, ou au moins une pièce d'essai, CT-6 EX-6.26).
 Le vérificateur n'ouvre aucune connexion réseau et ne lit aucun magasin de certificats du système.
 `
 }

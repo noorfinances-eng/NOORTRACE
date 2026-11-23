@@ -337,6 +337,30 @@ func Lisible(r *Rapport, info InfosLisibles, detail bool) string {
 		if len(sv) > 0 {
 			fr, eng = append(fr, "contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : "+strings.Join(sv, ", ")), append(eng, "required control(s) without evidential value (test piece): "+strings.Join(sv, ", "))
 		}
+		// Complément du 2026-11-23 (EX-6.26, EX-8.6 point 11) : les
+		// avertissements de pièce d'essai, un par couple (identifiant,
+		// vérification), dans l'ordre du rapport.
+		for _, raison := range r.IncompleteReasons {
+			if raison != commun.RaisonPieceEssai {
+				continue
+			}
+			var pieces []string
+			vus := map[string]bool{}
+			for _, w := range r.Warnings {
+				if !commun.EstAvertissementEssai(w.ID) {
+					continue
+				}
+				p := w.ID
+				if w.Check != nil {
+					p += " (" + *w.Check + ")"
+				}
+				if !vus[p] {
+					vus[p] = true
+					pieces = append(pieces, p)
+				}
+			}
+			fr, eng = append(fr, "repose sur des pièces d'essai : "+strings.Join(pieces, ", ")), append(eng, "rests on test pieces: "+strings.Join(pieces, ", "))
+		}
 		ligne(etiquette("Résultat", "Result", l) + commun.T("INCOMPLET — "+strings.Join(fr, " ; "), "INCOMPLETE — "+strings.Join(eng, "; ")).Langue(l))
 	}
 	if en {

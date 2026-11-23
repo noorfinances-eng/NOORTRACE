@@ -77,7 +77,10 @@ type Resultat struct {
 	Avertissements []commun.Avertissement
 	// Verdict et Code (0, 1, 2 ou 3).
 	Verdict string
-	Code    int
+	// RaisonsIncomplet : incomplete_reasons (EX-8.12) ; vide hors du
+	// verdict incomplet.
+	RaisonsIncomplet []string
+	Code             int
 }
 
 // Verificateur rend le bloc `verifier` du rapport (EX-8.7, EX-8.11).
@@ -252,6 +255,9 @@ type calcul struct {
 	n3 ancres.ResultatN3
 	// Avertissements par vérification.
 	avert []commun.Avertissement
+	// Pièces d'essai relevées avec les avertissements d'EX-6.24, pour
+	// l'énoncé (EX-6.8, complément du 2026-11-23).
+	pieces *commun.PiecesEssai
 }
 
 func (c *calcul) pointPrerequis(id string, controle int) *commun.Verification {
@@ -613,11 +619,28 @@ func (c *calcul) synthese() {
 			exigesSansValeur = append(exigesSansValeur, n)
 		}
 	}
+	// Complément du 2026-11-23 (EX-6.26) : une seule pièce d'essai, quelle que
+	// soit sa vérification (K-3, K-7, K-9 compris) et quel que soit le seuil,
+	// suffit : le verdict n'est jamais valide.
+	pieceEssai := false
+	for _, w := range avert {
+		if commun.EstAvertissementEssai(w.ID) {
+			pieceEssai = true
+		}
+	}
+	exigenceNonRemplie := len(exigesNonReussis) > 0 || len(exigesSansValeur) > 0
 	switch {
 	case len(echecs) > 0 || len(bloquantes) > 0:
 		res.Verdict, res.Code = "invalide", 1
-	case len(exigesNonReussis) > 0 || len(exigesSansValeur) > 0:
+	case exigenceNonRemplie || pieceEssai:
 		res.Verdict, res.Code = "incomplet", 3
+		// Pourquoi (EX-8.12), dans l'ordre fixé.
+		if exigenceNonRemplie {
+			res.RaisonsIncomplet = append(res.RaisonsIncomplet, commun.RaisonExigenceNonRemplie)
+		}
+		if pieceEssai {
+			res.RaisonsIncomplet = append(res.RaisonsIncomplet, commun.RaisonPieceEssai)
+		}
 	default:
 		res.Verdict, res.Code = "valide", 0
 	}
@@ -652,6 +675,7 @@ func (c *calcul) approbationEssai(reussi7 bool) ([]string, int64) {
 func (c *calcul) avertissementsEssai(ctrls [9]commun.Resultat, parID map[string]commun.Verification) []commun.Avertissement {
 	an := c.an
 	var out []commun.Avertissement
+	c.pieces = commun.NouvellesPiecesEssai()
 	dites := map[string]bool{}
 	cle := func(k, role, verif string) {
 		if k == "" || dites[k] {
@@ -660,6 +684,7 @@ func (c *calcul) avertissementsEssai(ctrls [9]commun.Resultat, parID map[string]
 		dites[k] = true
 		if cl, ok := an.Cles[k]; ok && commun.EstCleEnregistreurEssai(cl.Hex) {
 			out = append(out, commun.Avertissement{ID: "AV-N-1", Verification: verif, Detail: commun.DetailCleEssai(k, role)})
+			c.pieces.Cles[k] = true
 		}
 	}
 	cleEv := ""
@@ -679,6 +704,7 @@ func (c *calcul) avertissementsEssai(ctrls [9]commun.Resultat, parID map[string]
 		for _, x := range an.Evenement.V.Membre("approval").Membre("approvers").Elements {
 			if commun.EstApprobateurEssai(x.S()) {
 				out = append(out, commun.Avertissement{ID: "AV-N-2", Verification: "E-9", Detail: commun.DetailApprobateurEssai(x.S())})
+				c.pieces.Approbateurs[strings.ToLower(x.S())] = true
 			}
 		}
 	}
@@ -698,6 +724,7 @@ func (c *calcul) avertissementsEssai(ctrls [9]commun.Resultat, parID map[string]
 			}
 			if sha := cryptographie.Hex32(sha256.Sum256(a.Certificat)); commun.EstCertificatEssai(sha) {
 				out = append(out, commun.Avertissement{ID: "AV-T-5", Verification: verif, Detail: commun.DetailAutoriteEssai(a.Nom, sha)})
+				c.pieces.Autorites[a.Nom] = true
 			}
 			return
 		}
@@ -711,6 +738,7 @@ func (c *calcul) avertissementsEssai(ctrls [9]commun.Resultat, parID map[string]
 	// Registre d'essai (AV-R-4) : contrôle 8 réussi sur le réseau de développement.
 	if ctrls[8].Statut == commun.Reussi && c.anc.Registre != nil && commun.EstChaineEssai(c.anc.Registre.ChainID) {
 		out = append(out, commun.Avertissement{ID: "AV-R-4", Verification: "R-4", Detail: commun.DetailRegistreEssai(c.anc.Registre.ChainID)})
+		c.pieces.Registres[c.anc.Registre.ChainID] = true
 	}
 	// Clé de chaîne d'essai (AV-N-1 sur N-4) : N-4 réussie ; l'enregistreur
 	// comparé est la dernière ancre employée du contrôle 8.

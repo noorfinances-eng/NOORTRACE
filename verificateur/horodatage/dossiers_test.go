@@ -199,7 +199,10 @@ func TestDossiersControle4(t *testing.T) {
 				t.Errorf("contrôle 4 : %s, attendu %s", statut4, att.ControlStatuses["4"])
 			}
 			if statut4 == commun.Reussi && att.ExitCode != 1 && att.Statement != nil {
-				if !strings.Contains(att.Statement.Fr, " ; "+prop.Fr+" ; ") || !strings.Contains(att.Statement.En, "; "+prop.En+"; ") {
+				// Complément du 2026-11-23 (CT-6 EX-6.8) : l'énoncé fait suivre une autorité d'essai de la mention ; elle est retirée avant la comparaison.
+				sansFr := strings.ReplaceAll(att.Statement.Fr, commun.MentionEssaiFr, "")
+				sansEn := strings.ReplaceAll(att.Statement.En, commun.MentionEssaiEn, "")
+				if !strings.Contains(sansFr, " ; "+prop.Fr+" ; ") || !strings.Contains(sansEn, "; "+prop.En+"; ") {
 					t.Errorf("proposition F4 absente de l'énoncé attendu :\n%s\n%s", prop.Fr, prop.En)
 				}
 			}

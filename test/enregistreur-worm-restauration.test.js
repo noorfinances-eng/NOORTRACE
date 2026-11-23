@@ -208,7 +208,7 @@ describe("reconstruction du journal depuis les copies WORM (CT-2 EX-12.17, CT-8 
     expect(entete).to.include({ first_seq: ev.synthese.last_seq + 1, prev_hash: ev.synthese.last_hash, epoch: acq.data.epoch });
   });
 
-  it("le journal reconstruit et continué est accepté par N.verifierJournal ; dossiers d'un événement restauré et d'un événement de B valides pour le noyau ET le binaire Go", async function () {
+  it("le journal reconstruit et continué est accepté par N.verifierJournal ; dossiers d'un événement restauré et d'un événement de B valides pour le noyau, et pour le binaire Go sans vérification en échec, verdict incomplet, code 3 (clé d'enregistreur d'essai)", async function () {
     const v = validerConfiguration(new TextEncoder().encode(JSON.stringify({ ...ev.B.config, recorder: { ...ev.B.config.recorder, instance_id: "inst-c" } })));
     const s = resoudreSecrets(v.config, { env: ev.B.env });
     ev.C = await Coeur.demarrer({ config: v.config, secrets: s.secrets, horloge: horlogeHeureSuivante() });
@@ -236,8 +236,11 @@ describe("reconstruction du journal depuis les copies WORM (CT-2 EX-12.17, CT-8 
     }
     for (const d of dossiers) {
       const g = spawnSync(bin, [d, "--json"], { encoding: "utf8" });
-      expect(g.status, g.stdout + g.stderr).to.equal(0);
-      expect(JSON.parse(g.stdout).verdict).to.equal("valide");
+      // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : la clé d'enregistreur rec-test-01 est une pièce d'essai (EX-6.24) :
+      // rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+      expect(g.status, g.stdout + g.stderr).to.equal(3);
+      const rapport = JSON.parse(g.stdout);
+      expect([rapport.verdict, rapport.incomplete_reasons, rapport.failed_checks]).to.deep.equal(["incomplet", ["piece_essai"], []]);
     }
   });
 

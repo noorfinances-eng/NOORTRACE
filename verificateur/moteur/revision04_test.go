@@ -182,9 +182,10 @@ func TestEX515EvenementInexploitable(t *testing.T) {
 			}
 		})
 	}
-	// Témoin : le dossier complet est valide.
-	if res := lancerComplet(t, completCT6); res.Code != 0 {
-		t.Errorf("témoin : code %d", res.Code)
+	// Témoin : rien n'échoue dans le dossier complet ; il est fait de pièces
+	// d'essai, donc incomplet, code 3 (EX-6.26, complément du 2026-11-23).
+	if res := lancerComplet(t, completCT6); res.Code != 3 || res.Verdict != "incomplet" || len(res.Rapport.FailedChecks) != 0 {
+		t.Errorf("témoin : code %d, verdict %s", res.Code, res.Verdict)
 	}
 }
 

@@ -306,7 +306,7 @@ func (c *calcul) o5() {
 	c.ancreUtile = true
 	if c.e.Ancre.Reseau == ReseauRegtest {
 		c.avO5 = append(c.avO5, commun.Avertissement{ID: "AV-O-3", Verification: "O-5", Detail: commun.T(
-			"réseau regtest : réseau d'essai, sans valeur probante hors des tests", "regtest network: a test network, no evidential value outside tests")})
+			"réseau regtest : réseau d'essai, sans valeur de preuve hors des essais", "regtest network: a test network, no evidential value outside tests")})
 	}
 }
 
@@ -500,8 +500,8 @@ func proposition(empreinte string, f *Faits) commun.Texte {
 		en += "; bound under assumption: " + *f.MedianBound + " UTC"
 	}
 	if f.Network == ReseauRegtest {
-		fr += " (réseau d'essai, sans valeur probante)"
-		en += " (test network, no evidential value)"
+		fr += " (réseau d'essai, sans valeur de preuve hors des essais)"
+		en += " (test network, no evidential value outside tests)"
 	}
 	return commun.T(fr, en)
 }

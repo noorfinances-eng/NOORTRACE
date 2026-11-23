@@ -59,9 +59,11 @@ function construireVerificateur(dir) {
 
 function verifierParGo(bin, dossier) {
   const r = spawnSync(bin, [dossier, "--json"], { encoding: "utf8" });
-  expect(r.status, r.stdout + r.stderr).to.equal(0);
+  // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : la clé d'enregistreur rec-test-01 est une pièce d'essai (EX-6.24) :
+  // rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+  expect(r.status, r.stdout + r.stderr).to.equal(3);
   const rapport = JSON.parse(r.stdout);
-  expect(rapport.verdict, dossier).to.equal("valide");
+  expect([rapport.verdict, rapport.incomplete_reasons], dossier).to.deep.equal(["incomplet", ["piece_essai"]]);
   expect(rapport.failed_checks).to.deep.equal([]);
   return rapport;
 }
@@ -316,7 +318,7 @@ describe("haute disponibilité et WORM : parcours de bout en bout (deux démons 
         expect(r.valide, JSON.stringify(r.diagnostics)).to.equal(true);
       });
 
-      it("dossiers d'un événement écrit par A et d'un événement écrit par B : valides pour le noyau ET pour le binaire Go (go1.27.3)", async function () {
+      it("dossiers d'un événement écrit par A et d'un événement écrit par B : valides pour le noyau, et pour le binaire Go (go1.27.3) sans vérification en échec, verdict incomplet, code 3 (clé d'enregistreur d'essai)", async function () {
         const parA = ev.evts.find((e) => e.execution.tool === "demo__ecrire" && e.seq < ev.evts.find((x) => x.execution.tool === "demo__ecrire_lent").seq);
         const parB = ev.evts.filter((e) => e.execution.tool === "demo__ecrire").at(-1);
         expect(parB.seq).to.be.greaterThan(ev.evts.find((x) => x.execution.tool === "demo__ecrire_lent").seq);

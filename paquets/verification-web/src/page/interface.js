@@ -898,6 +898,10 @@ const SUITES = Object.freeze({
   1: ["suite_1_1", "suite_1_2", "suite_1_3"],
   2: ["suite_2_1", "suite_2_2", "suite_2_3"],
   3: ["suite_3_1", "suite_3_2", "suite_3_3"],
+  // Décision du 2026-11-23 (CT-6 §18, point 20) : sous le code 3, quand le rapport dit que le dossier repose sur des
+  // pièces d'essai, seule (3_essai) ou avec une exigence non remplie (3_essai_exigence).
+  "3_essai": ["suite_3_essai_1", "suite_3_essai_2", "suite_3_3"],
+  "3_essai_exigence": ["suite_3_essai_1", "suite_3_1", "suite_3_3"],
   non_faite: ["suite_non_faite_1", "suite_non_faite_2", "suite_non_faite_3"],
   refus: ["suite_refus_1", "suite_refus_2"],
   refus_piece: ["suite_refus_piece_1", "suite_refus_piece_2"],
@@ -1000,9 +1004,37 @@ function reservesDuControle(numero, controles, avertissements) {
 
 // Avertissements dont le texte dit que le contrôle auquel le rapport les rattache est sans valeur de preuve (table de
 // CT-6 §18, point 15), et la clé de la raison courte de chacun : les avertissements de pièce d'essai, dont le texte dit
-// « sans valeur probante hors des tests » (AV-O-3, CT-6 §10.7 ; AV-T-5, AV-R-4, AV-N-1, AV-N-2, CT-6 §6.10, complément
+// « sans valeur de preuve hors des essais » (AV-O-3, CT-6 §10.7 ; AV-T-5, AV-R-4, AV-N-1, AV-N-2, CT-6 §6.10, complément
 // du 2026-11-19). Aucun autre : les seize autres limitent une partie de ce que le contrôle établit, ou rien.
 const SANS_VALEUR = Object.freeze({ "AV-O-3": "sans_valeur_av_o_3", "AV-T-5": "sans_valeur_av_t_5", "AV-R-4": "sans_valeur_av_r_4", "AV-N-1": "sans_valeur_av_n_1", "AV-N-2": "sans_valeur_av_n_2" });
+// Valeurs de `incomplete_reasons` du rapport JSON (CT-6 EX-8.12, complément du 2026-11-23) : pourquoi le code est 3.
+const RAISONS_INCOMPLET = Object.freeze(["exigence_non_remplie", "piece_essai"]);
+
+/**
+ * Le membre `incomplete_reasons` du rapport (CT-6 EX-8.12), lu exactement : une liste de valeurs de RAISONS_INCOMPLET,
+ * chacune au plus une fois, sous le code 3 seulement. Absent (rapport antérieur au complément du 2026-11-23) ou d'une
+ * autre forme : null, et la page lit le code 3 comme avant ce complément.
+ */
+function raisonsIncompletLues(rapport, code) {
+  if (code !== 3 || rapport === null || typeof rapport !== "object") return null;
+  const r = rapport.incomplete_reasons;
+  if (!Array.isArray(r) || r.length === 0 || r.length > RAISONS_INCOMPLET.length) return null;
+  if (!r.every((x) => typeof x === "string" && RAISONS_INCOMPLET.includes(x)) || new Set(r).size !== r.length) return null;
+  return [...r];
+}
+
+/**
+ * Identifiants des avertissements de pièce d'essai qui font dire au verdict « Incomplet : ce dossier repose sur des
+ * pièces d'essai » (CT-6 §18, point 20) : seulement si le rapport dit lui-même `piece_essai` dans
+ * `incomplete_reasons` ET porte au moins un avertissement de la table SANS_VALEUR ; chacun une fois, dans l'ordre du
+ * rapport. Vide sinon : la page ne dit jamais plus que le rapport.
+ */
+function piecesEssaiDuVerdict(resume) {
+  if (resume === null || !Array.isArray(resume.raisonsIncomplet) || !resume.raisonsIncomplet.includes("piece_essai") || !Array.isArray(resume.avertissements)) return [];
+  const ids = [];
+  for (const a of resume.avertissements) if (Object.hasOwn(SANS_VALEUR, a.id) && !ids.includes(a.id)) ids.push(a.id);
+  return ids;
+}
 // Couples (avertissement, vérification) qui rendent chaque contrôle sans valeur de preuve, tels qu'EX-6.25 de CT-6 les
 // nomme, et eux seuls : le contrôle 4 par AV-T-5 de T-7 ; le 5 par AV-O-3 de O-5 ; le 6 par AV-N-1 de E-8 ou de P-5 ;
 // le 7 par AV-N-2 de E-9, avec la règle de nombre (approbationSansValeur) ; le 8 par AV-R-4 de R-4 ou AV-N-1 de N-4.
@@ -1337,6 +1369,8 @@ function resumer(rapport, code) {
     clesDuDossier: clesDuDossier(rapport, code),
     approbateursDuDossier: approbateursDuDossier(rapport, code),
     horsPerimetre: partiesHorsPerimetre(rapport),
+    // Décision du 2026-11-23 (CT-6 EX-8.12) : pourquoi le code est 3, tel que le rapport le dit ; null s'il ne le dit pas.
+    raisonsIncomplet: raisonsIncompletLues(rapport, code),
   };
 }
 
@@ -1881,9 +1915,13 @@ function ecrireVue() {
   const verdict = blocVerdict(variante, signe);
   if (presentation.teinte !== "pleine") verdict.classList.add(`pv-verdict-${presentation.teinte}`);
   verdict.dataset.code = String(v.code);
+  // Décision du 2026-11-23 (CT-6 §18, point 20) : sous le code 3, quand le rapport dit « piece_essai » et porte au
+  // moins un avertissement de pièce d'essai, le mot le dit, la phrase courante aussi, et la liste des pièces suit.
+  const piecesEssai = v.code === 3 ? piecesEssaiDuVerdict(v.resume) : [];
+  const exigenceNonRemplie = v.code === 3 && v.resume.raisonsIncomplet !== null && v.resume.raisonsIncomplet.includes("exigence_non_remplie");
   const titre = element("p", "nt-verdict-mot pv-mot");
   titre.id = "verdict-titre";
-  const mot = element("span", null, libelle(`mot_${v.code}`));
+  const mot = element("span", null, libelle(piecesEssai.length > 0 ? "mot_3_essai" : `mot_${v.code}`));
   mot.id = "verdict-mot";
   titre.append(mot);
   if (presentation.mention !== null) {
@@ -1903,12 +1941,14 @@ function ecrireVue() {
       verdict.append(p);
     }
   }
-  const courante = clePhraseCourante(v.code);
+  const courante = piecesEssai.length > 0 ? (exigenceNonRemplie ? "phrase_3_essai_exigence" : "phrase_3_essai") : clePhraseCourante(v.code);
   if (courante !== null) verdict.append(phraseCourante(courante));
   const suite = element("div", "pv-verdict-suite");
   suite.id = "verdict-suite";
   verdict.append(suite);
   contenu.append(verdict);
+  // Les pièces d'essai du dossier, en mots (raisons courtes de la table du point 15), d'après les avertissements.
+  if (piecesEssai.length > 0) suite.append(ligneBorne("pieces-essai", "pieces_essai", {}, { liste: raisonsEnMots(piecesEssai.map((id) => SANS_VALEUR[id])) }));
 
   if (v.code === 2) {
     const a = element("p", "aucune-affirmation pv-verdict-fort", libelle("aucune_affirmation"));
@@ -2005,7 +2045,7 @@ function ecrireVue() {
   const duo = element("div", "pv-duo");
   const limites = v.code === 2 ? null : carteLimites(v.code);
   if (limites) duo.append(limites);
-  const suiteCarte = carteSuite(v.code, true);
+  const suiteCarte = carteSuite(piecesEssai.length > 0 ? (exigenceNonRemplie ? "3_essai_exigence" : "3_essai") : v.code, true);
   if (suiteCarte) duo.append(suiteCarte);
   contenu.append(duo);
 

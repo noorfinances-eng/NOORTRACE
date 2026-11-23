@@ -251,12 +251,13 @@ async function dossierVerifie(c, nom) {
 /** Assertions communes de fin de ligne : journal valide, séquence continue, dossier valide pour les deux vérificateurs. */
 function verifierDossier(ctx, d) {
   d.evts.forEach((e, k) => expect(e.seq, "séquence continue").to.equal(k + 1));
-  expect(d.js.code, d.js.sortie.slice(-1500)).to.equal(0);
-  expect(d.js.rapport.verdict, d.js.sortie.slice(-1500)).to.equal("valide");
+  // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : la clé d'enregistreur rec-test-01 est une pièce d'essai (EX-6.24) :
+  // rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+  expect(d.js.code, d.js.sortie.slice(-1500)).to.equal(3);
+  expect([d.js.rapport.verdict, d.js.rapport.incomplete_reasons, d.js.rapport.failed_checks], d.js.sortie.slice(-1500)).to.deep.equal(["incomplet", ["piece_essai"], []]);
   if (!VERIFIER_GO) enAttente(ctx, "binaire noortrace-verifier absent (NOORTRACE_VERIFIER_BIN)");
-  expect(d.go.code, d.go.sortie.slice(-1500)).to.equal(0);
-  expect(d.go.rapport.verdict).to.equal("valide");
-  expect(d.go.rapport.failed_checks).to.deep.equal([]);
+  expect(d.go.code, d.go.sortie.slice(-1500)).to.equal(3);
+  expect([d.go.rapport.verdict, d.go.rapport.incomplete_reasons, d.go.rapport.failed_checks]).to.deep.equal(["incomplet", ["piece_essai"], []]);
 }
 
 const lignes = (p, ev) => p.lignes().filter((l) => l.event === ev);

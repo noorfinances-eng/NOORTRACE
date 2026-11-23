@@ -109,7 +109,8 @@ def evenements_outil(evenements: List[dict], nom: str) -> List[dict]:
 
 def verifier_parcours(banc: Banc, seq: int, nom: str) -> Dict[str, Any]:
     """Journal accepté par ``N.verifierJournal`` ; dossier de ``seq`` valide pour le
-    noyau et, si go1.27.3 est présent, pour le binaire Go."""
+    noyau et, si go1.27.3 est présent, sans contrôle en échec pour le binaire Go (code 3,
+    pièces d'essai)."""
     dossier = os.path.join(banc.info["dir"], f"dossier-{nom}")
     r = banc.verifier(seq, dossier)
     assert r["journal"]["valide"], r["journal"]
@@ -117,7 +118,9 @@ def verifier_parcours(banc: Banc, seq: int, nom: str) -> Dict[str, Any]:
     if os.environ.get("NOORTRACE_ESSAI_EXIGER_GO") and r["go"] is None:
         raise AssertionError("go1.27.3 exige mais absent")
     if r["go"] is not None:
-        assert r["go"]["status"] == 0 and r["go"]["verdict"] == "valide" and r["go"]["failed_checks"] == [], r["go"]
+        # Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : la clé d'enregistreur rec-test-01 du banc est une pièce
+        # d'essai (EX-6.24) : rien n'échoue, mais le verdict est « incomplet », code 3, raison « piece_essai » seule (EX-8.12).
+        assert r["go"]["status"] == 3 and r["go"]["verdict"] == "incomplet" and r["go"]["incomplete_reasons"] == ["piece_essai"] and r["go"]["failed_checks"] == [], r["go"]
         statuts = {c[0]: c[1] for c in r["go"]["controls"]}
         for i in (1, 2, 3, 6):
             assert statuts[i] == "reussi", r["go"]

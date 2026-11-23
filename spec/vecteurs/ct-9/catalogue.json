@@ -3272,7 +3272,7 @@
           {
             "file": "test/enregistreur.test.js",
             "describe": "CT-2 : vecteurs spec/vecteurs/ct-2, rejoués",
-            "it": "evenements/journal-demo/dossier-seq-7 : dossier CT-1 valide par verifierDossier et par scripts/verify/dossier.mjs (code 0)"
+            "it": "evenements/journal-demo/dossier-seq-7 : dossier CT-1 valide pour le noyau (verifierDossier) ; scripts/verify/dossier.mjs : aucune vérification en échec, pièces d'essai (clé rec-test-01, comptes Hardhat), verdict incomplet, code 3"
           }
         ],
         "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur.test.js"
@@ -4936,7 +4936,9 @@
         "CT-6 AV-T-5",
         "CT-6 AV-R-4",
         "CT-6 AV-N-1",
-        "CT-6 AV-N-2"
+        "CT-6 AV-N-2",
+        "CT-6 EX-6.26",
+        "CT-6 EX-8.12"
       ],
       "preconditions": [
         "Vecteurs `ct-6/dossiers` présents au commit éprouvé, régénérés sans différence (TV- de génération déterministe de la même famille).",
@@ -4945,7 +4947,8 @@
       "steps": [
         "Lancer `scripts/verify/dossier.mjs` sur chaque dossier, en français et en anglais, avec et sans `--json` ; comparer deux exécutions ; reconstruire l'énoncé fragment par fragment ; vérifier V-10 sur chaque dossier avec la partie d'attestation ; aucun « prouvé » sur le périmètre.",
         "Révision 0.4 de CT-6 : les seize dossiers d'EX-A.23 et les deux d'EX-A.24 sont rejoués comme les autres, `--exiger 4` compris (`exit_code_exiger_4`) ; événement prouvé inexploitable (EX-5.14, EX-5.15) : D-1, P-1, T-2, O-2, R-9 et R-10 non exécutées (`prerequis_en_echec`), contrôles 4, 5 et 8 non exécutés, N-4 absente, `event`, `org_id` et `journal_id` nuls (EX-6.22) ; entrées éprouvées sur une copie de `valide-seq-7-complet` : partie imbriquée au-delà de 128 niveaux (EX-4.16, point 3), `dossier.json` sans forme canonique (E-2, EX-5.20) ou contraire à son schéma (D-1), lien symbolique pour `dossier.json`, une partie, `--ancres`, `--entetes-bitcoin`, `--second-manifeste` ou une pièce (EX-4.17).",
-        "Complément du 2026-11-19 de CT-6 (section 6.10) : les valeurs d'EX-6.23 sont, mot pour mot, celles du texte, de la référence et du binaire, et chaque certificat de `rfc3161/cles` en est ; aucune pièce n'est reconnue d'après un nom (`noortrace-9999-test`) ; sur le dossier complet de pièces d'essai, AV-T-5, AV-R-4, AV-N-1 et AV-N-2 levés comme EX-6.24 le dit, et `--exiger` d'un contrôle sans valeur de preuve rend le code 3, la ligne `Résultat` le nommant à part (EX-6.25, EX-8.6 point 11) ; sans `--exiger`, aucun code ne change."
+        "Complément du 2026-11-19 de CT-6 (section 6.10) : les valeurs d'EX-6.23 sont, mot pour mot, celles du texte, de la référence et du binaire, et chaque certificat de `rfc3161/cles` en est ; aucune pièce n'est reconnue d'après un nom (`noortrace-9999-test`) ; sur le dossier complet de pièces d'essai, AV-T-5, AV-R-4, AV-N-1 et AV-N-2 levés comme EX-6.24 le dit, et `--exiger` d'un contrôle sans valeur de preuve rend le code 3, la ligne `Résultat` le nommant à part (EX-6.25, EX-8.6 point 11) ; sans `--exiger`, aucun code ne change.",
+        "Complément du 2026-11-23 de CT-6 (décision du porteur : dossiers d'essai, EX-6.26, EX-8.12) : chaque dossier publié porte une pièce d'essai et rend le code 3, verdict `incomplet`, `incomplete_reasons` égal à `[\"piece_essai\"]`, sans vérification en échec, avec ou sans `--exiger` (48 `attendu.json` passent de 0 à 3 ; les noms `valide-*` disent le dossier, non le code) ; le membre vient après `exit_code`, vide sous `valide` et `invalide`, `exigence_non_remplie` avant `piece_essai`, et un rapport ancien sans ce membre se lit comme avant ; le code 0 reste éprouvé par un dossier construit au moment de l'essai avec une clé d'enregistreur, des approbateurs et une autorité d'horodatage tirés au hasard, jamais écrits dans le dépôt (EX-A.11), dont chaque variante à une seule pièce d'essai (clé d'enregistreur, approbateur au-dessus du seuil, autorité d'horodatage) rend 3 ; les deux implémentations concordent."
       ],
       "oracle": "Code, vérifications en échec, statuts, non-exécutions, avertissements, énoncé et borne égaux à `attendu.json` ; rapports JSON identiques octet pour octet (V-8).",
       "status": {
@@ -4978,6 +4981,10 @@
           {
             "file": "test/verificateur.test.js",
             "describe": "CT-6 complément du 2026-11-19 : pièces d'essai (section 6.10, EX-6.23 à EX-6.25)"
+          },
+          {
+            "file": "test/verificateur.test.js",
+            "describe": "CT-6 complément du 2026-11-23 : dossiers d'essai (EX-6.26, EX-8.12, EX-A.11)"
           }
         ],
         "command": "npx hardhat --config hardhat.config.mjs test test/verificateur.test.js"
@@ -6142,7 +6149,7 @@
       "steps": [
         "Reproduire le journal d'exemple (10 086 octets) ; OB-1 sur `marques.json` ; OB-6 sur `correspondance.json` ; `rapport-observation.mjs` sur le journal et les cas invalides ; dossiers de seq 1 et 3 vérifiés par CT-6."
       ],
-      "oracle": "SHA-256 et rapport égaux à EX-A.8 ; anomalies attendues ; dossiers valides.",
+      "oracle": "SHA-256 et rapport égaux à EX-A.8 ; anomalies attendues ; dossiers de seq 1 et 3 : aucune vérification en échec, verdict `incomplet`, code 3 pour la seule raison `piece_essai` (clé d'essai `rec-test-01`, CT-6 EX-6.26, décision du porteur du 2026-11-23 ; code 0 avant).",
       "status": {
         "state": "executable",
         "tests": [
@@ -7598,7 +7605,7 @@
           {
             "file": "test/enregistreur-modele-squid.test.js",
             "describe": "TI-19 — mode ICAP : raccord à un mandataire Squid réel (ssl-bump, REQMOD et RESPMOD) ; échange comparé à la passerelle ; sources ICAP admises et refusées ; adresse d'hôte inconnue ; dossiers vérifiés par les deux vérificateurs",
-            "it": "période close à l'heure suivante : journal accepté par le noyau ; dossiers de l'échange en passerelle et de l'échange par ICAP valides pour le noyau ET pour le binaire Go (go1.27.3)"
+            "it": "période close à l'heure suivante : journal accepté par le noyau ; dossiers de l'échange en passerelle et de l'échange par ICAP valides pour le noyau, et pour le binaire Go (go1.27.3) sans vérification en échec, verdict incomplet, code 3 (clé d'enregistreur d'essai)"
           },
           {
             "file": "test/enregistreur-modele-squid.test.js",
@@ -7763,7 +7770,7 @@
         "Approuver depuis la console avec deux comptes de test ; laisser le point de contrôle et l'ancre de période se produire ; clore la période.",
         "Exporter le dossier de l'écriture approuvée et un paquet réviseur ; vérifier sur une autre machine, sans réseau, par le vérificateur JavaScript et par le binaire Go ; vérifier le paquet en une commande."
       ],
-      "oracle": "Dossier valide (code 0) avec les contrôles 1 à 8 réussis, A-1 à A-4 exécutés, point couvrant ancré ; verdict et énoncé identiques entre les deux vérificateurs ; paquet : code 0, PR-1 à PR-12 réussies ; la décision, son auteur et son instant sont dans le journal (CT-1 §5).",
+      "oracle": "Dossier dont aucune vérification n'échoue, contrôles 1 à 8 réussis, A-1 à A-4 exécutés, point couvrant ancré ; verdict `incomplet`, code 3, pour la seule raison `piece_essai` (approbateurs et clés d'essai : CT-6 EX-6.26, EX-8.12, décision du porteur du 2026-11-23 ; code 0 avant) ; verdict et énoncé identiques entre les deux vérificateurs ; paquet : PR-1 à PR-12 réussies, chaque dossier `incomplet` (code 3) ; la décision, son auteur et son instant sont dans le journal (CT-1 §5).",
       "status": {
         "state": "executable",
         "tests": [
@@ -7944,7 +7951,7 @@
       "steps": [
         "`npm run e2e:registre` (`scripts/e2e/parcours-registre.mjs`) : démarrer le réseau de développement s'il ne tourne pas, déployer les contrats, exécuter 7.4 à 7.9 avec l'outil de référence pour un client fictif au slug neuf ; capturer chaque certificat ; `verifier` ; `certificat-commit.mjs` sur chaque certificat ; exporter `registre.json`, `certificat-commit.json`, `validateurs.json` et le fichier d'ancres ; faire rendre le contrôle 8 par `scripts/verify/dossier.mjs` et par `noortrace-verifier` ; arrêter ce qui a été démarré ; verdict JSON."
       ],
-      "oracle": "`exit_code` 0 partout ; étapes `capturee` ou `faite` ; R-1 à R-10 `reussi` ; code 0 de `certificat-commit.mjs` sur les six certificats (CT-4 EX-7.15). L'épreuve humaine à l'aveugle est un TR-.",
+      "oracle": "`exit_code` 0 de chaque étape, sauf les deux étapes des vérificateurs, à 3 pour la seule raison `piece_essai`, sans vérification en échec (le registre du réseau de développement est une pièce d'essai : CT-6 EX-6.26, décision du porteur du 2026-11-23 ; code 0 avant), les deux vérificateurs concordant (EX-9.2) ; étapes `capturee` ou `faite` ; R-1 à R-10 `reussi` ; code 0 de `certificat-commit.mjs` sur les six certificats (CT-4 EX-7.15). L'épreuve humaine à l'aveugle est un TR-.",
       "status": {
         "state": "executable",
         "tests": [
@@ -7989,7 +7996,7 @@
           {
             "file": "test/enregistreur.test.js",
             "describe": "CT-2 : vecteurs spec/vecteurs/ct-2, rejoués",
-            "it": "evenements/journal-demo/dossier-seq-7 : dossier CT-1 valide par verifierDossier et par scripts/verify/dossier.mjs (code 0)"
+            "it": "evenements/journal-demo/dossier-seq-7 : dossier CT-1 valide pour le noyau (verifierDossier) ; scripts/verify/dossier.mjs : aucune vérification en échec, pièces d'essai (clé rec-test-01, comptes Hardhat), verdict incomplet, code 3"
           },
           {
             "file": "test/registreCt4.test.js",
@@ -8052,7 +8059,7 @@
           {
             "file": "test/deploiement-installation.test.js",
             "describe": "CT-8 §7.3, EX-7.3 (ancrage de l'installation rapide) : l'installation rapide désigne un document d'ancrage que rapide.yaml monte, et produit des preuves OpenTimestamps",
-            "it": "TE-6 (ancrage, IR-8) : démon réel avec le document de l'installation rapide (calendriers factices en TLS, serveur interne lancé par l'essai, chemins) : jeton de clôture du serveur interne et preuve OpenTimestamps du manifeste ; dossier exporté avec jeton-rfc3161.der et preuve.ots, valide pour le vérificateur de référence, contrôle 4 réussi contre l'AC du serveur"
+            "it": "TE-6 (ancrage, IR-8) : démon réel avec le document de l'installation rapide (calendriers factices en TLS, serveur interne lancé par l'essai, chemins) : jeton de clôture du serveur interne et preuve OpenTimestamps du manifeste ; dossier exporté avec jeton-rfc3161.der et preuve.ots : contrôle 4 réussi contre l'AC du serveur, rien n'échoue, verdict incomplet, code 3 (clé d'essai)"
           },
           {
             "file": "test/deploiement-images.test.js",
@@ -8180,7 +8187,7 @@
           {
             "file": "test/banc-client-fictif.test.js",
             "describe": "Étape 7 : banc client fictif — installation complète IC-1 à IC-18 de bout en bout (CT-9 TE-7, TM-22, TM-29)",
-            "it": "TE-7, IC-15 : un appel d'outil soumis à approbation, une décision signée par la console (deux approbateurs, portefeuille d'essai), la clôture réelle de l'heure, l'export du dossier ; noortrace-verifier (image et binaire) et npm run verify:dossier avec --exiger 7 : code 0, verdict valide, contrôles 4, 7 et 8 réussis"
+            "it": "TE-7, IC-15 : un appel d'outil soumis à approbation, une décision signée par la console (deux approbateurs, portefeuille d'essai), la clôture réelle de l'heure, l'export du dossier ; noortrace-verifier (image et binaire) et npm run verify:dossier avec --exiger 7 : contrôles 4, 7 et 8 réussis, rien n'échoue ; approbateurs d'essai : incomplet, code 3, les deux raisons"
           },
           {
             "file": "test/deploiement-installation.test.js",
@@ -8197,7 +8204,7 @@
           {
             "file": "test/enregistreur-cle-chaine-etape7-reseau.test.js",
             "describe": "étape 7, réseau de développement 2124 : démon en production, clé de chaîne de classe C du modèle de production (table d'IC-14), ancres et clôture sur noorcore, dossier vérifié (contrôles 4 et 8) ; TE-14 complément JS-5 : rotation de la seule clé de chaîne relayée au registre vers une clé de classe B",
-            "it": "démon en production sur noorcore : clé de chaîne de classe C chargée (chain_key_loaded, AWS KMS), clé suivante de classe B ; ancres des points et de la période émises par la clé de classe C et incluses ; clôture submitPeriod relayée ; dossier exporté vérifié par les deux vérificateurs : verdict valide, contrôles 4 et 8 réussis"
+            "it": "démon en production sur noorcore : clé de chaîne de classe C chargée (chain_key_loaded, AWS KMS), clé suivante de classe B ; ancres des points et de la période émises par la clé de classe C et incluses ; clôture submitPeriod relayée ; dossier exporté vérifié par les deux vérificateurs : contrôles 4 et 8 réussis, rien n'échoue ; registre de développement : incomplet, code 3"
           }
         ],
         "command": "npx hardhat --config hardhat.config.mjs test test/banc-client-fictif.test.js test/deploiement-installation.test.js test/enregistreur-cle-chaine-etape7-reseau.test.js",
@@ -8521,7 +8528,7 @@
           {
             "file": "test/enregistreur-ha-bascule.test.js",
             "describe": "TE-11 — haute disponibilité à écrivain unique : bascule du bail (magasin file puis etcd), pertes admises, jeton de clôture ; dossiers vérifiés par les deux vérificateurs",
-            "it": "période close à l'heure suivante : journal accepté par le noyau ; dossiers d'un événement écrit par A et d'un événement écrit par B valides pour le noyau ET pour le binaire Go (go1.27.3)"
+            "it": "période close à l'heure suivante : journal accepté par le noyau ; dossiers d'un événement écrit par A et d'un événement écrit par B valides pour le noyau, et pour le binaire Go (go1.27.3) sans vérification en échec, verdict incomplet, code 3 (clé d'enregistreur d'essai)"
           }
         ],
         "command": "npx hardhat --config hardhat.config.mjs test test/enregistreur-ha-bascule.test.js"
@@ -8664,7 +8671,7 @@
       "steps": [
         "Inscrire un approbateur par preuve de possession ; soumettre un appel à approuver ; signer depuis la console ; exporter le dossier de l'appel approuvé (`--ticket`) et celui de la décision (`--seq`)."
       ],
-      "oracle": "Inscription acceptée (AN-3) ; `approbations.json` porte la signature recouvrée à l'adresse inscrite ; dossier de l'appel approuvé : code 0 des deux vérificateurs avec `--exiger 7`, contrôle 7 réussi, A-1 à A-3 réussies et A-4 non exécutée avec une raison admise (`piece_hors_dossier` : la demande n'est pas l'événement voisin de l'appel, la décision étant scellée entre les deux) ; dossier de la décision : code 0 des deux vérificateurs avec `--exiger 7`, A-1 à A-4 réussies. Écrans (complément du 2026-11-18 de CT-3 EX-9.4, EX-12.21 et EX-13.7) : la phrase d'en-tête ne reprend que des valeurs vérifiées ; une valeur que la console ne peut pas vérifier figure dans la carte avec sa valeur et sa marque, dans le groupe à contrôler et là seulement ; la table des libellés courants du module est celle d'EX-9.4 ; les phrases fixées restent mot pour mot ; rien de ce qu'EX-9.4 exige avant une signature n'est replié ; la décision déjà donnée sur un ticket encore ouvert est rappelée, les deux décisions restant offertes dans un bloc replié ; la personne connectée et le système qui a fourni son compte se lisent sans rien ouvrir ; le sens de « vérifié » est dit sous les valeurs ; sur l'écran de signature, les deux codes, intitulés et codes alignés, et quatre consignes courantes qui comparent chaque ligne de l'application à un seul code ; aucune récusation entre le choix du portefeuille et la signature ; les boutons de décision et de signature restent dans le premier écran avec une police de remplacement ; le choix du portefeuille n'est offert qu'après la décision confirmée, et plus après une signature ; chaque état d'une demande montre la liste de blocs de sa table ; une panne de signature paraît en haut de l'écran, dit d'abord que la décision n'est pas enregistrée et retire l'écran de signature jusqu'à « Réessayer ».",
+      "oracle": "Inscription acceptée (AN-3) ; `approbations.json` porte la signature recouvrée à l'adresse inscrite ; dossier de l'appel approuvé : code 3 des deux vérificateurs avec `--exiger 7` (verdict `incomplet`, raisons `exigence_non_remplie` et `piece_essai` : les approbateurs du banc sont des comptes d'essai, CT-6 EX-6.25, EX-6.26, EX-8.12 ; aucune vérification en échec ; sans `--exiger`, code 3 pour la seule raison `piece_essai`), contrôle 7 réussi, A-1 à A-3 réussies et A-4 non exécutée avec une raison admise (`piece_hors_dossier` : la demande n'est pas l'événement voisin de l'appel, la décision étant scellée entre les deux) ; dossier de la décision : code 3 des deux vérificateurs avec `--exiger 7` (mêmes raisons), A-1 à A-4 réussies. Écrans (complément du 2026-11-18 de CT-3 EX-9.4, EX-12.21 et EX-13.7) : la phrase d'en-tête ne reprend que des valeurs vérifiées ; une valeur que la console ne peut pas vérifier figure dans la carte avec sa valeur et sa marque, dans le groupe à contrôler et là seulement ; la table des libellés courants du module est celle d'EX-9.4 ; les phrases fixées restent mot pour mot ; rien de ce qu'EX-9.4 exige avant une signature n'est replié ; la décision déjà donnée sur un ticket encore ouvert est rappelée, les deux décisions restant offertes dans un bloc replié ; la personne connectée et le système qui a fourni son compte se lisent sans rien ouvrir ; le sens de « vérifié » est dit sous les valeurs ; sur l'écran de signature, les deux codes, intitulés et codes alignés, et quatre consignes courantes qui comparent chaque ligne de l'application à un seul code ; aucune récusation entre le choix du portefeuille et la signature ; les boutons de décision et de signature restent dans le premier écran avec une police de remplacement ; le choix du portefeuille n'est offert qu'après la décision confirmée, et plus après une signature ; chaque état d'une demande montre la liste de blocs de sa table ; une panne de signature paraît en haut de l'écran, dit d'abord que la décision n'est pas enregistrée et retire l'écran de signature jusqu'à « Réessayer ».",
       "status": {
         "state": "executable",
         "tests": [
@@ -9146,7 +9153,7 @@
         "Pendant la fenêtre de charge, provoquer chaque condition d'alerte de CT-2 §17.4, de CT-2 EX-17.8 et de CT-5 §8.9 provocable sur le déploiement de test ; une condition qui exige une ressource absente du déploiement (support WORM, source OpenTelemetry, seconde instance, rétention de quatorze jours, réglage de l'horloge système, que la section 16 exclut) est marquée non provoquée dans le rapport d'exécution, qui en consigne la liste ; relever chaque règle déclenchée et sa gravité ; lire `/healthz`, `/readyz` et `/metrics` du démon.",
         "Exporter le dossier d'un appel d'écriture relayé pendant la fenêtre de charge (CT-1 §11) et le vérifier par les deux vérificateurs de CT-6."
       ],
-      "oracle": "Unité de comptage : la règle d'alerte de CT-8 §10.4 à §10.7 identifiée par son étiquette `exigence`. Pour chaque condition provoquée, la règle de cette condition (étiquette nommant la prescription : CT-2 §17.4, CT-2 EX-17.8, CT-5 §8.9 ; une règle par condition d'une ligne à « ou », CT-8 EX-10.1) passe à l'état déclenché exactement une fois pendant la fenêtre d'observation ; les autres règles de la même prescription ne sont attendues que si leur condition est provoquée et restent silencieuses sinon ; une condition est provoquée quand elle survient pendant la fenêtre par l'effet d'une provocation, directement ou par cascade (stockage indisponible, puis appels bloqués et événements en attente ; prestataire coupé, puis ancre en retard) ; les règles attendues d'une provocation sont celles de la condition provoquée et de ses conséquences, nommées dans le rapport d'exécution avant la provocation ; une règle qui se déclenche hors de cette liste est un échec ; sous la charge nominale, hors provocation, aucune règle n'est déclenchée ni en cours de clause, sauf une règle d'absence (`absent(…)` à clause `for`) dont la source n'est pas montée au déploiement de test (relevés hors du composant de CT-8 EX-10.9, procès-verbal de sauvegarde de CT-8 EX-11.5) : elle est attendue en cours de clause, jamais déclenchée, sa clause dépassant la fenêtre de charge, et le rapport d'exécution la nomme ; la règle de la cible de TM-1 (`noortrace_latence`) est relevée sans être jugée hors du système de référence (complément) ; la liste peut nommer toute règle de CT-8 §10.4 à §10.7, celles du registre (`noortrace_registre_*`, CT-4) comprises, que la condition entraîne, chaque conséquence y étant inscrite avant la provocation avec la chaîne causale qui la justifie ; une conséquence non justifiée est un défaut du rapport, relu par l'examinateur ; les deux exemples de cascade ci-dessus ne sont pas limitatifs ; deux règles levées par une même cause (« Mode dégradé » `horloge` et « Horloge ») comptent chacune une fois, cet exemple illustrant le comptage sans exiger la provocation de l'horloge ; les trois alertes du registre des gels : une seule alerte critique par cause (CT-2 EX-17.7), clause jouée seulement si un support WORM est monté ; sinon ses conditions figurent dans la liste des conditions non provoquées et la clause n'est pas jouée. La gravité relevée (étiquette `severity` de la règle déclenchée) doit égaler celle de la table de CT-8 §10.4 à §10.7, qui fait foi (CT-8 EX-10.1) ; une gravité différente est un échec (le fichier de règles ne suit pas sa table, ce que TV-76 éprouve aussi sans les composants) ; un écart entre la table de CT-8 et la prescription de CT-2 §17.4 ou de CT-5 §8.9 est consigné, non jugé par le test. Chaque métrique de la table CT-2 §17.2 et de CT-5 EX-8.15 est présente avec exactement ses étiquettes : « présente » signifie déclarée par son nom dans l'exposition `/metrics` du démon (ligne `# TYPE` ; un histogramme par ses séries `_bucket`, `_sum` et `_count`, avec l'étiquette `le`), lue sur le démon et non chez le collecteur, qui ajoute `instance` et `job` ; les séries d'étiquettes exigées sont celles que le montage de test crée ; une métrique d'une fonction absente du montage (support WORM, source OpenTelemetry, composant d'ancrage non branché : CT-2 §17.2, révision 0.11) est déclarée mais peut n'avoir aucune série (le compte de CT-8 §10.2 est à aligner sur la table de CT-2 : PD-27). Le dossier exporté sous charge : code 0 des deux vérificateurs, énoncé identique.",
+      "oracle": "Unité de comptage : la règle d'alerte de CT-8 §10.4 à §10.7 identifiée par son étiquette `exigence`. Pour chaque condition provoquée, la règle de cette condition (étiquette nommant la prescription : CT-2 §17.4, CT-2 EX-17.8, CT-5 §8.9 ; une règle par condition d'une ligne à « ou », CT-8 EX-10.1) passe à l'état déclenché exactement une fois pendant la fenêtre d'observation ; les autres règles de la même prescription ne sont attendues que si leur condition est provoquée et restent silencieuses sinon ; une condition est provoquée quand elle survient pendant la fenêtre par l'effet d'une provocation, directement ou par cascade (stockage indisponible, puis appels bloqués et événements en attente ; prestataire coupé, puis ancre en retard) ; les règles attendues d'une provocation sont celles de la condition provoquée et de ses conséquences, nommées dans le rapport d'exécution avant la provocation ; une règle qui se déclenche hors de cette liste est un échec ; sous la charge nominale, hors provocation, aucune règle n'est déclenchée ni en cours de clause, sauf une règle d'absence (`absent(…)` à clause `for`) dont la source n'est pas montée au déploiement de test (relevés hors du composant de CT-8 EX-10.9, procès-verbal de sauvegarde de CT-8 EX-11.5) : elle est attendue en cours de clause, jamais déclenchée, sa clause dépassant la fenêtre de charge, et le rapport d'exécution la nomme ; la règle de la cible de TM-1 (`noortrace_latence`) est relevée sans être jugée hors du système de référence (complément) ; la liste peut nommer toute règle de CT-8 §10.4 à §10.7, celles du registre (`noortrace_registre_*`, CT-4) comprises, que la condition entraîne, chaque conséquence y étant inscrite avant la provocation avec la chaîne causale qui la justifie ; une conséquence non justifiée est un défaut du rapport, relu par l'examinateur ; les deux exemples de cascade ci-dessus ne sont pas limitatifs ; deux règles levées par une même cause (« Mode dégradé » `horloge` et « Horloge ») comptent chacune une fois, cet exemple illustrant le comptage sans exiger la provocation de l'horloge ; les trois alertes du registre des gels : une seule alerte critique par cause (CT-2 EX-17.7), clause jouée seulement si un support WORM est monté ; sinon ses conditions figurent dans la liste des conditions non provoquées et la clause n'est pas jouée. La gravité relevée (étiquette `severity` de la règle déclenchée) doit égaler celle de la table de CT-8 §10.4 à §10.7, qui fait foi (CT-8 EX-10.1) ; une gravité différente est un échec (le fichier de règles ne suit pas sa table, ce que TV-76 éprouve aussi sans les composants) ; un écart entre la table de CT-8 et la prescription de CT-2 §17.4 ou de CT-5 §8.9 est consigné, non jugé par le test. Chaque métrique de la table CT-2 §17.2 et de CT-5 EX-8.15 est présente avec exactement ses étiquettes : « présente » signifie déclarée par son nom dans l'exposition `/metrics` du démon (ligne `# TYPE` ; un histogramme par ses séries `_bucket`, `_sum` et `_count`, avec l'étiquette `le`), lue sur le démon et non chez le collecteur, qui ajoute `instance` et `job` ; les séries d'étiquettes exigées sont celles que le montage de test crée ; une métrique d'une fonction absente du montage (support WORM, source OpenTelemetry, composant d'ancrage non branché : CT-2 §17.2, révision 0.11) est déclarée mais peut n'avoir aucune série (le compte de CT-8 §10.2 est à aligner sur la table de CT-2 : PD-27). Le dossier exporté sous charge : aucune vérification en échec, verdict `incomplet`, code 3 des deux vérificateurs pour la seule raison `piece_essai` (clé d'enregistreur d'essai : CT-6 EX-6.26, décision du porteur du 2026-11-23 ; code 0 avant), énoncé identique.",
       "status": {
         "state": "executable",
         "tests": [
@@ -9183,7 +9190,7 @@
           {
             "file": "test/supervision-collecteur.test.js",
             "describe": "CT-9 TE-17 : supervision en charge — démon réel de l'enregistreur sous charge à cadence fixe, extracteur, sonde et collecteur Prometheus 3.5.0 chargé des règles de référence (CT-2 §17.4, EX-17.5 à EX-17.8 ; CT-5 §8.9)",
-            "it": "TE-17, dossier : un appel d'écriture relayé pendant la fenêtre de charge, exporté après la clôture de sa période (noortrace-ctl close-period --now, développement), est vérifié par les deux vérificateurs de CT-6 : code 0, verdict valide, énoncé identique"
+            "it": "TE-17, dossier : un appel d'écriture relayé pendant la fenêtre de charge, exporté après la clôture de sa période (noortrace-ctl close-period --now, développement), est vérifié par les deux vérificateurs de CT-6 : aucune vérification en échec, clé d'enregistreur d'essai : verdict incomplet, code 3, raison piece_essai seule, énoncé identique"
           }
         ],
         "command": "npx hardhat --config hardhat.config.mjs test test/supervision-collecteur.test.js",
@@ -9222,7 +9229,7 @@
         "Interrompre un export, puis redémarrer le démon ; écrire au démon des demandes inconnue, illisible, hors de son domaine et périmée, puis des demandes `rotation-urgence` et `ancrage` ; valider des configurations dont `exports_dir` est `storage.root`, l'un de ses parents ou l'un de ses descendants.",
         "Vérifier chaque dossier exporté par les deux vérificateurs ; lire le journal d'exploitation, `supervision.ops_log.level` valant `error`."
       ],
-      "oracle": "Chaque refus rend, dans l'ordre d'EX-15.12, son message et son code, sans dossier ni répertoire partiel à la destination ; `--ticket` retient le premier événement `executee` qui porte l'approbation, jamais la continuation, et refuse un ticket refusé, expiré, non décidé ou inconnu (EX-15.11) ; le dossier est en `0750` et ses fichiers en `0640`, du groupe des lecteurs (EX-15.13, CT-7 EX-3.16) ; le reste `.noortrace-partiel-<request_id>` d'un export interrompu est supprimé à l'acquisition du bail ; une ligne `dossier_exported` ou `dossier_export_refused` par demande, avec son `request_id`, quel que soit le niveau du journal (EX-15.14) ; une demande inconnue, illisible, hors de son domaine ou périmée n'a aucun effet et donne `ctl_request_refused`, les demandes `rotation-urgence` et `ancrage` exécutent leur seule action (EX-15.10) ; `exports_dir` emboîté avec `storage.root` est refusé à la validation ; chaque dossier exporté : code 0 des deux vérificateurs, énoncé identique.",
+      "oracle": "Chaque refus rend, dans l'ordre d'EX-15.12, son message et son code, sans dossier ni répertoire partiel à la destination ; `--ticket` retient le premier événement `executee` qui porte l'approbation, jamais la continuation, et refuse un ticket refusé, expiré, non décidé ou inconnu (EX-15.11) ; le dossier est en `0750` et ses fichiers en `0640`, du groupe des lecteurs (EX-15.13, CT-7 EX-3.16) ; le reste `.noortrace-partiel-<request_id>` d'un export interrompu est supprimé à l'acquisition du bail ; une ligne `dossier_exported` ou `dossier_export_refused` par demande, avec son `request_id`, quel que soit le niveau du journal (EX-15.14) ; une demande inconnue, illisible, hors de son domaine ou périmée n'a aucun effet et donne `ctl_request_refused`, les demandes `rotation-urgence` et `ancrage` exécutent leur seule action (EX-15.10) ; `exports_dir` emboîté avec `storage.root` est refusé à la validation ; chaque dossier exporté : aucune vérification en échec, verdict `incomplet`, code 3 des deux vérificateurs (approbateurs et clé d'essai : CT-6 EX-6.26, EX-8.12 ; avec `--exiger 7`, raisons `exigence_non_remplie` et `piece_essai`), énoncé identique.",
       "status": {
         "state": "executable",
         "tests": [
@@ -14911,7 +14918,7 @@
         "expected_without_response": "Invalide ; le test échoue.",
         "execution": "vecteurs_et_depot",
         "accepted_risk": null,
-        "threat_test_text": "Le test échoue si la réponse est retirée : les dossiers `valide-at1-partie-nulle` et `valide-at1-taille` gardent le verdict `valide` avec AT-1 en échec ; si l'exclusion des AT- du verdict est retirée, ils deviennent invalides et le test échoue."
+        "threat_test_text": "Le test échoue si la réponse est retirée : les dossiers `valide-at1-partie-nulle` et `valide-at1-taille` ne deviennent pas invalides avec AT-1 en échec (leur verdict est `incomplet`, code 3, pour leurs seules pièces d'essai, CT-6 EX-6.26, complément du 2026-11-23 ; `valide` avant) ; si l'exclusion des AT- du verdict est retirée, ils deviennent invalides et le test échoue."
       }
     },
     {
@@ -21198,70 +21205,70 @@
     {
       "id": "TC-5",
       "key": "CT-2 §1",
-      "line": 1059,
+      "line": 1069,
       "delegated": "Périmètre : les tests sont hors de CT-2.",
       "response": "Ce document."
     },
     {
       "id": "TC-6",
       "key": "CT-2 §1",
-      "line": 1072,
+      "line": 1082,
       "delegated": "Lit les EX-, les vecteurs (annexe B), la méthode de mesure (16) ; fixe les tests.",
       "response": "§7 (TV- de `ct-2`), §6 (TU- de CT-2), §11 (TM- de CT-2 §16)."
     },
     {
       "id": "TC-7",
       "key": "CT-2 §10.4",
-      "line": 7779,
+      "line": 7789,
       "delegated": "Réappliquer la politique à une pièce stockée : égalité des octets (idempotence).",
       "response": "TV- `ct-2/redaction/` (§7), oracle « la seconde application ne change aucun octet »."
     },
     {
       "id": "TC-8",
       "key": "CT-2 §15.6",
-      "line": 11619,
+      "line": 11629,
       "delegated": "Règles de configuration que le schéma n'exprime pas : tests de CT-9.",
       "response": "TU- configuration et contrôles de démarrage (§6) ; TV- `ct-2/pieces-*` ; TE- installation (§9) pour la commande du démon."
     },
     {
       "id": "TC-9",
       "key": "CT-2 §16.2",
-      "line": 12280,
+      "line": 12290,
       "delegated": "Seuil de régression des mesures de performance, à décider par CT-9.",
       "response": "§11.4 : seuil de régression EX-11.15 ; proposition PD- à CT-2 EX-16.2 pas 7 (§17.2)."
     },
     {
       "id": "TC-10",
       "key": "CT-2 §21",
-      "line": 14365,
+      "line": 14389,
       "delegated": "« Les tests » hors de CT-2.",
       "response": "Ce document."
     },
     {
       "id": "TC-11",
       "key": "CT-3 §0",
-      "line": 58,
+      "line": 60,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-12",
       "key": "CT-3 §1",
-      "line": 749,
+      "line": 751,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-13",
       "key": "CT-3 §1",
-      "line": 778,
+      "line": 780,
       "delegated": "EX-, AP-, TK-, SG-, AN-, CS-, vecteurs `ct-3`, épreuve à trois relecteurs, épreuve de lecture de la console.",
       "response": "TR-1 (A.5, trois relecteurs) et TR-2 (A.11, console) en §12 ; EX-, AP-, TK-, SG-, AN-, CS- et vecteurs ct-3 : TU-, TV- (§6, §7)."
     },
     {
       "id": "TC-14",
       "key": "CT-3 §7.12",
-      "line": 2688,
+      "line": 2690,
       "delegated": "Rattachement des TK-1 à TK-13 aux tests.",
       "response": "TV- `ct-3/tickets/` et TU- tickets (§6, §7) : `covers` CT-3 TK-1 à TK-13."
     },
@@ -21373,21 +21380,21 @@
     {
       "id": "TC-30",
       "key": "CT-6 §0",
-      "line": 132,
+      "line": 147,
       "delegated": "Rattachement aux EX-.",
       "response": "§5.1, règle (a)."
     },
     {
       "id": "TC-31",
       "key": "CT-6 §1",
-      "line": 304,
+      "line": 326,
       "delegated": "EX-, T-, O-, R-, N-, V-, vecteurs `ct-6`.",
       "response": "§6 (TU- jeton, preuve, registre), §7 (TV- de `ct-6`, dont V-1 à V-10)."
     },
     {
       "id": "TC-32",
       "key": "CT-6 §6.9",
-      "line": 1988,
+      "line": 2037,
       "delegated": "Exécution des V- par comparaison du rapport à `attendu.json`.",
       "response": "TV- `ct-6/dossiers/` (§7) : oracle = rapport comparé à `attendu.json`."
     },
@@ -21401,154 +21408,154 @@
     {
       "id": "TC-34",
       "key": "CT-7 §0.2",
-      "line": 256,
+      "line": 261,
       "delegated": "Revue de code de l'enregistreur, périmètre fixé par CT-7 (3.2, 3.4).",
       "response": "§13 (TQ- enregistreur)."
     },
     {
       "id": "TC-35",
       "key": "CT-7 §0.3",
-      "line": 384,
+      "line": 389,
       "delegated": "Ce que l'auteur de CT-9 lit dans CT-7.",
       "response": "Ce document ; annexe A."
     },
     {
       "id": "TC-36",
       "key": "CT-7 §1",
-      "line": 392,
+      "line": 397,
       "delegated": "Un test par menace.",
       "response": "§10 : un TA- par menace, TA-1 à TA-102, même numéro que la menace (EX-10.1) ; cinq scénarios TA-103 à TA-107 (§10.5)."
     },
     {
       "id": "TC-37",
       "key": "CT-7 §1",
-      "line": 417,
+      "line": 422,
       "delegated": "Revue de code.",
       "response": "§13 (TQ-)."
     },
     {
       "id": "TC-38",
       "key": "CT-7 §1",
-      "line": 433,
+      "line": 438,
       "delegated": "Colonne « Test de CT-9 » de 3.4.",
       "response": "TR-6, TR-7, TR-8 (les trois épreuves de la section 9) en §12 ; un TA- par menace (§10, table 10.4 imprimée depuis `catalogue.json`) ; CR-, AT-, RV-, MX- et vecteurs ct-7 : TV- (§7), TU- (§6)."
     },
     {
       "id": "TC-39",
       "key": "CT-7 §1",
-      "line": 433,
+      "line": 438,
       "delegated": "Colonne « Test de CT-9 » de 3.4.",
       "response": "TR-6, TR-7, TR-8 (les trois épreuves de la section 9) en §12 ; un TA- par menace (§10, table 10.4 imprimée depuis `catalogue.json`) ; CR-, AT-, RV-, MX- et vecteurs ct-7 : TV- (§7), TU- (§6)."
     },
     {
       "id": "TC-40",
       "key": "CT-7 §3.1",
-      "line": 525,
+      "line": 530,
       "delegated": "Le test que CT-9 doit écrire (colonnes de 3.4).",
       "response": "EX-10.2 : le membre `threat_test_text` de chaque TA- est la cellule « Test de CT-9 » de 3.4 ; l'oracle du TA- la précise."
     },
     {
       "id": "TC-41",
       "key": "CT-7 §3.1",
-      "line": 536,
+      "line": 541,
       "delegated": "Critère : le test échoue si la réponse est retirée.",
       "response": "EX-10.1, EX-10.3 : réponse retirée nommée (`response_removed`), mutant tué ; §10.8 pour les mutants exécutés le 2026-11-01."
     },
     {
       "id": "TC-42",
       "key": "CT-7 §3.4",
-      "line": 780,
+      "line": 785,
       "delegated": "Préfixe fixe de la colonne.",
       "response": "EX-10.2 : `threat_test_text` commence par ce préfixe fixe (contrôlé par le schéma)."
     },
     {
       "id": "TC-43",
       "key": "CT-7 §3.4",
-      "line": 829,
+      "line": 834,
       "delegated": "Les tests de MN-22 et MN-9 valent pour l'agent.",
       "response": "TA-22 et TA-9 (phase 2, étapes 8 et 4) ; scénario TA-103 (§10.5)."
     },
     {
       "id": "TC-44",
       "key": "CT-7 §3.4",
-      "line": 851,
+      "line": 856,
       "delegated": "En-tête de la table 3.4.",
       "response": "§10 ; index des TA- par menace (annexe A)."
     },
     {
       "id": "TC-45",
       "key": "CT-7 §3.8",
-      "line": 1307,
+      "line": 1312,
       "delegated": "Cellule « Test de CT-9 » = membre `test` privé du préfixe.",
       "response": "EX-10.2 : le catalogue lit `menaces.json`, jamais la table du texte ; l'outil de couverture compare `threat_test_text` au membre `test`."
     },
     {
       "id": "TC-46",
       "key": "CT-7 §4.1",
-      "line": 1420,
+      "line": 1425,
       "delegated": "Inventaire CLE- à jour, contrôlé par la revue de CT-9.",
       "response": "TQ- inventaire des clés (§13)."
     },
     {
       "id": "TC-47",
       "key": "CT-7 §5.2",
-      "line": 1718,
+      "line": 1723,
       "delegated": "Répétition de la procédure de cérémonie (TA-95, TA-97) jouée par des rôles simulés : relecteurs internes en sessions isolées, sans personne physique ; ce qu'elle établit est borné par CT-7 §5.2.",
       "response": "TA-95 et TA-97 (§10.4, « Procédure ») : épreuves de procédure en deux passes, par des sessions isolées qui tiennent chacune un rôle (§10.1) ; « Rôle simulé » (§2) ; à écrire, étape 8."
     },
     {
       "id": "TC-48",
       "key": "CT-7 §7.9",
-      "line": 3203,
+      "line": 3208,
       "delegated": "Parité de l'attestation : exigences mesurées par CT-9 (EX-7.18).",
       "response": "TM-20 (EX-7.18, six points constatés sur les vecteurs, exécutable) en §11."
     },
     {
       "id": "TC-49",
       "key": "CT-7 §7.9",
-      "line": 3212,
+      "line": 3217,
       "delegated": "Test sur tous les rapports des vecteurs : aucun « prouvé » appliqué au périmètre.",
       "response": "TV- `ct-6/dossiers/` (§7), exécutable : `test/verificateur.test.js`, it « EX-7.3 de CT-6, EX-7.18 point 3 de CT-7 : aucun texte des rapports n'applique « prouvé », … »."
     },
     {
       "id": "TC-50",
       "key": "CT-7 §7.10",
-      "line": 3229,
+      "line": 3234,
       "delegated": "Tests des menaces de l'attestation MN-78 à MN-91, MN-98.",
       "response": "TA-78 à TA-91 et TA-98 (§10.4) : tous exécutables sauf TA-88 (à écrire, retrait motivé tant que PA-10 n'est pas adoptée)."
     },
     {
       "id": "TC-51",
       "key": "CT-7 §10",
-      "line": 4115,
+      "line": 4120,
       "delegated": "Revue de code, non faite.",
       "response": "§13 (TQ-), état « à écrire », étape 8."
     },
     {
       "id": "TC-52",
       "key": "CT-7 §10",
-      "line": 4120,
+      "line": 4125,
       "delegated": "Aucune cérémonie tenue par des personnes : la répétition de la porte 2 (TA-95, TA-97) est jouée par des rôles simulés.",
       "response": "TA-95 et TA-97 (§10.4, « Procédure », §10.1) ; ce que la porte 2 ne prouve pas : la tenue d'une cérémonie de clés par des personnes (§14) ; §16."
     },
     {
       "id": "TC-53",
       "key": "CT-7 §11",
-      "line": 4252,
+      "line": 4257,
       "delegated": "Comptes de TQ-7 (`CT-7 CLE- (36)`) à aligner sur l'inventaire révisé (CLE-37 à CLE-41).",
       "response": "TQ-7 (§13) : `covers` étendu à CLE-37 à CLE-41, table TQ imprimée depuis le catalogue (§4.3) ; règle (a) de l'outil de couverture (§5.1)."
     },
     {
       "id": "TC-54",
       "key": "CT-7 §A.11",
-      "line": 4650,
+      "line": 4655,
       "delegated": "Menaces reliées à un test déjà possible (vecteurs de CT-1 à CT-6).",
       "response": "§10.4 : état « exécutable » avec le fichier et le titre exact du test du dépôt (règle de couverture (d), EX-5.4)."
     },
     {
       "id": "TC-55",
       "key": "CT-7 §A.11",
-      "line": 4651,
+      "line": 4656,
       "delegated": "Les autres tests sont écrits par CT-9.",
       "response": "§10.4 : états « à écrire » (étape de la phase 2 et blocage nommés) ou « exécutable » avec complément à écrire ; chaque entrée a ses préconditions, ses pas et son oracle."
     },
@@ -21604,399 +21611,399 @@
     {
       "id": "TC-63",
       "key": "CT-8 §1",
-      "line": 740,
+      "line": 750,
       "delegated": "Périmètre.",
       "response": "Ce document."
     },
     {
       "id": "TC-64",
       "key": "CT-8 §1",
-      "line": 754,
+      "line": 764,
       "delegated": "Onze familles, budgets, cibles, vecteurs `ct-8`, épreuves §14.",
       "response": "Mesures de la porte 2 : TM-21 à TM-40 (§11) ; épreuves de §14 : TR-9, TR-10, TR-11 (§12) ; EX-, CO-, IP-, IR-, IC-, DM-, SV-, PV-, CA-, OB-, PR- et vecteurs ct-8 : TV- (§7), TE- (§9)."
     },
     {
       "id": "TC-65",
       "key": "CT-8 §2",
-      "line": 763,
+      "line": 773,
       "delegated": "Budget de temps chronométré par CT-9.",
       "response": "TM-21 (IR-1 à IR-8) et TM-22 (IC-1 à IC-18) : chaque pas chronométré contre son budget, la somme contre la cible (EX-11.3, méthode `chronometre`)."
     },
     {
       "id": "TC-66",
       "key": "CT-8 §3.3",
-      "line": 912,
+      "line": 922,
       "delegated": "Épreuve de construction : volume nommé neuf.",
       "response": "TE- construction des images (§9), étape 7."
     },
     {
       "id": "TC-67",
       "key": "CT-8 §3.4",
-      "line": 1120,
+      "line": 1130,
       "delegated": "Cible : pose de l'attribut immuable sous 60 s.",
       "response": "TM-26 (compagnon : pose des attributs ≤ 60 s)."
     },
     {
       "id": "TC-68",
       "key": "CT-8 §3.4",
-      "line": 1129,
+      "line": 1139,
       "delegated": "Épreuve de construction : compagnon, ouverture en lecture.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-69",
       "key": "CT-8 §3.5",
-      "line": 1152,
+      "line": 1162,
       "delegated": "Cible : TTL DNS ≤ 30 s.",
       "response": "TM-27 (TTL DNS du répartiteur ≤ 30 s)."
     },
     {
       "id": "TC-70",
       "key": "CT-8 §3.6",
-      "line": 1177,
+      "line": 1187,
       "delegated": "Mesure : égalité de deux constructions des images.",
       "response": "TM-28 (égalité des condensés de deux constructions)."
     },
     {
       "id": "TC-71",
       "key": "CT-8 §3.6",
-      "line": 1230,
+      "line": 1240,
       "delegated": "Revue de code et RA-22.",
       "response": "TQ- chaîne de construction et de publication (§13)."
     },
     {
       "id": "TC-72",
       "key": "CT-8 §4.4",
-      "line": 2452,
+      "line": 2462,
       "delegated": "Épreuves de construction : images, `docker compose up`, `docker inspect`.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-73",
       "key": "CT-8 §5.3",
-      "line": 2571,
+      "line": 2581,
       "delegated": "Épreuve d'intégration ICAP.",
       "response": "TI-19 (mode ICAP, §8) : serveur ICAP et épreuve avec Squid (ssl-bump) livrés à l'étape 4."
     },
     {
       "id": "TC-74",
       "key": "CT-8 §6.2",
-      "line": 2668,
+      "line": 2678,
       "delegated": "Seuils « cible » du contrôle préalable.",
       "response": "TM-29 (seuils cibles IP-2, IP-3 confrontés à la consommation observée)."
     },
     {
       "id": "TC-75",
       "key": "CT-8 §7.1",
-      "line": 3143,
+      "line": 3153,
       "delegated": "Chronométrage IR-1 à IR-8 (900 s).",
       "response": "TM-21 (900 s, pas par pas, chaque durée publiée atteinte ou non) ; TR-9 ; critère de la porte 2 « installation par une personne extérieure en 15 min » (§14)."
     },
     {
       "id": "TC-76",
       "key": "CT-8 §7.2",
-      "line": 3411,
+      "line": 3421,
       "delegated": "Mesure : taille des images téléchargées.",
       "response": "TM-24 (taille des images et durée du téléchargement, relevées à part du budget d'IR-6)."
     },
     {
       "id": "TC-77",
       "key": "CT-8 §8.1",
-      "line": 3534,
+      "line": 3544,
       "delegated": "Titre « Durée et ce que CT-9 mesure ».",
       "response": "§11 : TM-22, TM-23 ; TE- d'A pour les verdicts du contrôle préalable final et du premier dossier."
     },
     {
       "id": "TC-78",
       "key": "CT-8 §8.1",
-      "line": 3546,
+      "line": 3556,
       "delegated": "Le système de référence est fixé par CT-9.",
       "response": "EX-11.1 (système de référence fixé en §11.1) ; TM-22 (durées), TM-23 (informations manquantes) ; verdicts IC-14 et IC-15 : TE-."
     },
     {
       "id": "TC-79",
       "key": "CT-8 §8.1",
-      "line": 3546,
+      "line": 3556,
       "delegated": "Le système de référence est fixé par CT-9.",
       "response": "EX-11.1 (système de référence fixé en §11.1) ; TM-22 (durées), TM-23 (informations manquantes) ; verdicts IC-14 et IC-15 : TE-."
     },
     {
       "id": "TC-80",
       "key": "CT-8 §8.3",
-      "line": 3638,
+      "line": 3648,
       "delegated": "Coefficients `f_pic`, `b_o`, `n_crl`, `b_crl` avant les mesures.",
       "response": "TM-33 (f_pic, b_o, b_acq, b_crl, n_crl) et TM-9 (m_0) ; IC-1 refait après mesure."
     },
     {
       "id": "TC-81",
       "key": "CT-8 §8.3",
-      "line": 3663,
+      "line": 3673,
       "delegated": "Script de préparation de l'hôte éprouvé sur le système de référence.",
       "response": "Le script de préparation de l'hôte est éprouvé pendant TM-22 (IC-2) sur le système de référence d'EX-11.1 ; TE- (§9)."
     },
     {
       "id": "TC-82",
       "key": "CT-8 §8.3",
-      "line": 4063,
+      "line": 4076,
       "delegated": "Attente d'IC-16 et IC-17 relevée à part.",
       "response": "TM-22 : ligne `ic_attente_cloture` relevée à part, dans la durée totale, hors de la durée du pas IC-15."
     },
     {
       "id": "TC-83",
       "key": "CT-8 §8.3",
-      "line": 4111,
+      "line": 4124,
       "delegated": "Durées reportées pour CT-9 (procès-verbal IC-18).",
       "response": "TM-22 : les durées du procès-verbal d'IC-18 sont la source des lignes `ic_1` à `ic_18` et `ic_total`."
     },
     {
       "id": "TC-84",
       "key": "CT-8 §9",
-      "line": 4155,
+      "line": 4168,
       "delegated": "Débit et latence de CT-2 §16.1 à mesurer.",
       "response": "TM-1 à TM-4 (cibles de CT-2 §16.1) en §11."
     },
     {
       "id": "TC-85",
       "key": "CT-8 §9.2",
-      "line": 4204,
+      "line": 4217,
       "delegated": "EX-9.1 : chaque coefficient a une source citée ou est marqué « à mesurer (CT-9) ».",
       "response": "Coefficients marqués « à mesurer (CT-9) » : TM-30 (`b_ots` mis à niveau), TM-32 (`blocs_par_s` en production), TM-33 (`f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`) et TM-9 (`m_0`) ; `b_cap` a pour source la mesure TM-31 (§11)."
     },
     {
       "id": "TC-86",
       "key": "CT-8 §9.2",
-      "line": 4223,
+      "line": 4236,
       "delegated": "`b_ots` preuve mise à niveau.",
       "response": "TM-30 (octets d'une preuve .ots mise à niveau)."
     },
     {
       "id": "TC-87",
       "key": "CT-8 §9.2",
-      "line": 4224,
+      "line": 4237,
       "delegated": "`b_cap` = 123 761 octets : mesure TM-31 de CT-9 du 2026-11-02, transaction d'un bloc plein de 64 ancres (109 479 octets de réponses JSON-RPC et 14 282 octets d'index).",
       "response": "TM-31 (rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json` : ligne `b_cap_bloc_plein`, index relevé dans `notes`) ; réserve du bloc plein qui mêle des clôtures : TM-44 (§11, rapport de campagne `mesures/rapport-2026-11-13-capture-bloc-plein-clotures.json`)."
     },
     {
       "id": "TC-88",
       "key": "CT-8 §9.2",
-      "line": 4227,
+      "line": 4240,
       "delegated": "`blocs_par_s` en production.",
       "response": "TM-32 (blocs_par_s sur l'instance de production)."
     },
     {
       "id": "TC-89",
       "key": "CT-8 §9.2",
-      "line": 4229,
+      "line": 4242,
       "delegated": "Six coefficients sans valeur par défaut à mesurer : `f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`, `m_0`.",
       "response": "TM-33 (`f_pic`, `b_o`, `b_acq`, `b_crl`, `n_crl`) et TM-9 (`m_0`)."
     },
     {
       "id": "TC-90",
       "key": "CT-8 §9.3",
-      "line": 4324,
+      "line": 4337,
       "delegated": "`m_0` à mesurer.",
       "response": "TM-9 (mémoire sous charge comparée à M_tamp)."
     },
     {
       "id": "TC-91",
       "key": "CT-8 §9.3",
-      "line": 4329,
+      "line": 4342,
       "delegated": "Mesure de la mémoire au-delà de `M_tamp`.",
       "response": "TM- mémoire (§11)."
     },
     {
       "id": "TC-92",
       "key": "CT-8 §10",
-      "line": 4594,
+      "line": 4607,
       "delegated": "Seuils d'alerte cibles.",
       "response": "TM-34 (seuils d'alerte cibles : faux positifs et faux négatifs)."
     },
     {
       "id": "TC-93",
       "key": "CT-8 §10.6",
-      "line": 4933,
+      "line": 4946,
       "delegated": "Seuil mempool `<M>`.",
       "response": "TM-35 (seuil <M> de la mempool)."
     },
     {
       "id": "TC-94",
       "key": "CT-8 §10.11",
-      "line": 5088,
+      "line": 5101,
       "delegated": "Durées des runbooks non mesurées.",
       "response": "TM-36 (durées de RB-1 à RB-8, publiées sans cible)."
     },
     {
       "id": "TC-95",
       "key": "CT-8 §10.11",
-      "line": 5142,
+      "line": 5155,
       "delegated": "Un test de CT-9 par correction d'incident.",
       "response": "§3.2 (règle d'ajout d'une entrée) ; TE- runbooks (§9), oracle."
     },
     {
       "id": "TC-96",
       "key": "CT-8 §11",
-      "line": 5539,
+      "line": 5552,
       "delegated": "RPO et RTO cibles.",
       "response": "TM-37 (RPO et RTO par composant, exercices de restauration)."
     },
     {
       "id": "TC-97",
       "key": "CT-8 §11.2",
-      "line": 5604,
+      "line": 5617,
       "delegated": "Fréquence de sauvegarde de l'état du service (15 min).",
       "response": "TM-37 : ligne `sauvegarde_etat_service_cadence` (cible 15 min)."
     },
     {
       "id": "TC-98",
       "key": "CT-8 §11.3",
-      "line": 5649,
+      "line": 5662,
       "delegated": "Table RPO/RTO : cibles à mesurer.",
       "response": "TM-37 (table d'EX-11.5, toutes les cibles sauf la borne du bail)."
     },
     {
       "id": "TC-99",
       "key": "CT-8 §11.10",
-      "line": 6069,
+      "line": 6082,
       "delegated": "Journal d'accès des supports WORM : disponibilité et format vérifiés en CT-9.",
       "response": "TM-39 (journal d'accès du support WORM : disponibilité et format par fournisseur)."
     },
     {
       "id": "TC-100",
       "key": "CT-8 §12.2",
-      "line": 6308,
+      "line": 6321,
       "delegated": "Latence en mode observation.",
       "response": "TM-38 (latence ajoutée en mode observation, paire avec et sans)."
     },
     {
       "id": "TC-101",
       "key": "CT-8 §12.2",
-      "line": 6320,
+      "line": 6333,
       "delegated": "Durée d'écriture lente, cible de CT-2 §16.1.",
       "response": "TM-38 : ligne `observation_ecriture` (durée d'écriture, cible de CT-2 §16.1)."
     },
     {
       "id": "TC-102",
       "key": "CT-8 §13.1",
-      "line": 6783,
+      "line": 6796,
       "delegated": "Parité du paquet réviseur mesurée par CT-9 (EX-13.1).",
       "response": "TM-25 (point 7) en §11 ; points 1 à 6 : TV- ct-8/paquets/ (§7) et TR-10 (§12)."
     },
     {
       "id": "TC-103",
       "key": "CT-8 §13.1",
-      "line": 6819,
+      "line": 6832,
       "delegated": "Temps du réviseur < 30 min.",
       "response": "TM-25 (temps du réviseur < 30 min), relevé pendant TR-10."
     },
     {
       "id": "TC-104",
       "key": "CT-8 §14",
-      "line": 8456,
+      "line": 8471,
       "delegated": "Conduite des trois épreuves de CT-8 §14.",
       "response": "TR-9, TR-10, TR-11 en §12, conduites selon le protocole commun de 12.1."
     },
     {
       "id": "TC-105",
       "key": "CT-8 §14",
-      "line": 8458,
+      "line": 8473,
       "delegated": "Participants des trois épreuves : relecteurs à l'aveugle au sens d'EX-12.1 ; en version 0, relecteurs internes conduits en sessions isolées, non des personnes extérieures.",
       "response": "EX-12.1 (§12.1) : relecteur interne à l'aveugle, `participant.condition` et `external` faux dans la consignation (EX-12.4) ; TR-9, TR-10, TR-11 (§12)."
     },
     {
       "id": "TC-106",
       "key": "CT-8 §14.1",
-      "line": 8468,
+      "line": 8483,
       "delegated": "Participant de l'épreuve (a), ingénieur d'exploitation : relecteur à l'aveugle (EX-12.1).",
       "response": "TR-9 (§12) ; protocole commun et participant : EX-12.1 (§12.1)."
     },
     {
       "id": "TC-107",
       "key": "CT-8 §14.2",
-      "line": 8534,
+      "line": 8549,
       "delegated": "Participant de l'épreuve (b), réviseur : relecteur à l'aveugle (EX-12.1).",
       "response": "TR-10 (§12) ; protocole commun et participant : EX-12.1 (§12.1)."
     },
     {
       "id": "TC-108",
       "key": "CT-8 §14.2",
-      "line": 8569,
+      "line": 8584,
       "delegated": "Durée de l'épreuve (b), mesure de CT-9.",
       "response": "EX-12.4 : consignation `consignation_rejeu` (schéma, §12.1), CT-8 EX-14.10 généralisée à toutes les épreuves TR-."
     },
     {
       "id": "TC-109",
       "key": "CT-8 §14.2",
-      "line": 8571,
+      "line": 8586,
       "delegated": "Consignation EX-14.10 par CT-9.",
       "response": "§12.1 (protocole commun) : consignation champ par champ."
     },
     {
       "id": "TC-110",
       "key": "CT-8 §15",
-      "line": 8603,
+      "line": 8618,
       "delegated": "Conformité des images à leur description : épreuve de construction.",
       "response": "TE- construction des images (§9)."
     },
     {
       "id": "TC-111",
       "key": "CT-8 §15",
-      "line": 8629,
+      "line": 8644,
       "delegated": "Script de préparation éprouvé sur le système de référence.",
       "response": "EX-11.1 : système de référence de la porte 2 fixé en §11.1."
     },
     {
       "id": "TC-112",
       "key": "CT-8 §15",
-      "line": 8630,
+      "line": 8645,
       "delegated": "Système de référence fixé par CT-9.",
       "response": "§11.1."
     },
     {
       "id": "TC-113",
       "key": "CT-8 §15",
-      "line": 8655,
+      "line": 8670,
       "delegated": "Cibles des sections 10 à 12 à mesurer.",
       "response": "TM-37 (RPO, RTO, restauration), TM-38 (latence en observation), TM-35 (mempool) en §11."
     },
     {
       "id": "TC-114",
       "key": "CT-8 §15",
-      "line": 8663,
+      "line": 8678,
       "delegated": "Journal d'accès des supports : CT-9 l'établit.",
       "response": "TM-39 (journal d'accès par fournisseur) établit la source `journal_acces_support` avant que CT-8 EX-11.19 la tienne pour acquise."
     },
     {
       "id": "TC-115",
       "key": "CT-8 §15",
-      "line": 8703,
+      "line": 8718,
       "delegated": "Budgets IR et IC à mesurer.",
       "response": "TM-21 (900 s) et TM-22 (450 min, 480 avec la réserve) en §11 ; porte 2 en §14."
     },
     {
       "id": "TC-116",
       "key": "CT-8 §15",
-      "line": 8725,
+      "line": 8740,
       "delegated": "Cérémonie (IC-7) et installation conduites par des personnes étrangères au projet : non faites ; épreuves de la section 14 par des relecteurs internes à l'aveugle, répétition de cérémonie de la porte 2 par des rôles simulés.",
       "response": "TA-95 et TA-97 jouées par des rôles simulés (§10.1, §10.4) ; TR-9 à TR-11 par des relecteurs internes à l'aveugle (EX-12.1) ; ce que la porte 2 ne prouve pas (§14) ; §16."
     },
     {
       "id": "TC-117",
       "key": "CT-8 §B.2",
-      "line": 9742,
+      "line": 9762,
       "delegated": "Ordre des champs de `chronyc -c tracking` à relever.",
       "response": "TM-40 (ordre des champs de chronyc -c tracking relevé sur chrony 4.6)."
     },
     {
       "id": "TC-118",
       "key": "CT-8 §B.4",
-      "line": 9797,
+      "line": 9817,
       "delegated": "Latence en observation.",
       "response": "TM-38 (latence en observation)."
     },
     {
       "id": "TC-119",
       "key": "CT-8 §B.5",
-      "line": 9847,
+      "line": 9867,
       "delegated": "Temps du réviseur.",
       "response": "TM-25 (temps du réviseur)."
     },

@@ -608,7 +608,7 @@ export function evaluerPreuve(octets, { periodHash = null, entetes = null, ancre
   if (preuve) {
     for (const a of enAttente) avertissements.push({ id: "AV-O-2", check: "O-7", detail: T(`attestation en attente du calendrier ${a.uri}, non exploitée`, `pending attestation from calendar ${a.uri}, not used`) });
     for (const a of inconnues) avertissements.push({ id: "AV-O-2", check: "O-7", detail: T(`attestation inconnue d'étiquette ${hex(a.etiquette)}, non exploitée`, `unknown attestation with tag ${hex(a.etiquette)}, not used`) });
-    for (const a of bitcoin.filter((x) => x.horsProfil)) avertissements.push({ id: "AV-O-2", check: "O-4", detail: T(`attestation Bitcoin de hauteur ${a.hauteur} sous une opération hors profil, non exploitée`, `Bitcoin attestation at height ${a.hauteur} under an out-of-profile operation, not used`) });
+    for (const a of bitcoin.filter((x) => x.horsProfil)) avertissements.push({ id: "AV-O-2", check: "O-3", detail: T(`attestation Bitcoin de hauteur ${a.hauteur} sous une opération hors profil, non exploitée`, `Bitcoin attestation at height ${a.hauteur} under an out-of-profile operation, not used`) });
   }
 
   // O-5 : chaîne d'en-têtes rattachée au point de contrôle.
@@ -630,7 +630,7 @@ export function evaluerPreuve(octets, { periodHash = null, entetes = null, ancre
       res["O-5"] = reussi(T(`en-têtes ${chaine.s} à ${chaine.t} du réseau ${ancre.network} rattachés au point de contrôle ${ancre.checkpoint.height} de l'ancre (/bitcoin) ; ${travail.fr}`, `headers ${chaine.s} to ${chaine.t} of network ${ancre.network} connected to checkpoint ${ancre.checkpoint.height} of the anchor (/bitcoin); ${travail.en}`));
     } else res["O-5"] = rattachement.status === "echoue" ? echoue(rattachement.detail) : nonExecute(rattachement.reason, rattachement.detail);
     // AV-O-3 : O-5 exécutée (réussie ou en échec) sur le réseau regtest (table 10.7).
-    if (ancre.network === "regtest" && res["O-5"].status !== "non_execute") avertissements.push({ id: "AV-O-3", check: "O-5", detail: T("réseau regtest : réseau d'essai, sans valeur probante hors des tests", "regtest network: a test network, no evidential value outside tests") });
+    if (ancre.network === "regtest" && res["O-5"].status !== "non_execute") avertissements.push({ id: "AV-O-3", check: "O-5", detail: T("réseau regtest : réseau d'essai, sans valeur de preuve hors des essais", "regtest network: a test network, no evidential value outside tests") });
   }
 
   // O-4 : attestation Bitcoin contre l'en-tête.
@@ -745,8 +745,8 @@ export function propositionEnonce(f, periodHash) {
     en += `; bound under assumption: ${f.median_bound} UTC`;
   }
   if (f.network === "regtest") {
-    fr += " (réseau d'essai, sans valeur probante)";
-    en += " (test network, no evidential value)";
+    fr += " (réseau d'essai, sans valeur de preuve hors des essais)";
+    en += " (test network, no evidential value outside tests)";
   }
   return { fr, en };
 }

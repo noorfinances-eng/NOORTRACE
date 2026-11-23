@@ -205,12 +205,13 @@ func FamillePaquets(c *Contexte) {
 	} else {
 		e := obs.Get("expected")
 		c.Rap.Comparer(f, "observation", "EX-A.15 : archive", "observation.tar", obs.Get("archive").Str)
-		c.Rap.Comparer(f, "observation", "EX-A.15 : code", "0", TexteValeur(e.Get("exit_code")))
+		// EX-A.15, complément du 2026-11-23 de CT-6 (EX-6.26) : le journal d'exemple est signé par une clé d'essai, code 3.
+		c.Rap.Comparer(f, "observation", "EX-A.15 : code", "3", TexteValeur(e.Get("exit_code")))
 		var ds []string
 		for _, d := range e.Get("dossiers").Arr {
 			ds = append(ds, d.Get("path").Str+" "+TexteValeur(d.Get("exit_code"))+" "+TexteValeur(d.Get("observation_mode"))+" "+TexteValeur(d.Get("observation")))
 		}
-		c.Rap.Comparer(f, "observation", "EX-A.15 : dossiers (chemin, code, observation_mode, observation)", "[dossiers/seq-1 0 true null, dossiers/seq-3 0 true \"a_approuver\"]", Liste(ds))
+		c.Rap.Comparer(f, "observation", "EX-A.15 : dossiers (chemin, code, observation_mode, observation)", "[dossiers/seq-1 3 true null, dossiers/seq-3 3 true \"a_approuver\"]", Liste(ds))
 		o := e.Get("observation")
 		c.Rap.Comparer(f, "observation", "EX-A.15 : summary.observation", "2 0 1 0 0",
 			TexteValeur(o.Get("dossiers"))+" "+TexteValeur(o.Get("autorise"))+" "+TexteValeur(o.Get("a_approuver"))+" "+TexteValeur(o.Get("refuse"))+" "+TexteValeur(o.Get("inconnu")))

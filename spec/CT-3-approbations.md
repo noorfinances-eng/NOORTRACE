@@ -2,6 +2,8 @@
 
 Version 0.8, 2026-11-14, complétée le 2026-11-19 (décisions du porteur sur
 les écrans de la console : la fin de la section 0, point 17, les détaille)
+et le 2026-11-23 (mots de la console : « vote » se dit « décision » dans
+tout texte lu, EX-12.16 et table 13.14 ; jetons et clés inchangés)
 (révision 0.8 : suites de la revue de sécurité de
 l'étape 8 ; décision du porteur du 14 novembre 2026 : la réponse `evaluer`
 porte la version, l'empreinte et le condensé `approval_sha256` de la politique
@@ -5765,10 +5767,14 @@ Le corps de `recuser` est de même les données de l'entrée `recuser` de 7.4,
 `{ "ticket", "approver", "session_identity" }`, sans `kind` ni `at`, et
 `recuser` subit le même contrôle d'adresse avant l'entrée. Un vote renvoyé à
 l'identique après un délai (12.7) reçoit `vote_identique` : la console
-l'affiche comme « vote déjà inscrit ». Un nouveau vote de même décision,
-même d'un autre motif, est identique (EX-9.10) et ne change pas le motif :
-le motif inscrit reste le premier, et la console l'affiche comme « vote déjà
-inscrit ; le motif n'a pas changé ».
+l'affiche comme « décision déjà enregistrée ». Un nouveau vote de même
+décision, même d'un autre motif, est identique (EX-9.10) et ne change pas le
+motif : le motif inscrit reste le premier, et la console l'affiche comme
+« décision déjà enregistrée ; le motif n'a pas changé ». Complément du
+2026-11-23, décision du porteur (mots de la console) : ces deux phrases
+disaient « vote déjà inscrit » ; dans tout texte lu de la console, « vote »
+se dit « décision » ; les jetons (`vote_identique`), les clés de libellé et
+le sens d'EX-12.16 et d'EX-12.18 ne changent pas.
 
 Requête (compte 1, ticket `apr-2201`, signature des vecteurs de CT-1) :
 
@@ -7672,7 +7678,7 @@ Pannes d'un vote :
 | `eth_requestAccounts` ou `personal_sign` rompu par 4100 | `non_autorise` | redemande `eth_requestAccounts` une fois, puis attend une nouvelle action | autorise la page dans son portefeuille |
 | Aucune adresse exposée n'est attribuée à la session | `adresse_non_exposee` | affiche l'adresse active que l'annuaire attribue à la session, sans signature ; la retient dès qu'elle apparaît (EX-13.23) | sélectionne ce compte dans son portefeuille |
 | `accountsChanged` retire l'adresse choisie | — | abandonne le choix d'adresse, la requête en cours et l'écran de signature (EX-13.23) | choisit de nouveau |
-| `personal_sign` rompu par 4001 | `refus_approbateur` | aucun vote ; affiche « signature refusée dans le portefeuille ; aucun vote n'a été envoyé » | pour s'opposer à la demande, signe `refuse` |
+| `personal_sign` rompu par 4001 | `refus_approbateur` | aucun vote ; affiche « signature refusée dans le portefeuille ; aucune décision n'a été envoyée » (complément du 2026-11-23, décision du porteur : mots de la console) | pour s'opposer à la demande, signe `refuse` |
 | Rompu par 4200 | `methode_non_prise_en_charge` | ce portefeuille ne peut pas voter ; aucun repli sur une autre méthode | choisit un autre portefeuille |
 | Rompu par 4900 ou 4901, ou `disconnect` | `deconnecte`, `chaine_deconnectee` | portefeuille indisponible ; jamais de demande de changement de réseau (EX-13.25) | reconnecte son portefeuille |
 | Rompu par un autre code ou sans code numérique | `erreur_portefeuille` | affiche le code et le message comme du texte | réessaie ou change de portefeuille |

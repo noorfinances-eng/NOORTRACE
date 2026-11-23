@@ -766,7 +766,7 @@ function index({ rfc, ots, attenduRegistre, ancres, dossiers }) {
   L.push("```bash");
   L.push("node scripts/verify/dossier.mjs spec/vecteurs/ct-6/dossiers/valide-seq-7-complet \\");
   L.push("  --ancres spec/vecteurs/ct-6/ancres/ancres-test.json \\");
-  L.push("  --entetes-bitcoin spec/vecteurs/ct-6/ots/entetes/chaine.json            # code 0");
+  L.push("  --entetes-bitcoin spec/vecteurs/ct-6/ots/entetes/chaine.json            # code 3 : rien n'a échoué, mais le dossier repose sur des pièces d'essai (CT-6 EX-6.26)");
   L.push("node scripts/verify/dossier.mjs spec/vecteurs/ct-6/dossiers/valide-seq-7-complet --json   # sans ancres : 4, 5, 8 non exécutés");
   L.push("```");
   L.push("");
@@ -786,7 +786,9 @@ function index({ rfc, ots, attenduRegistre, ancres, dossiers }) {
   L.push("");
   L.push("## dossiers/");
   L.push("");
-  L.push("Complément du 2026-11-19 de CT-6, décision du porteur (pièces d'essai, section 6.10, EX-6.23 à EX-6.25) : aucun dossier, aucune ancre ni aucun jeton ne change ; les avertissements de pièce d'essai s'ajoutent aux attendus, posés par construction d'après les entrées (toutes les autorités des fichiers d'ancres sont des certificats d'essai, le registre est `noortrace-2124-dev`, les clés sont celles de CT-1 §13, les approbateurs des comptes Hardhat) : AV-T-5 (contrôle 4 réussi, ou K-7 réussie), AV-R-4 (contrôle 8 réussi), AV-N-1 (clé d'enregistreur de l'événement, du manifeste ou du point, clé de chaîne de N-4), AV-N-2 (un par approbateur d'essai). Aucun code de retour attendu ne change (les attendus sont pris sans `--exiger`, et `exit_code_exiger_4` ne porte que sur des dossiers dont le contrôle 4 ne réussit pas).");
+  L.push("Complément du 2026-11-19 de CT-6, décision du porteur (pièces d'essai, section 6.10, EX-6.23 à EX-6.25) : aucun dossier, aucune ancre ni aucun jeton ne change ; les avertissements de pièce d'essai s'ajoutent aux attendus, posés par construction d'après les entrées (toutes les autorités des fichiers d'ancres sont des certificats d'essai, le registre est `noortrace-2124-dev`, les clés sont celles de CT-1 §13, les approbateurs des comptes Hardhat) : AV-T-5 (contrôle 4 réussi, ou K-7 réussie), AV-R-4 (contrôle 8 réussi), AV-N-1 (clé d'enregistreur de l'événement, du manifeste ou du point, clé de chaîne de N-4), AV-N-2 (un par approbateur d'essai). Aucun code de retour attendu ne changeait alors (les attendus sont pris sans `--exiger`, et `exit_code_exiger_4` ne porte que sur des dossiers dont le contrôle 4 ne réussit pas).");
+  L.push("");
+  L.push("Complément du 2026-11-23 de CT-6, décision du porteur (dossiers d'essai, EX-6.26, EX-8.12) : un rapport qui porte au moins un avertissement de pièce d'essai n'a jamais le verdict `valide` ; si rien n'a échoué, il est `incomplet`, code 3, avec ou sans `--exiger`. Les 48 dossiers dont le code attendu était 0 passent au code 3 ; `valid` ne change pas : il dit qu'aucune vérification n'a échoué, ce que `failed_checks` et `control_statuses` disent aussi, non le code. Les noms `valide-*` ne changent pas pour la même raison : ils disent `valid`, non le code. Raison de la règle : chaque dossier de ce répertoire porte une clé de CT-1 §13, un compte Hardhat, une autorité d'horodatage de test ou le registre de développement, tous publiés avec leur clé ou leur graine ; n'importe qui peut produire un tel dossier, qui ne prouve rien hors des essais, et un verdict `valide` sur lui tromperait son lecteur. Le rapport JSON de chaque dossier `valid` porte `incomplete_reasons` égal à `[\"piece_essai\"]` (le générateur l'exige) ; aucun dossier, aucune ancre, aucun jeton, aucun énoncé ni aucune borne ne change. Le code 0 est éprouvé par `test/verificateur.test.js` sur un dossier construit au moment de l'essai avec des clés tirées au hasard, jamais écrites ici.");
   L.push("");
   L.push("| Dossier | Ancres | En-têtes | Visée | En échec | Contrôles non exécutés | Avertissements | Code |");
   L.push("|---|---|---|---|---|---|---|---|");
@@ -883,7 +885,7 @@ export function genererCt6({ racine = REPERTOIRE_CT6 } = {}) {
     const cheminAncres = c.ancres ? path.join(racine, "ancres", c.ancres) : null;
     const cheminEntetes = c.entetes ? path.join(racine, "ots", "entetes", c.entetes) : null;
     const invalide = c.failed_checks.length > 0 || Object.values(c.control_reasons).includes("prerequis_en_echec");
-    const attenduConstruction = { failed_checks: c.failed_checks, control_statuses: c.control_statuses, control_reasons: Object.fromEntries(Object.entries(c.control_reasons).map(([n, r]) => [String(n), r])), warnings: c.warnings, exit_code: invalide ? 1 : 0 };
+    const attenduConstruction = { failed_checks: c.failed_checks, control_statuses: c.control_statuses, control_reasons: Object.fromEntries(Object.entries(c.control_reasons).map(([n, r]) => [String(n), r])), warnings: c.warnings, exit_code: null };
     const corps = verifierRepertoire(rep, { ancres: cheminAncres, entetes: cheminEntetes, schemas });
     // Complément du 2026-11-19 : les avertissements de pièce d'essai s'ajoutent à ceux de la conception ;
     // l'ensemble est confronté, et l'ordre est celui du rapport (EX-6.15).
@@ -892,6 +894,13 @@ export function genererCt6({ racine = REPERTOIRE_CT6 } = {}) {
     exiger(memesIdentifiants(attendusAvecEssai, obtenus), `dossier ${c.nom} : avertissements attendus ${JSON.stringify(attendusAvecEssai)}, obtenus ${JSON.stringify(obtenus)}`);
     attenduConstruction.warnings = obtenus;
     c.warnings = obtenus;
+    // Code de retour posé par construction : 1 si une vérification échoue ; sinon, complément du 2026-11-23 (CT-6
+    // EX-6.26), 3 dès qu'un avertissement attendu est une pièce d'essai, et 0 seulement sans pièce d'essai (aucun
+    // dossier publié : chacun porte une clé de CT-1 §13 ou un compte Hardhat).
+    attenduConstruction.exit_code = invalide ? 1 : attendusAvecEssai.some((id) => V.estAvertissementEssai(id)) ? 3 : 0;
+    exiger(invalide || attenduConstruction.exit_code === 3, `dossier ${c.nom} : aucune pièce d'essai attendue ; un dossier publié des vecteurs en porte toujours une (EX-6.26)`);
+    // Pourquoi le verdict est incomplet (EX-8.12) : la pièce d'essai, et elle seule, sans --exiger.
+    exiger(JSON.stringify(corps.incomplete_reasons) === JSON.stringify(invalide ? [] : ["piece_essai"]), `dossier ${c.nom} : incomplete_reasons ${JSON.stringify(corps.incomplete_reasons)}`);
     confronter(c.nom, attenduConstruction, corps);
     // Révision 0.3 (EX-A.19) : statuts des AT- et rétention de l'attestation, posés par la conception.
     const perimeter_checks = corps.checks.filter((x) => x.id.startsWith("AT-")).map((x) => ({ id: x.id, status: x.status, reason: x.reason }));

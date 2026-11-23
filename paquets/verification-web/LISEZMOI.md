@@ -297,6 +297,28 @@ Cinquième lecture, même date (CT-6 §18, EX-18.5 et EX-18.9) :
   partie requise du contrôle déclarée absente « hors périmètre CT-1 » (le
   dossier a été préparé sans elle), ou une pièce présente d'une forme que
   cette version ne contrôle pas ; une phrase chacune.
+
+Décisions du porteur du 2026-11-23 (CT-6 EX-6.26, EX-8.12, §18 point 20) :
+
+- **Incomplet par pièce d'essai.** Le vérificateur ne rend plus jamais le
+  code 0 sur un dossier qui porte une pièce d'essai : si rien n'a échoué, le
+  code est 3, avec ou sans exigence, et le rapport JSON dit pourquoi dans
+  `incomplete_reasons` (`exigence_non_remplie`, `piece_essai`, ou les deux).
+  Sous le code 3, la page lit ce membre (`raisonsIncompletLues`) ; quand il
+  porte `piece_essai` et que le rapport porte au moins un avertissement de
+  pièce d'essai (`piecesEssaiDuVerdict`), le mot du verdict devient
+  « Incomplet : ce dossier repose sur des pièces d'essai », la phrase
+  courante dit la pièce d'essai (et l'exigence si elle n'est pas remplie non
+  plus), la ligne « Pièces d'essai de ce dossier : … » suit (`#pieces-essai`,
+  raisons courtes de la table du point 15), et « Et maintenant ? » a ses
+  lignes (`SUITES["3_essai"]`, `SUITES["3_essai_exigence"]`). Un rapport sans
+  ce membre (antérieur au complément), ou qui ne le dit pas, garde le mot, la
+  phrase et les lignes du code 3 : la page ne dit jamais plus que le rapport,
+  et « Valide » ne paraît que sous le code 0. Les cas « Valide, mais … avec
+  des réserves » dus à des pièces d'essai ne se présentent plus ; sous le
+  code 0, les réserves qui restent ne sont pas des pièces d'essai. Le seul
+  dossier des essais qui rend le code 0 est construit au moment de l'essai
+  avec des clés tirées au hasard (`test/fixtures/verificateur/dossier-aleatoire.mjs`).
 - **Codes.** La raison exacte d'un contrôle non fait (`ancre_absente`…) et
   les références des vérifications en échec (code 1) sont en tête de « Pour
   les spécialistes », hors de tout bloc replié, et non plus sur la ligne du
@@ -306,8 +328,10 @@ Cinquième lecture, même date (CT-6 §18, EX-18.5 et EX-18.9) :
   heures du registre et la période n'est ni signalé, ni expliqué, ni contrôlé
   par le vérificateur, et à qui demander une explication.
 - **Empreintes publiées.** La mise en garde dit qui les publie (le projet,
-  avec chaque version, dans un fichier signé) ; le bloc de l'empreinte nomme
-  ce fichier (`SHA256SUMS`, EX-18.4). Depuis les décisions du 2026-11-19, la
+  avec chaque version, dans un fichier ; « signé » jusqu'à la décision du
+  porteur du 2026-11-23 : la page ne promet que ce qui existe, et aucune
+  version signée n'existe) ; le bloc de l'empreinte nomme ce fichier
+  (`SHA256SUMS`, EX-18.4). Depuis les décisions du 2026-11-19, la
   mise en garde dit où (la page des versions du dépôt) et le bloc de
   l'empreinte donne l'adresse, https://github.com/noorfinances-eng/NOORTRACE/releases,
   comme un lien (`#adresse-versions`, `target="_blank"`, `rel="noopener

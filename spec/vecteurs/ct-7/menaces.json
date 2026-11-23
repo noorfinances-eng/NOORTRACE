@@ -4053,7 +4053,7 @@
         "text": "Aucun.",
         "accepted_risk": null
       },
-      "test": "Le test échoue si la réponse est retirée : les dossiers `valide-at1-partie-nulle` et `valide-at1-taille` gardent le verdict `valide` avec AT-1 en échec ; si l'exclusion des AT- du verdict est retirée, ils deviennent invalides et le test échoue.",
+      "test": "Le test échoue si la réponse est retirée : les dossiers `valide-at1-partie-nulle` et `valide-at1-taille` ne deviennent pas invalides avec AT-1 en échec (leur verdict est `incomplet`, code 3, pour leurs seules pièces d'essai, CT-6 EX-6.26, complément du 2026-11-23 ; `valide` avant) ; si l'exclusion des AT- du verdict est retirée, ils deviennent invalides et le test échoue.",
       "sources": []
     },
     {

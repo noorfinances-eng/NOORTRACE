@@ -14,11 +14,11 @@
       },
       {
         "file": "spec/CT-2-enregistreur.md",
-        "sha256": "cffcad4e9975136a529372236e9a820dc0cf06a118dc8df9171da3e89ddb2369"
+        "sha256": "45fecabc7c3a24498258c8918fa40b728c65192d68e4409bd74bd1a3f37c0eb5"
       },
       {
         "file": "spec/CT-3-approbations.md",
-        "sha256": "42fafe3fcae9190f1cf321bb768ba469fa33566f6d40f81a0048bc818dbba5f8"
+        "sha256": "024260bb95a537efc250cbc92be12d48b327067b8943ec312258be63cf321e63"
       },
       {
         "file": "spec/CT-4-registre.md",
@@ -30,29 +30,29 @@
       },
       {
         "file": "spec/CT-6-verificateur.md",
-        "sha256": "f50d6a64638d3440725606a1cbb315bc40d7ba6f13cb70db31f72b4463864690"
+        "sha256": "9ed290cafa168fb37d9b46fe5f4b835941689cfc8f4b6939fb94116742da45d4"
       },
       {
         "file": "spec/CT-7-securite-et-conformite.md",
-        "sha256": "4cb0c3bf71272f8aaa88b84a2745b033f20d096729b48e57b7e02b98f72e7ae1"
+        "sha256": "ed48fce7342cbb60dd0c484a4a57fc70e80ebcf20e99ba5ab483bb2a6cc724f9"
       },
       {
         "file": "spec/CT-8-deploiement-et-exploitation.md",
-        "sha256": "9c9582808e55d35f5101b1864521cd1aa85658d16ef3421f6c60303f0eff17b3"
+        "sha256": "c1a6439e890b6bb9a67378a88d71c24168f7428d50941e48aadc3b1957519916"
       }
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "122f33c65a903b963f5f65820591eb72af98b5395ec49f1a53c537c591ef2760"
+      "sha256": "3511e86e45cd0813fdd72a04a3d62d526d8a83afcc5a146780415a38c4453c06"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
-      "sha256": "4f86f07bfcf57b9cbd17521961e7b214584af7b21051cfb87c6c18b2f573e5fa"
+      "sha256": "a8c70bde9e470c6d078544d23ba77bdbee256b0a42a5c577a64763b017da5f13"
     },
     "tests": [
       {
         "file": "test/adversarial.test.js",
-        "sha256": "a503a1f76f5b83fc935d80324d8371e78ba8acd87b5db34cf1f5a2c20cf3544b"
+        "sha256": "93a39491e4e9ce4bb2950c8eaf93ad8b9ecd8b56e89bd5171793f7add9cf1a76"
       },
       {
         "file": "test/ancrage-cle-retenue.test.js",
@@ -100,7 +100,7 @@
       },
       {
         "file": "test/ancrage-exportateur.test.js",
-        "sha256": "1089f4b54f2341fd27fd9e61b284f6ecbe5007eb6d034dda131b53aa3a709d80"
+        "sha256": "c4fbffeb3648f78dfac9cce1ea521c507e23a4e889394ed76e456f0432a38cb3"
       },
       {
         "file": "test/ancrage-file-compactage.test.js",
@@ -120,7 +120,7 @@
       },
       {
         "file": "test/ancrage-ots-calendriers.test.js",
-        "sha256": "84ad16e5a0cf17469dcce202626e809ab9c0a7f5bc38d6439641792b57ff736b"
+        "sha256": "d9cd62c331e03a47bcf7789f4514145dc9724e0314ae4afc96fbdd1b6d678848"
       },
       {
         "file": "test/ancrage-ots-soumission.test.js",
@@ -172,7 +172,7 @@
       },
       {
         "file": "test/ancrage-registre-capture.test.js",
-        "sha256": "a7880c484b73a5254f450e6e61142f94b948d8f7cac6b308315550ff2a02dfbf"
+        "sha256": "298f26a87428426ddf691a2f6a636e22fe23381224d336b0b7fb5c1e280e8501"
       },
       {
         "file": "test/ancrage-registre-cle-manifeste.test.js",
@@ -372,7 +372,7 @@
       },
       {
         "file": "test/banc-client-fictif.test.js",
-        "sha256": "56b28f37b2870e82e03cd7471a5fd050176c02607b3c100da3f66f7560a342ac"
+        "sha256": "3b5de220faebda92865c7ea4f8851f8c93991aa4a5a54432afdcaa12a81282b0"
       },
       {
         "file": "test/capture-revue.test.js",
@@ -380,7 +380,7 @@
       },
       {
         "file": "test/cas-demonstration-composition.test.js",
-        "sha256": "2ba5f1c9aa8131eb6aa99ebf75563684701f4b8efcadbdcacfd9c1043a78268f"
+        "sha256": "22782f2e8e69ca5acae580c753277d2cde8908d17b7d69c65cc067dcbbdc5523"
       },
       {
         "file": "test/cas-demonstration.test.js",
@@ -420,15 +420,15 @@
       },
       {
         "file": "test/console.test.js",
-        "sha256": "f58f3f60ce8f6fba51690cd2534648ffb606d4ee4e0d7ceccbb7e32fb571403f"
+        "sha256": "fa8d32e02f95e892384faed012388fc884be52fc33ff1671622b1e1ad4d64f2e"
       },
       {
         "file": "test/demonstration-composition.test.js",
-        "sha256": "fa79d0582f3c1c010555663e9d38f3204ecfc803aea630de9275da65cf6f61f5"
+        "sha256": "86b392f74542d920fcd4808722a2ace2ead66b9333f1a2debc874e16070705ee"
       },
       {
         "file": "test/demonstration.test.js",
-        "sha256": "04971ffbeb9aa76d8941f32204e39ef57ca580f85782a2b0ad8157b6dbbd9873"
+        "sha256": "4d7b66fa1d62830f196e51f08a957ec2392032252c2c462342edd77b3b85930e"
       },
       {
         "file": "test/deploiement-images.test.js",
@@ -436,7 +436,7 @@
       },
       {
         "file": "test/deploiement-installation.test.js",
-        "sha256": "2d2af7b5f60da4a20cd44f3fc4515716670eba6b6d42d8083b201a539f33bb46"
+        "sha256": "c2124894514dea8c775e7a04bcd14dc7f2b0f15056a48311f33c5b5a60d9f49b"
       },
       {
         "file": "test/deploiement-reference-revue.test.js",
@@ -464,7 +464,7 @@
       },
       {
         "file": "test/e2e-revue.test.js",
-        "sha256": "fdb35aa517cde5e0ef68986c7cfc6fbd3a48d2cc44fad4caccfba08105cdd59a"
+        "sha256": "3034140775cccaac5124d9827c7983ecd0ccc276dcab3476d22c2200c930e3a3"
       },
       {
         "file": "test/enregistreur-ancrage-corrections-relecture.test.js",
@@ -476,7 +476,7 @@
       },
       {
         "file": "test/enregistreur-ancrage-parcours.test.js",
-        "sha256": "481525e9728a051928cbb3c830fc0685327ae8ea0914f756bc6deffbbe3bb662"
+        "sha256": "de5d7b93056b64654adfeaee13ef789fca64e6cfec5776e88a86c3bb7d7893c8"
       },
       {
         "file": "test/enregistreur-ancrage-registre-deploiement.test.js",
@@ -488,7 +488,7 @@
       },
       {
         "file": "test/enregistreur-cle-chaine-etape7-reseau.test.js",
-        "sha256": "6051d45831ad848ebd002ff388a84039b426608baed88c4e3250038263cba176"
+        "sha256": "c3bbc8c00d57d34f9fa1c310bbb644a3672e206ce3c639e1f3dcbed1d1c57f47"
       },
       {
         "file": "test/enregistreur-cle-chaine-etape7.test.js",
@@ -512,11 +512,11 @@
       },
       {
         "file": "test/enregistreur-coeur-journal.test.js",
-        "sha256": "58c63f70265c0c6ed1517eb7744f0be2b514d0ff2ebd7aa59e58d27be9b90ff0"
+        "sha256": "a30263091389d8e28b77c5eefc01166a89b5e9b0a1ab679904fdbefcf338f7ad"
       },
       {
         "file": "test/enregistreur-coeur-pieces-perdues.test.js",
-        "sha256": "2ce0cd7adc6867ffab49d8b2f1132fbca4232c147ea04acc3e8514f169a1428b"
+        "sha256": "1c8470e588f75b22306080c749ffa21650e1a8754afffcb9f99d98a58700e5df"
       },
       {
         "file": "test/enregistreur-coeur-reprise.test.js",
@@ -540,7 +540,7 @@
       },
       {
         "file": "test/enregistreur-export-ancrage.test.js",
-        "sha256": "8c7246263a8c98685304d136ccc4419281ef7b0af877b3e9db1bae596c9be88e"
+        "sha256": "04e677c571ea0003651b188c82a8b09a5d7610f40ff12cef1e186c0c25344f20"
       },
       {
         "file": "test/enregistreur-export-dossier.test.js",
@@ -548,7 +548,7 @@
       },
       {
         "file": "test/enregistreur-ha-bascule.test.js",
-        "sha256": "e42c4e1cb6eb864fd16b3db2a11ed47cbb037b405736f1ccb4cf8258104d10af"
+        "sha256": "5ca67bcdbbc656ffa13c11da61852efe1a9dbd6fbafb39fe4ee11eeccd29e3f4"
       },
       {
         "file": "test/enregistreur-ha-exigences.test.js",
@@ -556,7 +556,7 @@
       },
       {
         "file": "test/enregistreur-ha-parcours.test.js",
-        "sha256": "5bb3619a8e44a28dfe64fa1ea90d4ad21d47cad093d4636afdd429fb998ed0ad"
+        "sha256": "67b1a43069006dcfd3c52e05ab11875e72ad0f4aadd8a1ea214da737c961eb03"
       },
       {
         "file": "test/enregistreur-journal-neuf-registre.test.js",
@@ -572,7 +572,7 @@
       },
       {
         "file": "test/enregistreur-matrice-pannes.test.js",
-        "sha256": "36be91e895b5c051d4332775d8dc869962efcde3a73f1ca899622fcb6663be19"
+        "sha256": "06a0f1c0c75066af801f20dbdaac6d7a4de80fa31865e7221f8897109b152986"
       },
       {
         "file": "test/enregistreur-mcp-client-reference.test.js",
@@ -584,7 +584,7 @@
       },
       {
         "file": "test/enregistreur-mcp-parcours.test.js",
-        "sha256": "e6fe555bac7870aafb8f586c976910b5194bfd8807b08928034bdd36aae09ff6"
+        "sha256": "ce6543b5594aeeb3923846f3eb7959d5b57c5a3db30cfe41a15a989fb151c488"
       },
       {
         "file": "test/enregistreur-mcp-tls.test.js",
@@ -612,7 +612,7 @@
       },
       {
         "file": "test/enregistreur-modele-parcours.test.js",
-        "sha256": "1b1818dd1f11aabbb66ae98cc99d294dd175c1d85ff2d23487e1360154ad8b90"
+        "sha256": "49ac46c5a4a4941428e66629f093330c7f93baaf9e65f724134cedf65d786f68"
       },
       {
         "file": "test/enregistreur-modele-securite.test.js",
@@ -620,7 +620,7 @@
       },
       {
         "file": "test/enregistreur-modele-squid.test.js",
-        "sha256": "d383516822c7e46a676c3cc83b6124c24cec63230bbc0fe6744eb5e8ddade7fa"
+        "sha256": "9e3bff1ea811a651779cb98e810bef305a290f21dbb6e96ec3cf1c9def3f6cce"
       },
       {
         "file": "test/enregistreur-modele-vecteurs.test.js",
@@ -640,7 +640,7 @@
       },
       {
         "file": "test/enregistreur-politique-parcours.test.js",
-        "sha256": "96e6354c51bdf2a77583b559e162305bda280dc1d271400c1dae5461e633bc46"
+        "sha256": "2af1259e1b2f19aee7bcd64acb04d7c5b35dc815b793fc974828903fc43437a8"
       },
       {
         "file": "test/enregistreur-politique-vecteurs.test.js",
@@ -656,7 +656,7 @@
       },
       {
         "file": "test/enregistreur-redaction-parcours.test.js",
-        "sha256": "abaa68df58ba1837cb269bf8bd3f5a3e28028a5df686a545d1c4cf3f3310ee16"
+        "sha256": "76285ebddea0ae6c98722528eef6e2e93263bc970c58c91b59e4b7d97d8bf0c7"
       },
       {
         "file": "test/enregistreur-redaction.test.js",
@@ -692,7 +692,7 @@
       },
       {
         "file": "test/enregistreur-sdk-adaptateurs.test.js",
-        "sha256": "da8df4b5f10800c48c1821ae8aeb4273544a97396bbd951954c3cf094a1af891"
+        "sha256": "94b494a787ffe681c380f657f0d448cdb7409aa4622982dfa0728fe1cf7e422e"
       },
       {
         "file": "test/enregistreur-sdk-client.test.js",
@@ -704,11 +704,11 @@
       },
       {
         "file": "test/enregistreur-sdk-langages.test.js",
-        "sha256": "67cd8b1b695fea07668a44b21c6124664c4cb9195a05202931fa7de62f27edfa"
+        "sha256": "47ec000b3a7e22629883b4c131dc919d1f5b8741a6c25ac18bc406119db85042"
       },
       {
         "file": "test/enregistreur-sdk-parcours.test.js",
-        "sha256": "fd433abc9d25d17838bd5c03a7e2f85eb3f6abd27f54f4b8392f20f9671d6e17"
+        "sha256": "830ffc88946f18bf64c2f2e6fb6496db4545ba938390df8673c28b510deccb74"
       },
       {
         "file": "test/enregistreur-sdk-python.test.js",
@@ -752,7 +752,7 @@
       },
       {
         "file": "test/enregistreur-worm-restauration.test.js",
-        "sha256": "ddcfd87544386494bf81e5cd99bd1e2bd8e7e23a25c70c3dce40d5f18e419c1c"
+        "sha256": "9e357e71d17cd4458149c010f368e3ec80988fd48c7fa076188cb900a56251af"
       },
       {
         "file": "test/enregistreur-worm-revue.test.js",
@@ -764,7 +764,7 @@
       },
       {
         "file": "test/enregistreur.test.js",
-        "sha256": "b1620f6f45a847ac06c2bf04ad8c2b0f2412b3828383613c3bb9471d05026d97"
+        "sha256": "e56a16afb728c5cda029c779992f0d44261e8eb453a8ec99dcb806f8203f346c"
       },
       {
         "file": "test/exploitation-console-bibliotheque-chromium.test.js",
@@ -776,23 +776,23 @@
       },
       {
         "file": "test/exploitation-console-langage-chromium.test.js",
-        "sha256": "daf84ede79ff21780c83e2f59e698c0dfc895c89020c22583234b2fe351231e3"
+        "sha256": "a5dfad11c3c131eb5bc793fb4927df9d0ccea280b3b8c51f6b75dcaa4dc971d3"
       },
       {
         "file": "test/exploitation-console-pages-chromium.test.js",
-        "sha256": "e0086475039b4e45f784b711d7e15640944f668730a1fb219e45a9719d699cdf"
+        "sha256": "cd77c7a312b8080366169f3ffbf24bea45846f34cc11251a7854a11b3c40de8c"
       },
       {
         "file": "test/exploitation-console-pages.test.js",
-        "sha256": "a8cce1d751ad739f74e59846f64121f27239a890f2b36177381225f6eb015d5f"
+        "sha256": "135109c92e7340cc262ec80da520716b4f2566c418808ba48d1d86ff7066ad50"
       },
       {
         "file": "test/exploitation-console-parcours.test.js",
-        "sha256": "790aa181d867e34031e20e4c57f4bfe5a89975df6ac6bbb717e6b5e579f5cf4a"
+        "sha256": "8d3cd9ad80f360fe4bb5ed997d5302fffc8e3a01ab753af03943dbba12a0d6e4"
       },
       {
         "file": "test/exploitation-console-presentation-chromium.test.js",
-        "sha256": "0414d16730d67ae5d2e8fbae397a7a945ff1b432807dc2eb603cc139834a924a"
+        "sha256": "35314e7eaf53e1a9a99e1927e5a07d7baada39301aca27db70ba35ae2c480458"
       },
       {
         "file": "test/exploitation-console-prises-unix.test.js",
@@ -824,7 +824,7 @@
       },
       {
         "file": "test/exploitation.test.js",
-        "sha256": "8dd30c9fbfc254c7655d9623b40560b2609e17ee553eb29991daae260d0a7062"
+        "sha256": "b63c0bfa90d0a4e0f6fe992bd175049ea948399b6be8cd5a10d34aa069f77b7b"
       },
       {
         "file": "test/figeage-reference-revue.test.js",
@@ -884,11 +884,11 @@
       },
       {
         "file": "test/integrations.test.js",
-        "sha256": "ba4e63425863965d21cd01b96ade17e5905bee5d38efd620489124b2f10ec560"
+        "sha256": "6addeb97ea173db933be4a0186dd45cd5c203dc41ab7ac156d9f6e3f72ca3fab"
       },
       {
         "file": "test/journal.test.js",
-        "sha256": "4f6417c0663c94c43c2b6dace676694b5e3db4bc033bd2aa76bcbbbf5c5124cd"
+        "sha256": "87e30d3ba0df7321a458de7f70bf1d72e8babd23d96ad33734036a4a6f515f75"
       },
       {
         "file": "test/lancement-direct.test.js",
@@ -936,7 +936,7 @@
       },
       {
         "file": "test/ots.test.js",
-        "sha256": "857755fb117c2bded5f924aff792666dc517c6b181eee2c8e85267825a46158b"
+        "sha256": "72ad3aba22966a896b461537505f9d195f4e3bc6d9f06450fd2627e02c405d33"
       },
       {
         "file": "test/pannes-bout-en-bout.test.js",
@@ -944,7 +944,7 @@
       },
       {
         "file": "test/paquet-reviseur.test.js",
-        "sha256": "9ed84103db8de04f3ce3c59e40c84cdac52aee08547c656d30e5d696e144cfe3"
+        "sha256": "13cb1b3bb14d79478f71120954dcc1f354faa351edf3844f4197a928f4556cdf"
       },
       {
         "file": "test/periodRegistry.test.js",
@@ -956,7 +956,7 @@
       },
       {
         "file": "test/plan-de-tests.test.js",
-        "sha256": "be352cc866de50bf17dea062dc912ef08c288969351141a66f48de47fcc36cd9"
+        "sha256": "c0afceca7a14a4af6825570064a1147caeaaa5adb8ee0ac1853263727a9f2515"
       },
       {
         "file": "test/pont-stdio-revue.test.js",
@@ -976,7 +976,7 @@
       },
       {
         "file": "test/reference-ct6-ct4-revue.test.js",
-        "sha256": "41d9cc53fa549cb684dce3ff30fc157f7c86c112eb6c623f76c86db4b3ea8c00"
+        "sha256": "99a43a3df09352bffeb9b5849772d878d55731ccc1eee7c929f82b1a04893001"
       },
       {
         "file": "test/registre-chaine-revue.test.js",
@@ -984,7 +984,7 @@
       },
       {
         "file": "test/registre-dev.test.js",
-        "sha256": "da4c3d8366dd78a087239b1ff2f4c37e527771fa0db8b0ebe602f795c5ede5eb"
+        "sha256": "c2e84cfc77624334d7506129fcae47876e1546d0695c7ae044669e1edbd7142a"
       },
       {
         "file": "test/registre-nonce-plancher.test.js",
@@ -1028,7 +1028,7 @@
       },
       {
         "file": "test/supervision-collecteur.test.js",
-        "sha256": "464d47cd134a433ba2e6f862bfc533b5f51add41d79f65e3ff0d45f1fcc65276"
+        "sha256": "4dc89433d123104b4618898fcf20e4ca443267b0707a1e7f6eb6c6595f5e6ac1"
       },
       {
         "file": "test/supervision-enregistreur-revue.test.js",
@@ -1052,15 +1052,15 @@
       },
       {
         "file": "test/verificateur-go-revue.test.js",
-        "sha256": "e0d0dc12a401cd2e62d4ebd8ecdbb93ab6c20a494424605a06c03f0791ce541b"
+        "sha256": "691cb9437745d1fac6f7a379b0c814d08a0880ecd3f97af2e3a5b0873b536795"
       },
       {
         "file": "test/verificateur.test.js",
-        "sha256": "9839958ccd999587ddae32cccaa3bcf63e78121bf54e8a76e9512cdbf98bbd6e"
+        "sha256": "5503be14f868e93ca58592109115a35d3f66afc5ec761aea63ada93e1e821c51"
       },
       {
         "file": "test/verification-page-chromium.test.js",
-        "sha256": "b9bb05712e0a5bd85b7a9935603460cc8bed66fbf7f71afabe319f42edc4ef04"
+        "sha256": "eddb65d0532264ee7578febb4eba923b5843e5b6f62a27b810dc558e000ede32"
       },
       {
         "file": "test/verification-page-construction.test.js",
@@ -1068,11 +1068,11 @@
       },
       {
         "file": "test/verification-page-identite.test.js",
-        "sha256": "dada247ba8e31021e9b65e1906e2347998a5184a7e6d22505484e2113f1fb63e"
+        "sha256": "ca13d3e7877fee434d58092b68231a2781ec9175078d3129998c76b4bec5fbe9"
       },
       {
         "file": "test/verification-page-presentation.test.js",
-        "sha256": "19d8b23758f2e660606eb93bef5e7057c05ce7b0395f9aa31ab66735216d03ef"
+        "sha256": "4dbc5c7f51ab79eaa92b3151f87576eeeb015012ab2af79919792e1ea305fc4f"
       },
       {
         "file": "test/verification-page-revue-navigateurs.test.js",
@@ -1084,7 +1084,7 @@
       },
       {
         "file": "test/verification-page-sources.test.js",
-        "sha256": "66d6c0cd4d03763ccea3311c29089ed7df27200286c22ee536174044d9f8db94"
+        "sha256": "d52aeea54f355d910cf06ae4ba85ae4fe70e3fabbc0172f6dcda2b355b1f2b73"
       },
       {
         "file": "test/worm-revue.test.js",
@@ -1093,8 +1093,8 @@
     ]
   },
   "identifiers": {
-    "total": 2501,
-    "covered_by_tests": 2345,
+    "total": 2503,
+    "covered_by_tests": 2347,
     "covered_by_nc": 156,
     "uncovered": 0,
     "unknown_cited": [],
@@ -1225,8 +1225,8 @@
       },
       {
         "spec": "CT-6",
-        "total": 300,
-        "covered_by_tests": 300,
+        "total": 302,
+        "covered_by_tests": 302,
         "covered_by_nc": 0,
         "uncovered": 0,
         "uncovered_ids": [],
@@ -1234,9 +1234,9 @@
           "EX-3": 8,
           "EX-4": 17,
           "EX-5": 20,
-          "EX-6": 25,
+          "EX-6": 26,
           "EX-7": 3,
-          "EX-8": 11,
+          "EX-8": 12,
           "EX-9": 24,
           "EX-10": 16,
           "EX-11": 25,
@@ -1350,7 +1350,7 @@
   },
   "executable": {
     "total": 302,
-    "titles_checked": 748,
+    "titles_checked": 749,
     "titles_missing": []
   },
   "text_tables": {

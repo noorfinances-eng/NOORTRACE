@@ -76,7 +76,7 @@ Codes de retour (§8.3) :
 | 0 | `valide` | aucune vérification en échec ; toute non-exécution a une raison admise |
 | 1 | `invalide` | au moins une vérification en échec ou non exécutée sans raison admise |
 | 2 | aucun | entrée inutilisable : usage, dossier, schémas, fichier d'ancres ou entrée à part illisibles, taille dépassée, erreur interne |
-| 3 | `incomplet` | comme 0, mais un contrôle exigé par `--exiger` n'a pas réussi, ou repose sur une pièce d'essai (CT-6 6.10) |
+| 3 | `incomplet` | comme 0, mais un contrôle exigé par `--exiger` n'a pas réussi, ou le dossier repose sur au moins une pièce d'essai (CT-6 6.10, EX-6.26, complément du 2026-11-23) ; `incomplete_reasons` dit pourquoi (EX-8.12) |
 
 Le rapport (lisible ou JSON) va sur la sortie standard ; les messages
 d'erreur sur la sortie d'erreur, ainsi que l'avertissement de binaire

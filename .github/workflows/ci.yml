@@ -216,15 +216,30 @@ jobs:
         run: node scripts/conformite/verifier-renvois.mjs
       - name: vérificateur de procès-verbal de cérémonie sur l'exemple de CT-7 §5.10 (code 0)
         run: node scripts/verify/ceremonie.mjs spec/vecteurs/ct-7/ceremonies/valide-creation-enregistreur/proces-verbal.json
-      - name: vérificateur de référence sur le dossier complet CT-6 et un dossier CT-1 (codes 0 et 3)
+      # Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : tout dossier publié des vecteurs porte une pièce d'essai et rend
+      # le code 3, aucune vérification n'échouant ; le rapport dit pourquoi (EX-8.12). Le code 0 est éprouvé par
+      # test/verificateur.test.js sur un dossier construit au moment de l'essai avec des clés tirées au hasard, jamais
+      # écrites dans le dépôt (aucun outil en ligne de commande ne le construit).
+      - name: vérificateur de référence sur le dossier complet CT-6 et un dossier CT-1 (code 3, pièces d'essai, rien n'a échoué ; exigence non remplie en plus avec --exiger)
         run: |
+          # Chaque contrôle fait échouer l'étape (bash -e des étapes) : le code attendu est 3, lu par « || code=$? ».
+          code=0
           node scripts/verify/dossier.mjs spec/vecteurs/ct-6/dossiers/valide-seq-7-complet \
             --ancres spec/vecteurs/ct-6/ancres/ancres-test.json \
-            --entetes-bitcoin spec/vecteurs/ct-6/ots/entetes/chaine.json
-          node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7
-          set +e
-          node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7 --exiger 4,5,8 > /dev/null
-          test $? -eq 3
+            --entetes-bitcoin spec/vecteurs/ct-6/ots/entetes/chaine.json --json > rapport-complet.json || code=$?
+          test "$code" -eq 3
+          node -e 'const r = JSON.parse(require("node:fs").readFileSync("rapport-complet.json", "utf8")); if (r.verdict !== "incomplet" || r.failed_checks.length !== 0 || JSON.stringify(r.incomplete_reasons) !== JSON.stringify(["piece_essai"]) || !r.controls.every((c) => c.status === "reussi")) { console.error(r.verdict, r.failed_checks, r.incomplete_reasons); process.exit(1); }'
+          rm -f rapport-complet.json
+          code=0
+          node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7 --json > rapport-ct1.json || code=$?
+          test "$code" -eq 3
+          node -e 'const r = JSON.parse(require("node:fs").readFileSync("rapport-ct1.json", "utf8")); if (r.verdict !== "incomplet" || r.failed_checks.length !== 0 || JSON.stringify(r.incomplete_reasons) !== JSON.stringify(["piece_essai"])) { console.error(r.verdict, r.failed_checks, r.incomplete_reasons); process.exit(1); }'
+          rm -f rapport-ct1.json
+          code=0
+          node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7 --exiger 4,5,8 --json > rapport-exige.json || code=$?
+          test "$code" -eq 3
+          node -e 'const r = JSON.parse(require("node:fs").readFileSync("rapport-exige.json", "utf8")); if (JSON.stringify(r.incomplete_reasons) !== JSON.stringify(["exigence_non_remplie", "piece_essai"])) { console.error(r.incomplete_reasons); process.exit(1); }'
+          rm -f rapport-exige.json
       # Vecteurs de CT-8 (spec/CT-8-deploiement-et-exploitation.md, annexe A,
       # EX-A.1, EX-A.25, EX-A.26, EX-A.29) : le générateur écrit les familles
       # conteneurs/, controle-prealable/, dimensionnement/ et paquets/ et

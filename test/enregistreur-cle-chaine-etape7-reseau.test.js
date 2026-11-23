@@ -224,7 +224,7 @@ describe("étape 7, réseau de développement 2124 : démon en production, clé 
     expect(modele.policy.servers.fichiers.uri_prefixes).to.deep.equal(["file:///srv/pieces/"]);
   });
 
-  it("démon en production sur noorcore : clé de chaîne de classe C chargée (chain_key_loaded, AWS KMS), clé suivante de classe B ; ancres des points et de la période émises par la clé de classe C et incluses ; clôture submitPeriod relayée ; dossier exporté vérifié par les deux vérificateurs : verdict valide, contrôles 4 et 8 réussis", async function () {
+  it("démon en production sur noorcore : clé de chaîne de classe C chargée (chain_key_loaded, AWS KMS), clé suivante de classe B ; ancres des points et de la période émises par la clé de classe C et incluses ; clôture submitPeriod relayée ; dossier exporté vérifié par les deux vérificateurs : contrôles 4 et 8 réussis, rien n'échoue ; registre de développement : incomplet, code 3", async function () {
     if (!pret.call(this)) return;
     const { montage: m, periodStart, journal, k, kmsB } = ctx;
     await demon.attendre((l) => l.some((x) => x.event === "anchoring_attached"), 60000, "anchoring_attached");
@@ -269,15 +269,18 @@ describe("étape 7, réseau de développement 2124 : démon en production, clé 
     });
     const entetes = path.join(destination, "entetes-bitcoin.json");
     const js = verifierJs(destination, { ancres, entetes });
-    expect(js.code, js.stderr).to.equal(0);
-    expect(js.rapport.verdict).to.equal("valide");
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : le registre du réseau de développement (chain_id noortrace-2124-dev)
+    // est une pièce d'essai (EX-6.24, AV-R-4) : rien n'échoue, contrôles 4 et 8 réussis, mais le verdict est « incomplet »,
+    // code 3, pour la seule raison « piece_essai » (EX-8.12).
+    expect(js.code, js.stderr).to.equal(3);
+    expect([js.rapport.verdict, js.rapport.incomplete_reasons, js.rapport.failed_checks]).to.deep.equal(["incomplet", ["piece_essai"], []]);
     const controles = Object.fromEntries(js.rapport.controls.map((c) => [c.number, c.status]));
     expect(controles[4]).to.equal("reussi");
     expect(controles[8]).to.equal("reussi");
     const go = verifierGo(destination, { ancres, entetes });
     if (!go) return enAttente(this, "vérificateur Go de CT-6 absent (NOORTRACE_VERIFIER_BIN) : vérification JavaScript faite, vérification Go non faite");
-    expect(go.code, go.stderr).to.equal(0);
-    expect(go.rapport.verdict).to.equal("valide");
+    expect(go.code, go.stderr).to.equal(3);
+    expect([go.rapport.verdict, go.rapport.incomplete_reasons, go.rapport.failed_checks]).to.deep.equal(["incomplet", ["piece_essai"], []]);
     expect(statuts(go.rapport)).to.deep.equal(statuts(js.rapport));
     expect(go.rapport.statement.fr).to.equal(js.rapport.statement.fr);
     etat.periodeClose = true;

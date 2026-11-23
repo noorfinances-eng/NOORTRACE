@@ -1345,16 +1345,20 @@ describe("CT-1 : ligne de commande scripts/verify/dossier.mjs", function () {
   this.timeout(60_000);
   const racine = path.join(VECTEURS, "dossiers");
 
-  it("dossier valide : code 0, rapport lisible VALIDE, rapport JSON", function () {
+  it("dossier valide : aucun contrôle en échec, mais code 3 et rapport lisible INCOMPLET (pièces d'essai, CT-6 EX-6.26, complément du 2026-11-23), rapport JSON", function () {
+    // Complément du 2026-11-23 de CT-6 (EX-6.26) : `valide` (CT-1 §11.5) dit qu'aucun contrôle n'échoue ; signé par
+    // rec-test-01 et approuvé par des comptes Hardhat, pièces d'essai, le dossier rend le code 3, verdict incomplet,
+    // et le rapport dit pourquoi (EX-8.12).
     const r = lancer(["verify", "dossier.mjs"], [path.join(racine, "valide-seq-7")]);
-    expect(r.code, r.stderr).to.equal(0);
-    expect(r.stdout).to.match(/Résultat {6}: VALIDE/);
+    expect(r.code, r.stderr).to.equal(3);
+    expect(r.stdout).to.match(/Résultat {6}: INCOMPLET — repose sur des pièces d'essai : AV-N-1 \(E-8\), AV-N-2 \(E-9\), AV-N-1 \(P-5\)/);
     expect(r.stdout).to.match(/\[non exécuté\] A-4/);
     expect(r.stdout).to.match(/Borne/);
     const j = lancer(["verify", "dossier.mjs"], [path.join(racine, "valide-seq-7"), "--json"]);
-    expect(j.code).to.equal(0);
+    expect(j.code).to.equal(3);
     const rapport = JSON.parse(j.stdout);
-    expect(rapport.verdict).to.equal("valide");
+    expect(rapport.verdict).to.equal("incomplet");
+    expect(rapport.incomplete_reasons).to.deep.equal(["piece_essai"]);
     expect(rapport.failed_checks).to.deep.equal([]);
     // Le rapport de CT-6 n'énumère K-1 à K-9 que pour un dossier qui porte la partie points-de-controle.json (révision 0.2).
     expect(rapport.checks).to.have.length(J.CONTROLES_DOSSIER.filter((c) => !c.id.startsWith("K-")).length);

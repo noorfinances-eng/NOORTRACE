@@ -172,7 +172,7 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
   this.timeout(300_000);
   const INV = P.inventaire(R);
 
-  it("règle (a) rejouée : chaque identifiant défini par CT-1 à CT-8 est couvert par covers, par threats d'un TA- ou par un NC-, et chaque identifiant cité existe ; 2501 identifiants", function () {
+  it("règle (a) rejouée : chaque identifiant défini par CT-1 à CT-8 est couvert par covers, par threats d'un TA- ou par un NC-, et chaque identifiant cité existe ; 2503 identifiants", function () {
     const couverts = new Set();
     const connu = (id) => { const m = /^(CT-[1-8]) (.+)$/.exec(id); return Boolean(m && INV[m[1]]?.ids.has(m[2])); };
     for (const t of CATALOGUE.tests) {
@@ -186,9 +186,9 @@ describe("CT-9 : couverture (section 5, règles (a) à (d), EX-5.5, EX-4.4, EX-5
     for (const [ct] of P.SPECIFICATIONS) for (const x of INV[ct].ids) { total++; const id = `${ct} ${x}`; if (couverts.has(id)) parEntree++; else if (parNC.has(id)) parJustification++; else nonCouverts.push(id); }
     expect(nonCouverts).to.deep.equal([]);
     expect([total, parEntree, parJustification]).to.deep.equal([COUVERTURE.identifiers.total, COUVERTURE.identifiers.covered_by_tests, COUVERTURE.identifiers.covered_by_nc]);
-    // CT-9 5.2 et 5.5, au 2026-11-19 : 2501 identifiants (sept de plus pour CT-6 : EX-6.23 à EX-6.25, AV-T-5, AV-R-4,
-    // AV-N-1, AV-N-2).
-    expect(total).to.equal(2501);
+    // CT-9 5.2 et 5.5, au 2026-11-23 : 2503 identifiants (sept de plus pour CT-6 le 2026-11-19 : EX-6.23 à EX-6.25, AV-T-5,
+    // AV-R-4, AV-N-1, AV-N-2 ; deux de plus le 2026-11-23 : EX-6.26, EX-8.12).
+    expect(total).to.equal(2503);
     expect(COUVERTURE.identifiers.unknown_cited).to.deep.equal([]);
     // EX-4.1 : specs est l'ensemble des spécifications de covers (entrées à covers non vide).
     for (const t of CATALOGUE.tests) if (t.covers.length) expect(t.specs, t.id).to.deep.equal([...new Set(t.covers.map((c) => c.split(" ")[0]))].sort((x, y) => Number(x.slice(3)) - Number(y.slice(3))));

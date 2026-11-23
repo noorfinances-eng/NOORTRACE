@@ -1010,7 +1010,13 @@ async function ic15b(B, p) {
   ecrirePv(B, p, "IC-15-verificateur.json", vc.stdout);
   const rc = JSON.parse(vc.stdout);
   const ctl = (rap) => Object.fromEntries(rap.controls.map((x) => [x.number, x.status]));
-  verifier(p, "vérificateur (image noortrace/verificateur, --exiger 7) : valide, code 0, contrôles 4 et 8 réussis", vc.code === 0 && rc.verdict === "valide" && ctl(rc)[4] === "reussi" && ctl(rc)[8] === "reussi" && ctl(rc)[7] === "reussi", { code: vc.code, verdict: rc.verdict, controles: ctl(rc) });
+  // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : les deux approbateurs du banc sont des comptes d'essai (pièces
+  // d'essai, EX-6.24) ; rien n'échoue, mais le verdict est « incomplet », code 3 : le contrôle 7 exigé n'a pas de valeur de
+  // preuve (EX-6.25) et le dossier repose sur des pièces d'essai (EX-8.12 : les deux raisons). Une installation réelle
+  // (CT-8 IC-15, approbateurs réels) attend « valide », code 0.
+  const raisons = (rap) => JSON.stringify(rap.incomplete_reasons ?? null);
+  const ATTENDU = JSON.stringify(["exigence_non_remplie", "piece_essai"]);
+  verifier(p, "vérificateur (image noortrace/verificateur, --exiger 7) : incomplet, code 3 (approbateurs d'essai), aucun contrôle en échec, contrôles 4, 7 et 8 réussis", vc.code === 3 && rc.verdict === "incomplet" && raisons(rc) === ATTENDU && (rc.failed_checks ?? []).length === 0 && ctl(rc)[4] === "reussi" && ctl(rc)[8] === "reussi" && ctl(rc)[7] === "reussi", { code: vc.code, verdict: rc.verdict, incomplete_reasons: rc.incomplete_reasons ?? null, controles: ctl(rc) });
   // Copie du dossier hors du volume, puis les deux vérificateurs de l'hôte.
   B.dossierCopie = path.join(B.bancDir, "dossier-ic15");
   fs.cpSync(dossier, B.dossierCopie, { recursive: true });
@@ -1023,7 +1029,7 @@ async function ic15b(B, p) {
   fs.writeFileSync(path.join(sortie, "verify-dossier.code"), `${js.code}\n`);
   for (const [nom, r] of [["noortrace-verifier", go], ["npm run verify:dossier", js]]) {
     const rap = JSON.parse(r.stdout);
-    verifier(p, `${nom} --exiger 7 : code 0, valide, contrôles 4, 7 et 8 réussis`, r.code === 0 && rap.verdict === "valide" && ctl(rap)[4] === "reussi" && ctl(rap)[7] === "reussi" && ctl(rap)[8] === "reussi", { code: r.code, verdict: rap.verdict, controles: ctl(rap) });
+    verifier(p, `${nom} --exiger 7 : code 3, incomplet (approbateurs d'essai), aucun contrôle en échec, contrôles 4, 7 et 8 réussis`, r.code === 3 && rap.verdict === "incomplet" && raisons(rap) === ATTENDU && (rap.failed_checks ?? []).length === 0 && ctl(rap)[4] === "reussi" && ctl(rap)[7] === "reussi" && ctl(rap)[8] === "reussi", { code: r.code, verdict: rap.verdict, incomplete_reasons: rap.incomplete_reasons ?? null, controles: ctl(rap) });
   }
   // TM-29 (relevé, sans la charge de TM-3) : consommation des services en marche.
   const stats = spawnSync("docker", ["stats", "--no-stream", "--format", "{{json .}}"], { encoding: "utf8" }).stdout.trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)).filter((x) => x.Name.startsWith("noortrace-"));

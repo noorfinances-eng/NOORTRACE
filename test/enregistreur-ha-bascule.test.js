@@ -271,7 +271,7 @@ describe("TE-11 — haute disponibilité à écrivain unique : bascule du bail (
         expect(constat, JSON.stringify(constat)).to.deep.equal({ fichiers_attente_d_epoque_inferieure: [], evenements_de_l_ecriture_en_vol: lents.filter((x) => x.is_error && x.duration_ms === 0).slice(0, 1) });
       });
 
-      it("période close à l'heure suivante : journal accepté par le noyau ; dossiers d'un événement écrit par A et d'un événement écrit par B valides pour le noyau ET pour le binaire Go (go1.27.3)", async function () {
+      it("période close à l'heure suivante : journal accepté par le noyau ; dossiers d'un événement écrit par A et d'un événement écrit par B valides pour le noyau, et pour le binaire Go (go1.27.3) sans vérification en échec, verdict incomplet, code 3 (clé d'enregistreur d'essai)", async function () {
         const lent = ev.evts.find((x) => x.execution.tool === "demo__ecrire_lent");
         const parA = ev.evts.find((e) => e.execution.tool === "demo__ecrire" && e.seq < lent.seq);
         const parB = ev.evts.filter((e) => e.execution.tool === "demo__ecrire").at(-1);
@@ -295,9 +295,11 @@ describe("TE-11 — haute disponibilité à écrivain unique : bascule du bail (
         }
         for (const d of dossiers) {
           const r = spawnSync(bin, [d, "--json"], { encoding: "utf8" });
-          expect(r.status, r.stdout + r.stderr).to.equal(0);
+          // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : la clé d'enregistreur rec-test-01 est une pièce d'essai (EX-6.24) :
+          // rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+          expect(r.status, r.stdout + r.stderr).to.equal(3);
           const rapport = JSON.parse(r.stdout);
-          expect(rapport.verdict).to.equal("valide");
+          expect([rapport.verdict, rapport.incomplete_reasons]).to.deep.equal(["incomplet", ["piece_essai"]]);
           expect(rapport.failed_checks).to.deep.equal([]);
         }
       });

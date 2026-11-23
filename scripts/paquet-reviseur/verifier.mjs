@@ -15,7 +15,9 @@
 // dossier avec SON vérificateur de référence (scripts/verify/dossier.mjs de
 // sa propre racine), jamais avec du code du paquet. Aucun accès au réseau.
 // Codes : 0 intact et tous valides ; 1 au moins un invalide ; 2 entrée
-// inutilisable ; 3 au moins un incomplet ; 4 paquet non conforme.
+// inutilisable ; 3 au moins un incomplet (exigence non remplie, ou, depuis le
+// complément du 2026-11-23 de CT-6, au moins une pièce d'essai, EX-6.26 : tout
+// dossier des vecteurs publiés) ; 4 paquet non conforme.
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -450,7 +452,8 @@ Codes de retour (priorité : 4, puis 1, 2, 3, 0) :
   1  paquet intact, au moins un dossier invalide
   2  entrée inutilisable : usage, archive illisible, extraction impossible,
      erreur interne, ou dossier inutilisable (fichier d'ancres refusé)
-  3  paquet intact, au moins un dossier incomplet (--exiger)
+  3  paquet intact, au moins un dossier incomplet (--exiger non satisfait, ou
+     dossier qui repose sur une pièce d'essai, CT-6 EX-6.26)
   4  paquet non conforme : aucun dossier n'est vérifié
 `,
   en: `One-command verification of a NOORTRACE reviewer package (CT-8 §13.7)
@@ -498,7 +501,8 @@ Exit codes (priority: 4, then 1, 2, 3, 0):
   1  package intact, at least one dossier invalid
   2  unusable input: usage, unreadable archive, extraction impossible,
      internal error, or unusable dossier (anchors file refused)
-  3  package intact, at least one dossier incomplete (--exiger)
+  3  package intact, at least one dossier incomplete (--exiger not met, or a
+     dossier resting on a test piece, CT-6 EX-6.26)
   4  package not conforming: no dossier is verified
 `,
 };

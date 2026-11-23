@@ -118,25 +118,31 @@ describe("CT-9 TE-3 : démonstration de référence en une commande (CT-2 §19),
     expect(demarrage.data).to.deep.include({ class: "D", backend: "file", recorder_key_id: "rec-test-01", model_mode: "passerelle", epoch: 1 });
   });
 
-  it("TE-3 : le dossier de seq 7, sorti du volume des exports, est vérifié hors ligne par les deux vérificateurs de CT-6 (référence JavaScript et binaire Go) : verdict valide, contrôles 1, 2, 3, 6, 7 et 8 réussis, 4 et 5 non exécutés pour partie absente, mêmes statuts de vérification et même énoncé ; l'inscription de la clé y est prouvée (R-10 réussie, aucun avertissement)", function () {
+  it("TE-3 : le dossier de seq 7, sorti du volume des exports, est vérifié hors ligne par les deux vérificateurs de CT-6 (référence JavaScript et binaire Go) : verdict incomplet, code 3, pour les seules pièces d'essai (CT-6 EX-6.26), contrôles 1, 2, 3, 6, 7 et 8 réussis, 4 et 5 non exécutés pour partie absente, mêmes statuts de vérification et même énoncé ; l'inscription de la clé y est prouvée (R-10 réussie, aucun avertissement)", function () {
     if (!pret.call(this)) return;
     const copie = c.extraire("exports", "dossiers/seq-7", path.join(travail, "seq-7"));
     expect(fs.readdirSync(copie).sort()).to.deep.equal(["approbations.json", "certificat-commit.json", "chemin.json", "cles.json", "dossier.json", "evenement.json", "manifeste.json", "manifeste.sig", "points-de-controle.json", "registre.json", "validateurs.json", "voisins.json"]);
     const index = JSON.parse(fs.readFileSync(path.join(copie, "dossier.json"), "utf8"));
     expect(index.parts.filter((p) => !p.present).map((p) => p.file).sort()).to.deep.equal(["jeton-rfc3161.der", "preuve.ots"]);
     const js = verifierJs(copie, ANCRES);
-    expect(js.code, js.stderr).to.equal(0);
-    expect(js.rapport.verdict).to.equal("valide");
+    // Complément du 2026-11-23 de CT-6 (EX-6.26) : la démonstration signe avec rec-test-01, approuve avec des comptes
+    // Hardhat et inscrit au registre de développement, pièces d'essai : rien n'échoue, mais le code est 3, non 0, et le
+    // rapport dit pourquoi (EX-8.12).
+    expect([js.code, js.rapport.incomplete_reasons], js.stderr).to.deep.equal([3, ["piece_essai"]]);
+    expect(js.rapport.verdict).to.equal("incomplet");
     expect(js.rapport.controls.map((x) => [x.number, x.status, x.reason])).to.deep.equal([[1, "reussi", null], [2, "reussi", null], [3, "reussi", null], [4, "non_execute", "partie_absente"], [5, "non_execute", "partie_absente"], [6, "reussi", null], [7, "reussi", null], [8, "reussi", null]]);
     expect(js.rapport.failed_checks).to.deep.equal([]);
-    expect(js.rapport.warnings).to.deep.equal([]);
+    // Aucun avertissement hors ceux des pièces d'essai (EX-6.24), qui sont présents.
+    const ESSAI = ["AV-O-3", "AV-T-5", "AV-R-4", "AV-N-1", "AV-N-2"];
+    expect(js.rapport.warnings.filter((w) => !ESSAI.includes(w.id))).to.deep.equal([]);
+    expect(js.rapport.warnings.some((w) => ESSAI.includes(w.id))).to.equal(true);
     expect(js.rapport.checks.find((x) => x.id === "R-10").status).to.equal("reussi");
     expect(js.rapport.facts.registry.entries.map((e) => e.role).sort()).to.deep.equal(["ancre", "ancre_point_de_controle", "cloture", "inscription"]);
     expect(js.rapport.statement.fr).to.include("ce dossier ne prouve rien sur la date de son manifeste");
     const go = verifierGo(copie, ANCRES);
     if (!go) return enAttente(this, "binaire du vérificateur Go de CT-6 absent (NOORTRACE_VERIFIER_BIN) : vérification JavaScript faite, vérification Go faite seulement dans le conteneur verificateur");
-    expect(go.code, go.stderr).to.equal(0);
-    expect(go.rapport.verdict).to.equal("valide");
+    expect([go.code, go.rapport.incomplete_reasons], go.stderr).to.deep.equal([3, ["piece_essai"]]);
+    expect(go.rapport.verdict).to.equal("incomplet");
     const statuts = (r) => Object.fromEntries(r.checks.map((x) => [x.id, x.status]));
     expect(statuts(go.rapport)).to.deep.equal(statuts(js.rapport));
     expect(go.rapport.statement.fr).to.equal(js.rapport.statement.fr);

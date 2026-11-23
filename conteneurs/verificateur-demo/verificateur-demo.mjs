@@ -58,9 +58,15 @@ const liste = (elements) => (elements.length <= 1 ? elements.join("") : `${eleme
  * Lignes de la sortie de CT-2 §19.4, d'après le rapport du vérificateur, le
  * dossier et le contexte écrit par l'exploitation de la démonstration.
  * `reference` dit si le dossier est celui que la démonstration attend :
- * verdict valide, contrôles 1, 2, 3, 6, 7 et 8 réussis, contrôles 4 et 5 non
- * exécutés pour partie absente, clé inscrite, période enregistrée et racine
- * ancrée prouvées par le dossier.
+ * contrôles 1, 2, 3, 6, 7 et 8 réussis, contrôles 4 et 5 non exécutés pour
+ * partie absente, aucune vérification en échec, clé inscrite, période
+ * enregistrée et racine ancrée prouvées par le dossier ; et, depuis le
+ * complément du 2026-11-23 de CT-6 (EX-6.26, EX-8.12), verdict `incomplet`,
+ * code 3, dont la seule raison est `piece_essai` : la démonstration signe
+ * avec la clé publiée rec-test-01, approuve avec des comptes Hardhat et
+ * inscrit au registre de développement, pièces d'essai que le vérificateur
+ * signale ; un tel dossier ne vaut pas comme preuve hors de la démonstration,
+ * et la sortie le dit.
  * @returns {{lignes: string[], reference: boolean}}
  */
 export function sortie({ rapport, contexte, evenement, organisation, journal, dossier, dureeMs }) {
@@ -73,7 +79,8 @@ export function sortie({ rapport, contexte, evenement, organisation, journal, do
   const roles = new Set((registre?.entries ?? []).map((e) => e.role));
   const signataires = (registre?.certificates ?? []).map((c) => c.signers.length);
   const approbation = rapport.facts?.approval ?? null;
-  const reference = rapport.verdict === "valide" && CONTROLES_REUSSIS.every((n) => reussis.includes(n)) && horsLigne && echoues.length === 0 &&
+  const piecesEssaiSeules = rapport.verdict === "incomplet" && rapport.exit_code === 3 && Array.isArray(rapport.incomplete_reasons) && rapport.incomplete_reasons.length === 1 && rapport.incomplete_reasons[0] === "piece_essai";
+  const reference = piecesEssaiSeules && CONTROLES_REUSSIS.every((n) => reussis.includes(n)) && horsLigne && echoues.length === 0 && (rapport.failed_checks ?? []).length === 0 &&
     roles.has("inscription") && roles.has("cloture") && roles.has("ancre") && signataires.length > 0 && approbation?.decision === "approuve";
   const r = contexte.recorder;
   const lignes = [
@@ -91,13 +98,15 @@ export function sortie({ rapport, contexte, evenement, organisation, journal, do
   ];
   if (reference) {
     lignes.push(
-      "  Résultat : VALIDE — cet événement est bien formé, chaîné à ses voisins, inclus dans la période close par ce manifeste",
+      "  Résultat : INCOMPLET — cet événement est bien formé, chaîné à ses voisins, inclus dans la période close par ce manifeste",
       "             signé par cette clé, approuvé par ces adresses, et son ancre est dans un bloc que les validateurs nommés ont signé.",
       "             Il ne prouve pas la date (ancres RFC 3161 et OpenTimestamps absentes : démonstration hors ligne).",
+      "             Il repose sur des pièces d'essai (clé rec-test-01, comptes d'approbation et registre de développement, tous publiés) :",
+      "             il ne vaut pas comme preuve hors de la démonstration (CT-6, décision du 2026-11-23).",
     );
   } else {
     lignes.push(
-      `  Résultat : ${String(rapport.verdict).toUpperCase()} — ${rapport.verdict === "valide" ? "le dossier est valide, mais il n'est pas celui que la démonstration attend" : "le dossier n'est pas vérifié"} : ${rapport.bound ?? "voir le rapport du vérificateur"}.`,
+      `  Résultat : ${String(rapport.verdict).toUpperCase()} — ${rapport.verdict === "valide" ? "le dossier est valide, mais il n'est pas celui que la démonstration attend" : rapport.verdict === "incomplet" ? "le dossier n'est pas celui que la démonstration attend" : "le dossier n'est pas vérifié"} : ${rapport.bound ?? "voir le rapport du vérificateur"}.`,
       `             ${horsLigne ? "Il ne prouve pas la date (ancres RFC 3161 et OpenTimestamps absentes : démonstration hors ligne)." : "Ce que ce dossier ne prouve pas est dit par le rapport du vérificateur (contrôles non exécutés)."}`,
     );
   }
@@ -151,7 +160,8 @@ async function verifier() {
   }
   const s = sortie({ rapport, contexte, evenement, organisation: env("DEMO_ORGANISATION", "assureur-demo"), journal: env("DEMO_JOURNAL", "journal-demo"), dossier: dossierRelatif, dureeMs: performance.now() });
   process.stdout.write(`${s.lignes.join("\n")}\n`);
-  return rapport.verdict === "valide" && r.status === 0 ? 0 : 1;
+  // Code 0 pour le dossier que la démonstration attend (verdict `incomplet` du seul fait des pièces d'essai), 1 sinon.
+  return s.reference && r.status === rapport.exit_code ? 0 : 1;
 }
 
 if (estProgramme(import.meta.url)) {

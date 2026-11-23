@@ -522,7 +522,7 @@ export const ATTENDU_ACCEPTATION_CONSOLE = {
           elements: [
             el("Refuser la requête dans le portefeuille et ne pas réessayer depuis cette page.", "EX-9.20"),
             el("Prévenir l'administrateur de l'organisation par un autre canal que la console.", "EX-9.20"),
-            el("Refuser dans le portefeuille n'est pas voter refuse : aucun vote n'est envoyé ; pour s'opposer, signer refuse depuis une console saine.", "EX-9.20", "EX-13.29"),
+            el("Refuser dans le portefeuille n'est pas refuser la demande : aucune décision n'est envoyée ; pour s'opposer, signer refuse depuis une console saine.", "EX-9.20", "EX-13.29"),
             el("Si la console affiche elle-même empreinte_divergente, il n'y a rien à signer ; prévenir l'administrateur.", "EX-9.17", "EX-9.20"),
           ],
         },

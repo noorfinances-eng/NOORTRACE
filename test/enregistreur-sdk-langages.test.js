@@ -147,13 +147,16 @@ describe("TI-13 — SDK Python et TypeScript : interface publique de CT-2 6.5, P
     }
   }
 
-  /** Journal accepté par le noyau, dossier valide pour le noyau et, si go1.27.3 est présent, pour le binaire Go ; rend vrai sans binaire Go. */
+  /** Journal accepté par le noyau, dossier valide pour le noyau et, si go1.27.3 est présent, sans contrôle en échec pour le binaire Go
+   * (code 3, pièce d'essai) ; rend vrai sans binaire Go. */
   function verifie(r) {
     const v = r.verification;
     expect(v.journal.valide, JSON.stringify(v.journal.diagnostics)).to.equal(true);
     expect(v.dossier.verdict, JSON.stringify(v.dossier.controles_en_echec)).to.equal("valide");
     if (v.go === null) return true;
-    expect([v.go.status, v.go.verdict, v.go.failed_checks], JSON.stringify(v.go)).to.deep.equal([0, "valide", []]);
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : la clé d'enregistreur rec-test-01 est une pièce d'essai (EX-6.24) :
+    // rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+    expect([v.go.status, v.go.verdict, v.go.incomplete_reasons, v.go.failed_checks], JSON.stringify(v.go)).to.deep.equal([3, "incomplet", ["piece_essai"], []]);
     return false;
   }
 

@@ -145,7 +145,7 @@
               ]
             },
             {
-              "element": "Refuser dans le portefeuille n'est pas voter refuse : aucun vote n'est envoyé ; pour s'opposer, signer refuse depuis une console saine.",
+              "element": "Refuser dans le portefeuille n'est pas refuser la demande : aucune décision n'est envoyée ; pour s'opposer, signer refuse depuis une console saine.",
               "rules": [
                 "EX-9.20",
                 "EX-13.29"

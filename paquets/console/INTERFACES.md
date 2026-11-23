@@ -1230,7 +1230,7 @@ console, dans Chromium ») et par les essais des pages.
   `revision` ont changé ; pas 8, `voter` avec `requeteVoter`, sans réponse :
   un renvoi automatique à l'identique, puis un renvoi à l'identique sur
   action explicite (révision 0.6, EX-13.29) ; `vote_identique`
-  affiché « vote déjà inscrit » (EX-12.16) ; un autre ticket ouvert, un
+  affiché « décision déjà enregistrée » (EX-12.16 ; « vote déjà inscrit » avant la décision du porteur du 2026-11-23 : « vote » se dit « décision » dans tout texte lu) ; un autre ticket ouvert, un
   changement de décision ou d'adresse, ou `accountsChanged` qui retire
   l'adresse, abandonne l'écran de signature et ignore toute réponse tardive.
   Récusation : `controleVote(…, "recuser", …)` puis `recuser`, avec une

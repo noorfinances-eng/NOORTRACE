@@ -96,7 +96,8 @@ describe("CT-8 : paquet réviseur, vecteurs de la famille paquets (annexe A.10, 
     const valide = fs.readFileSync(path.join(VECT, "valide.tar"));
     expect(valide.length).to.equal(296_960);
     expect(P.sha256(valide)).to.equal("0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd");
-    expect(P.sha256(fs.readFileSync(path.join(VECT, "cas.json")))).to.equal("0x0980fe7517db6dcce7d8528de8c4f6b737a72c84ef0c71775a96c34e4d40dd51");
+    // Cas du 2026-11-16, codes revus le 2026-11-23 (CT-6 EX-6.26 : les dossiers joints rendent 3).
+    expect(P.sha256(fs.readFileSync(path.join(VECT, "cas.json")))).to.equal("0x7a69333f7ac4804bcd6018e2ac2af593b537871aace6bf8ff9ebdee88acd4c64");
     expect(tars.reduce((s, f) => s + fs.statSync(path.join(VECT, f)).size, 0)).to.equal(3_624_960);
   });
 
@@ -335,17 +336,18 @@ describe("CT-8 : outil de vérification du paquet réviseur, cas des tests (13.7
     ]);
   });
 
-  it("--conserver vers un chemin neuf : le paquet y est extrait (mode 0700 et 0600) et gardé ; code 0", function () {
+  it("--conserver vers un chemin neuf : le paquet y est extrait (mode 0700 et 0600) et gardé ; code 3 (dossiers d'essai, CT-6 EX-6.26)", function () {
     const dest = path.join(neuf(), "extrait");
     const r = verifier([path.join(VECT, "valide.tar"), "--conserver", dest]);
-    expect(r.status).to.equal(0);
+    // Code 3 depuis le complément du 2026-11-23 de CT-6 (EX-6.26) : les dossiers joints sont des dossiers d'essai.
+    expect(r.status).to.equal(3);
     expect(fs.statSync(dest).mode & 0o777).to.equal(0o700);
     const man = path.join(dest, P.RACINE, "MANIFESTE.json");
     expect(fs.statSync(man).mode & 0o777).to.equal(0o600);
     expect(P.sha256(fs.readFileSync(man))).to.equal("0x678a6b89e6714557b43e0cc8c00bc9842ccb9d2da5fe1da9f6c7317ff4102e99");
   });
 
-  it("paquet complet construit dans le test : code 0, PR-11 réussie ; un fichier de verificateur/ changé et le manifeste recalculé : code 0, PR-11 en échec, AV-PR-1 (EX-13.34)", function () {
+  it("paquet complet construit dans le test : paquet intact, PR-11 réussie, code 3 (dossiers d'essai, CT-6 EX-6.26) ; un fichier de verificateur/ changé et le manifeste recalculé : paquet intact, PR-11 en échec, AV-PR-1 (EX-13.34)", function () {
     const { archive, manifeste } = construire(descriptionAbsolue(true), PROJECT_ROOT);
     expect(construire(descriptionAbsolue(true), PROJECT_ROOT).archive.equals(archive)).to.equal(true);
     expect(manifeste.verifier).to.deep.equal({ tool: "verificateur/scripts/paquet-reviseur/verifier.mjs", dossier_verifier: "verificateur/scripts/verify/dossier.mjs", version: "0.1.0", runtime: "Node.js 22 ou ultérieur" });
@@ -353,14 +355,15 @@ describe("CT-8 : outil de vérification du paquet réviseur, cas des tests (13.7
     const f = path.join(neuf(), "complet.tar");
     fs.writeFileSync(f, archive);
     const r = verifier([f, "--json", "--empreinte", P.sha256(archive)]);
-    expect(r.status).to.equal(0);
+    // Paquet conforme et intact ; code 3, non 0 : chaque dossier joint est un dossier d'essai (CT-6 EX-6.26).
+    expect([r.status, r.rapport.package_status, r.rapport.dossiers.map((d) => d.exit_code)]).to.deep.equal([3, "intact", [3, 3, 3]]);
     expect(r.rapport.checks.map((c) => c.status)).to.deep.equal(Array(12).fill("reussi"));
     expect(r.rapport.warnings.map((w) => w.id)).to.deep.equal(["AV-PR-3"]);
     const change = rebatir(archive, (e) => e.map((x) => (x.nom === `${P.RACINE}/verificateur/scripts/lib/paquet.mjs` ? { nom: x.nom, octets: Buffer.concat([x.octets, Buffer.from("// ajout\n")]) } : x)));
     const g = path.join(neuf(), "change.tar");
     fs.writeFileSync(g, change);
     const s = verifier([g, "--json"]);
-    expect(s.status).to.equal(0);
+    expect(s.status).to.equal(3);
     expect(s.rapport.package_status).to.equal("intact");
     const pr11 = s.rapport.checks.find((c) => c.id === "PR-11");
     expect([pr11.status, pr11.detail]).to.deep.equal(["echoue", "vérificateur joint différent de l'outil exécuté : verificateur/scripts/lib/paquet.mjs"]);
@@ -609,7 +612,8 @@ describe("CT-8 : corrections du paquet réviseur (découpage GNU tar, dates, cas
     const tmp2 = neuf();
     const code2 = `import fs from "node:fs"; const w = fs.writeSync; fs.writeSync = (fd, b, o, l) => w(fd, b, o, Math.min(l, 1000)); const m = await import(${JSON.stringify(OUTIL)}); const r = m.verifierPaquet(${JSON.stringify(path.join(VECT, "valide.tar"))}, { langue: "fr", exiger: [] }); process.stdout.write(String(r.exit_code));`;
     const s = spawnSync(process.execPath, ["--input-type=module", "-e", code2], { encoding: "utf8", env: { TMPDIR: tmp2 } });
-    expect(s.stdout, s.stderr).to.equal("0");
+    // Extraction réussie : le paquet est vérifié ; code 3, dossiers d'essai (CT-6 EX-6.26).
+    expect(s.stdout, s.stderr).to.equal("3");
   });
 
   it("13.7 : les messages d'usage suivent --langue (fr, en)", function () {
@@ -648,7 +652,8 @@ describe("CT-8 : corrections du paquet réviseur (découpage GNU tar, dates, cas
 
   it("EX-12.9 : observation.tar déclare ses deux dossiers en mode observation et compte la marque de seq 3 ; le résumé l'affiche", function () {
     const r = verifier([path.join(VECT, "observation.tar"), "--json"]);
-    expect(r.status).to.equal(0);
+    // Code 3 : le journal d'exemple est signé par une clé d'essai (CT-6 EX-6.26).
+    expect(r.status).to.equal(3);
     expect(r.rapport.dossiers.map((d) => [d.path, d.observation_mode, d.observation])).to.deep.equal([["dossiers/seq-1", true, null], ["dossiers/seq-3", true, "a_approuver"]]);
     expect(r.rapport.summary.observation).to.deep.equal({ dossiers: 2, autorise: 0, a_approuver: 1, refuse: 0, inconnu: 0 });
     const l = verifier([path.join(VECT, "observation.tar")]).stdout;

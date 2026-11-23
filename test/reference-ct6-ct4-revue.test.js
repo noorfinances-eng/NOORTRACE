@@ -311,13 +311,14 @@ describe("Référence CT-6 et CT-4 — revue de sécurité interne (étape 8)", 
       fichiers["certificat-commit.json"] = Buffer.from(JSON.stringify(cc, null, 2) + "\n");
     });
     const r = rapportJSON([rep, ...ANCRES]);
-    expect(r.code).to.equal(0);
+    // Code 3 depuis le complément du 2026-11-23 (CT-6 EX-6.26) : le dossier complet est fait de pièces d'essai.
+    expect([r.code, r.doc.failed_checks]).to.deep.equal([3, []]);
     expect(statut(r.doc, "R-5").status).to.equal("reussi");
     expect(r.doc.warnings.map((w) => w.id)).to.include("AV-R-2");
     expect(r.doc.warnings.find((w) => w.id === "AV-R-2").detail).to.include("membre inconnu « zz »");
   });
 
-  it("une ligne de precommit de 2 097 153 « é » (plus de 4 Mio en octets UTF-8, moins en caractères) fait échouer R-1 (CT-6 §15.1, borne en octets) ; 4 190 000 « a » passent (code 0)", function () {
+  it("une ligne de precommit de 2 097 153 « é » (plus de 4 Mio en octets UTF-8, moins en caractères) fait échouer R-1 (CT-6 §15.1, borne en octets) ; 4 190 000 « a » passent (R-1 réussie ; code 3, pièces d'essai)", function () {
     const avecLigne = (bourre) => dossierDerive(COMPLET, (fichiers) => {
       const cc = J.analyserJSONStrict(fichiers["certificat-commit.json"]);
       cc.certificates[0].precommits[0].line = `{"zz":"${bourre}",${cc.certificates[0].precommits[0].line.slice(1)}`;
@@ -328,7 +329,7 @@ describe("Référence CT-6 et CT-4 — revue de sécurité interne (étape 8)", 
     expect(octets.doc.failed_checks).to.deep.equal(["R-1"]);
     expect(statut(octets.doc, "R-1").detail).to.include(`ligne(s) de plus de ${R.LIMITES.ligneOctets} octets (CT-6 §15.1)`);
     const ascii = rapportJSON([avecLigne("a".repeat(4_190_000)), ...ANCRES]);
-    expect(ascii.code).to.equal(0);
+    expect([ascii.code, ascii.doc.failed_checks]).to.deep.equal([3, []]);
     expect(statut(ascii.doc, "R-1").status).to.equal("reussi");
   });
 
@@ -569,20 +570,21 @@ describe("Référence CT-6 et CT-4 — revue de sécurité interne (étape 8)", 
     for (const crl of ["crl-extension-critique-inconnue", "crl-entree-extension-critique-inconnue"]) {
       const f = ancresDerivees((a) => (a.revocation.crls = [H.encoderPEM(materiel.crls[crl], "X509 CRL")]));
       const r = rapportJSON([COMPLET, "--ancres", f, "--entetes-bitcoin", CHAINE]);
-      expect(r.code, crl).to.equal(0);
+      // Code 3 (pièces d'essai, EX-6.26), jamais 1 : la CRL écartée ne fait rien échouer.
+      expect([r.code, r.doc.failed_checks], crl).to.deep.equal([3, []]);
       expect([statut(r.doc, "T-10").status, statut(r.doc, "T-10").reason], crl).to.deep.equal(["non_execute", "ancre_absente"]);
       expect([controle(r.doc, 4).status, controle(r.doc, 4).reason], crl).to.deep.equal(["non_execute", "ancre_absente"]);
       expect(r.doc.warnings.filter((w) => w.id === "AV-T-3" && /extension critique non lue/.test(w.detail)), crl).to.have.length(1);
       expect(lancer([COMPLET, "--ancres", f, "--entetes-bitcoin", CHAINE, "--exiger", "4"]).code, crl).to.equal(3);
     }
     const temoin = rapportJSON([COMPLET, "--ancres", ancresDerivees((a) => (a.revocation.crls = [H.encoderPEM(materiel.crls["crl-vide"], "X509 CRL")])), "--entetes-bitcoin", CHAINE]);
-    expect([temoin.code, statut(temoin.doc, "T-10").status, temoin.doc.warnings.filter((w) => w.id === "AV-T-3").length]).to.deep.equal([0, "reussi", 0]);
+    expect([temoin.code, statut(temoin.doc, "T-10").status, temoin.doc.warnings.filter((w) => w.id === "AV-T-3").length]).to.deep.equal([3, "reussi", 0]);
   });
 
   it("un fichier d'ancres dont les enregistreurs du journal ne portent pas la clé du manifeste (rec-test-02 renommée rec-test-99) rend N-3 non_execute (ancre_absente), le détail nommant la clé employée sans ancre, et le contrôle 6 non_execute (ancre_absente) : code 0, code 3 avec --exiger 6, anchors_used du contrôle 6 vide ; avec ancres-test.json, N-3 et le contrôle 6 réussissent (EX-12.4, révision 0.9)", function () {
     const f = ancresDerivees((a) => (a.recorders[1].key_id = "rec-test-99"));
     const r = rapportJSON([COMPLET, "--ancres", f, "--entetes-bitcoin", CHAINE]);
-    expect(r.code).to.equal(0);
+    expect([r.code, r.doc.failed_checks]).to.deep.equal([3, []]);
     const n3 = statut(r.doc, "N-3");
     expect([n3.status, n3.reason]).to.deep.equal(["non_execute", "ancre_absente"]);
     expect(n3.detail).to.include("rec-test-02");
@@ -590,7 +592,8 @@ describe("Référence CT-6 et CT-4 — revue de sécurité interne (étape 8)", 
     expect(r.doc.facts.recorder_keys, "aucun fait du contrôle 6 non exécuté (EX-6.13)").to.equal(null);
     expect(lancer([COMPLET, "--ancres", f, "--entetes-bitcoin", CHAINE, "--exiger", "6"]).code).to.equal(3);
     const temoin = rapportJSON([COMPLET, ...ANCRES]);
-    expect([temoin.code, statut(temoin.doc, "N-3").status, controle(temoin.doc, 6).status, controle(temoin.doc, 6).anchors_used]).to.deep.equal([0, "reussi", "reussi", ["/recorders/0", "/recorders/1"]]);
+    // Témoin : code 3 (pièces d'essai, EX-6.26), N-3 et le contrôle 6 réussis.
+    expect([temoin.code, statut(temoin.doc, "N-3").status, controle(temoin.doc, 6).status, controle(temoin.doc, 6).anchors_used]).to.deep.equal([3, "reussi", "reussi", ["/recorders/0", "/recorders/1"]]);
   });
 
   it("R-11 est non_execute, prerequis_en_echec, quand R-10 n'a pas réussi pour une autre raison que l'absence d'entrée inscription (journal prouvé de l'entrée 0 altéré d'un octet : R-7 en échec, R-10 prerequis_en_echec) ; AV-K-3 n'est pas levé (EX-11.24 règle 3, révision 0.9)", function () {

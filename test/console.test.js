@@ -902,7 +902,7 @@ describe("CT-3 0.3 : console de référence dans Chromium (EX-13.36)", function 
       await decider(page, "approuver");
       await page.getByTestId("signer").click();
       await page.locator('[data-testid="resultat"][data-code="refus_approbateur"]').waitFor();
-      expect(await texte(page, "resultat")).to.include("signature refusée dans le portefeuille ; aucun vote n'a été envoyé");
+      expect(await texte(page, "resultat")).to.include("signature refusée dans le portefeuille ; aucune décision n'a été envoyée");
       expect(recus("voter")).to.deep.equal([]);
       expect(await page.getByTestId("approuver").isEnabled()).to.equal(true);
       expect(await page.getByTestId("refuser").isEnabled()).to.equal(true);

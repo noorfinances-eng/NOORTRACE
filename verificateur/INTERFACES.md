@@ -94,7 +94,10 @@ Le moteur (`moteur/moteur.go`) applique CT-6 §5.2 :
   `Resultat.Statut`, `Resultat.Raison` que vous rendez, qui applique la
   règle propre de votre section (EX-9.18, EX-10.12, EX-11.20).
 - **Borne** (EX-6.12) et **élément de F7** (EX-6.8) : dérivés du statut.
-- **`--exiger`** : un contrôle exigé non réussi donne `incomplet` (code 3).
+- **`--exiger`** : un contrôle exigé non réussi, ou sans valeur de preuve, donne
+  `incomplet` (code 3) ; depuis le complément du 2026-11-23 de CT-6 (EX-6.26),
+  un avertissement de pièce d'essai (EX-6.24) le donne aussi, exigence ou non,
+  et `incomplete_reasons` dit pourquoi (EX-8.12).
 - **Faits** : `facts.timestamp`, `facts.bitcoin`, `facts.registry` reçoivent
   votre `Faits` si et seulement si le contrôle réussit (EX-6.13) ;
   `facts.checkpoint.timestamp`, `.bitcoin`, `.registry` reçoivent les faits
@@ -240,7 +243,7 @@ func Construit() bool
   `reussi` ; `BlockHash` dans l'ordre d'affichage ; `CumulativeWork` en
   chaîne décimale ; `BlockTimeInstant` décodé.
 - **`Proposition`** (Cloture, contrôle réussi) : EX-10.15, suffixe
-  « (réseau d'essai, sans valeur probante) » sur `regtest` compris.
+  « (réseau d'essai, sans valeur de preuve hors des essais) » sur `regtest` compris, et, depuis le complément du 2026-11-23 de CT-6 (EX-6.8), « (pièce d'essai, sans valeur de preuve hors des essais) » après chaque pièce d'essai que l'énoncé nomme.
 - **Avertissements** : AV-O-1 à AV-O-3 avec `Verification` = l'O- qui le
   lève (AV-O-3 sur O-5 ; le moteur le renomme K-9 pour le point, d'où AV-O-3
   deux fois dans `valide-point-de-controle-complet`).

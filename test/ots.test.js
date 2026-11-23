@@ -255,9 +255,9 @@ describe("CT-6 contrôle 5 : vecteurs spec/vecteurs/ct-6/ots (annexe A.4)", func
     });
     expect(r.anchors_used).to.deep.equal(["/bitcoin"]);
     expect(r.summary).to.equal("bloc Bitcoin 1001 du réseau regtest, 20 confirmations (réseau d'essai)");
-    expect(r.proposition.fr).to.equal(`le manifeste d'empreinte ${PH[0]} existait avant la création du bloc Bitcoin 1001 (${h1001}, réseau regtest), sous 20 blocs dont le travail se rattache au point de contrôle 1000 du réviseur ; heure inscrite par le mineur : 2026-11-05T13:50:00Z UTC, précision non garantie par le protocole ; borne sous hypothèse : 2026-11-05T14:50:00Z UTC (réseau d'essai, sans valeur probante)`);
-    expect(r.proposition.en).to.equal(`the manifest with digest ${PH[0]} existed before Bitcoin block 1001 (${h1001}, regtest network) was created, under 20 blocks whose work connects to the reviewer's checkpoint 1000; time written by the miner: 2026-11-05T13:50:00Z UTC, accuracy not guaranteed by the protocol; bound under assumption: 2026-11-05T14:50:00Z UTC (test network, no evidential value)`);
-    expect(r.warnings).to.deep.equal([{ id: "AV-O-3", check: "O-5", detail: "réseau regtest : réseau d'essai, sans valeur probante hors des tests" }]);
+    expect(r.proposition.fr).to.equal(`le manifeste d'empreinte ${PH[0]} existait avant la création du bloc Bitcoin 1001 (${h1001}, réseau regtest), sous 20 blocs dont le travail se rattache au point de contrôle 1000 du réviseur ; heure inscrite par le mineur : 2026-11-05T13:50:00Z UTC, précision non garantie par le protocole ; borne sous hypothèse : 2026-11-05T14:50:00Z UTC (réseau d'essai, sans valeur de preuve hors des essais)`);
+    expect(r.proposition.en).to.equal(`the manifest with digest ${PH[0]} existed before Bitcoin block 1001 (${h1001}, regtest network) was created, under 20 blocks whose work connects to the reviewer's checkpoint 1000; time written by the miner: 2026-11-05T13:50:00Z UTC, accuracy not guaranteed by the protocol; bound under assumption: 2026-11-05T14:50:00Z UTC (test network, no evidential value outside tests)`);
+    expect(r.warnings).to.deep.equal([{ id: "AV-O-3", check: "O-5", detail: "réseau regtest : réseau d'essai, sans valeur de preuve hors des essais" }]);
     expect(verifier(preuve("periode-1"), { langue: "en" }).summary).to.equal("Bitcoin block 1001 on network regtest, 20 confirmations (test network)");
   });
 
@@ -403,7 +403,7 @@ describe("CT-6 contrôle 5 : règles précisées par la revue", function () {
     const r = verifier(preuve("branche-hors-profil"));
     expect([statuts(r)["O-3"], r.status]).to.deep.equal(["reussi", "reussi"]);
     expect(r.checks.find((c) => c.id === "O-3").detail).to.match(/hors profil non exécutées : 03/);
-    expect(r.warnings.map((w) => [w.id, w.check])).to.deep.equal([["AV-O-2", "O-4"], ["AV-O-3", "O-5"]]);
+    expect(r.warnings.map((w) => [w.id, w.check])).to.deep.equal([["AV-O-2", "O-3"], ["AV-O-3", "O-5"]]);
   });
 
   it("fuzzing déterministe des preuves : evaluerPreuve ne rend que des statuts, jamais une exception (EX-15.2)", function () {

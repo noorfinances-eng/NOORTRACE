@@ -22,6 +22,7 @@ import os from "node:os";
 import path from "node:path";
 import { Worker } from "node:worker_threads";
 import { construireTout, dossiersVecteurs, enAttente, environnementGo, essaiRacineNatif, repertoireTemporaire, sha256, VERSION } from "./fixtures/verification-page/outils.mjs";
+import { dossierAleatoire, ecrireDossier } from "./fixtures/verificateur/dossier-aleatoire.mjs";
 
 const FIL = new URL("./fixtures/verification-page/identite-fil.mjs", import.meta.url);
 
@@ -67,6 +68,10 @@ describe("page de vérification : même rapport que le binaire (CT-6 EX-18.10)",
     // EX-18.13 : chacun des dossiers de spec/vecteurs/ct-1/dossiers et ct-6/dossiers ; les vecteurs ajoutent des dossiers
     // sans retirer les 190 de la mesure de CT-6 EX-18.4 (révision 0.7).
     expect(dossiers.length).to.be.at.least(190);
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26, EX-A.11) : aucun dossier publié ne rend plus le code 0, chacun
+    // portant une pièce d'essai ; un dossier à clés tirées au hasard, construit ici, le représente (code 0 sans ancres ni
+    // --exiger, 3 avec --exiger 4,5,8).
+    dossiers.push({ nom: "aleatoire", chemin: ecrireDossier(dossierAleatoire(), path.join(dir, "aleatoire")).dossier });
     const configs = configurations();
     const n = Math.max(1, Math.min(4, os.availableParallelism ? os.availableParallelism() : os.cpus().length));
     const lots = Array.from({ length: n }, () => []);

@@ -249,6 +249,18 @@ describe("page de vérification : libellés (CT-6 EX-18.2, EX-18.5, EX-18.7, EX-
     expect(Object.keys(en)).to.deep.equal(Object.keys(fr));
   });
 
+  it("décision du porteur du 2026-11-23 (empreintes publiées) : aucun libellé ne dit « signé » ni « signed » des empreintes publiées ou du fichier SHA256SUMS ; les deux libellés qui les nomment disent la page des versions et le fichier SHA256SUMS", function () {
+    for (const [langue, L] of [["fr", fr], ["en", en]]) {
+      const concernes = Object.entries(L).filter(([, v]) => typeof v === "string" && /SHA256SUMS|empreintes? que le projet|empreintes publiées|fingerprints? that the|published fingerprints/.test(v));
+      expect(concernes.map(([k]) => k), langue).to.include.members(["confiance_courante", "ou_empreintes", "lien_versions", "artefact_pret"]);
+      for (const [k, v] of concernes) expect(v, `${langue} ${k}`).to.not.match(/sign[ée]|signed|signature/i);
+    }
+    expect(fr.ou_empreintes).to.include("sur la page des versions de son dépôt (adresse ci-dessous), un fichier, SHA256SUMS, qui donne l'empreinte");
+    expect(en.ou_empreintes).to.include("on the releases page of its repository (address below), a file, SHA256SUMS, which gives the fingerprint");
+    expect(fr.confiance_courante).to.include("publie avec chaque version, dans un fichier, sur la page des versions de son dépôt");
+    expect(en.confiance_courante).to.include("publishes with each version, in a file, on the releases page of its repository");
+  });
+
   it("phrases fixes égales, mot pour mot, au texte de CT-6 §18", function () {
     const ct6 = texteCt6();
     const p = /la phrase fixe : « (Cette page .*? le binaire\.) » \(« (This page .*? the binary\.) »\)/.exec(ct6);

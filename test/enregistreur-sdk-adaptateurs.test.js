@@ -56,8 +56,10 @@ async function verifierParcours(banc, seq, nom) {
   expect(r.journal.valide, JSON.stringify(r.journal)).to.equal(true);
   expect(r.dossier.verdict, JSON.stringify(r.dossier)).to.equal("valide");
   if (r.go) {
-    expect(r.go.status, r.go.stderr).to.equal(0);
-    expect(r.go.verdict).to.equal("valide");
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : la clé d'enregistreur rec-test-01 est une pièce d'essai (EX-6.24) :
+    // rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+    expect(r.go.status, r.go.stderr).to.equal(3);
+    expect([r.go.verdict, r.go.incomplete_reasons]).to.deep.equal(["incomplet", ["piece_essai"]]);
     expect(r.go.failed_checks).to.deep.equal([]);
   }
   console.log(`      noortrace-parcours ${nom} : journal ${r.journal.evenements} evenements valide ; dossier noyau ${r.dossier.verdict} ; binaire Go ${r.go ? r.go.verdict : "absent (go1.27.3 introuvable)"}`);

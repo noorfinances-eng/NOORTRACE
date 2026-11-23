@@ -878,7 +878,7 @@ export const TI = [
         {
           "file": "test/enregistreur-modele-squid.test.js",
           "describe": "TI-19 — mode ICAP : raccord à un mandataire Squid réel (ssl-bump, REQMOD et RESPMOD) ; échange comparé à la passerelle ; sources ICAP admises et refusées ; adresse d'hôte inconnue ; dossiers vérifiés par les deux vérificateurs",
-          "it": "période close à l'heure suivante : journal accepté par le noyau ; dossiers de l'échange en passerelle et de l'échange par ICAP valides pour le noyau ET pour le binaire Go (go1.27.3)"
+          "it": "période close à l'heure suivante : journal accepté par le noyau ; dossiers de l'échange en passerelle et de l'échange par ICAP valides pour le noyau, et pour le binaire Go (go1.27.3) sans vérification en échec, verdict incomplet, code 3 (clé d'enregistreur d'essai)"
         },
         {
           "file": "test/enregistreur-modele-squid.test.js",

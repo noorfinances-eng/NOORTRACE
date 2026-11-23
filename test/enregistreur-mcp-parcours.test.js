@@ -292,9 +292,11 @@ describe("enregistreur, frontal MCP : parcours de bout en bout (hôtes, connecte
     expect(dossiers.length).to.equal(appelsAttendus.length);
     for (const d of dossiers) {
       const x = spawnSync(bin, [path.join(dir, "dossiers", d), "--json"], { encoding: "utf8" });
-      expect(x.status, `${d} : ${x.stdout}${x.stderr}`).to.equal(0);
+      // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : la clé d'enregistreur rec-test-01 est une pièce d'essai (EX-6.24) :
+      // rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+      expect(x.status, `${d} : ${x.stdout}${x.stderr}`).to.equal(3);
       const rapport = JSON.parse(x.stdout);
-      expect(rapport.verdict, d).to.equal("valide");
+      expect([rapport.verdict, rapport.incomplete_reasons], d).to.deep.equal(["incomplet", ["piece_essai"]]);
       expect(rapport.failed_checks, d).to.deep.equal([]);
     }
   });

@@ -142,8 +142,11 @@ func comparerExemple(t *testing.T, attendu []string, obtenu string) {
 }
 
 func TestExemplesLisibles(t *testing.T) {
+	// Complément du 2026-11-23 (CT-6 EX-6.26) : le dossier de CT-1 est signé
+	// par des clés d'essai et approuvé par des comptes d'essai ; rien n'échoue,
+	// mais le code est 3, pas 0.
 	code, o, _ := executer(ct1 + "valide-seq-7")
-	if code != 0 {
+	if code != 3 {
 		t.Fatalf("code %d", code)
 	}
 	comparerExemple(t, exempleSpec(t, "node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7"), o)
@@ -154,26 +157,29 @@ func TestExemplesLisibles(t *testing.T) {
 	}
 	comparerExemple(t, exempleSpec(t, "node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/invalide-hash-faux"), o)
 
+	// EX-8.6, point 11 : l'exigence non remplie d'abord, puis les pièces d'essai, un couple par vérification.
+	pieces := "repose sur des pièces d'essai : AV-N-1 (E-8), AV-N-2 (E-9), AV-N-1 (P-5)"
 	code, o, _ = executer(ct1+"valide-seq-7", "--exiger", "4,5,8")
-	if code != 3 || !strings.Contains(o, "\nRésultat      : INCOMPLET — contrôle(s) exigé(s) non réussi(s) : 4, 5, 8\n") {
+	if code != 3 || !strings.Contains(o, "\nRésultat      : INCOMPLET — contrôle(s) exigé(s) non réussi(s) : 4, 5, 8 ; "+pieces+"\n") {
 		t.Errorf("--exiger 4,5,8 : code %d\n%s", code, o)
 	}
 	code, o, _ = executer(ct1+"valide-seq-7", "--exiger", "tous")
 	if code != 3 || !strings.Contains(o, "4, 5, 7, 8") && !strings.Contains(o, "4, 5, 8") {
 		t.Errorf("--exiger tous : code %d", code)
 	}
-	if code, _, _ := executer(ct1+"valide-seq-7", "--exiger", "1,2,3"); code != 0 {
-		t.Errorf("--exiger 1,2,3 : code %d", code)
+	// Exigence remplie (1, 2, 3 réussis sans pièce d'essai), mais le dossier en porte : code 3, pièces seules.
+	if code, o, _ := executer(ct1+"valide-seq-7", "--exiger", "1,2,3"); code != 3 || !strings.Contains(o, "\nRésultat      : INCOMPLET — "+pieces+"\n") {
+		t.Errorf("--exiger 1,2,3 : code %d\n%s", code, o)
 	}
 	// Complément du 2026-11-19 (CT-6 EX-6.25) : les contrôles 6 et 7 réussis
 	// avec les clés et les approbateurs d'essai de CT-1 §13 ne satisfont pas
 	// l'exigence : code 3, nommés à part sur la ligne « Résultat ».
 	code, o, _ = executer(ct1+"valide-seq-7", "--exiger", "1,2,3,6,7")
-	if code != 3 || !strings.Contains(o, "\nRésultat      : INCOMPLET — contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : 6, 7\n") {
+	if code != 3 || !strings.Contains(o, "\nRésultat      : INCOMPLET — contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : 6, 7 ; "+pieces+"\n") {
 		t.Errorf("--exiger 1,2,3,6,7 : code %d\n%s", code, o)
 	}
 	code, o, _ = executer(ct1+"valide-seq-7", "--langue", "en", "--detail")
-	if code != 0 || !strings.Contains(o, "Offline verification") || !strings.Contains(o, "\nChecks:\n") || !strings.Contains(o, "Statement     : Event seq 7") {
+	if code != 3 || !strings.Contains(o, "Offline verification") || !strings.Contains(o, "\nChecks:\n") || !strings.Contains(o, "Statement     : Event seq 7") || !strings.Contains(o, "\nResult        : INCOMPLETE — rests on test pieces: AV-N-1 (E-8), AV-N-2 (E-9), AV-N-1 (P-5)\n") {
 		t.Errorf("anglais, --detail : %d\n%s", code, o)
 	}
 }
@@ -237,7 +243,8 @@ func TestEntreesAPart(t *testing.T) {
 	// Second manifeste : le suivant se chaîne (P-5 réussie), un manifeste
 	// non adjacent met P-5 en échec.
 	man := "../../../spec/vecteurs/ct-1/manifestes/"
-	if code, o, _ := executer(rep, "--second-manifeste", man+"periode-2.json", "--detail"); code != 0 || !strings.Contains(o, "continuité avec le second manifeste vérifiée") {
+	// Code 3, non 0 : le dossier de CT-1 porte des pièces d'essai (EX-6.26) ; rien n'échoue.
+	if code, o, _ := executer(rep, "--second-manifeste", man+"periode-2.json", "--detail"); code != 3 || !strings.Contains(o, "continuité avec le second manifeste vérifiée") || !strings.Contains(o, "\nRésultat      : INCOMPLET — repose sur des pièces d'essai : ") {
 		t.Errorf("manifeste suivant : %d\n%s", code, o)
 	}
 	if code, o, _ := executer(rep, "--second-manifeste", man+"periode-3.json"); code != 1 || !strings.Contains(o, "INVALIDE — vérification(s) en échec : P-5") {
@@ -246,7 +253,9 @@ func TestEntreesAPart(t *testing.T) {
 	// Pièces : une pièce dont les octets correspondent ; une pièce altérée
 	// fait échouer E-6.
 	pieces := t.TempDir()
-	if code, o, _ := executer(rep, "--pieces", pieces, "--json"); code != 0 || !strings.Contains(o, `"files": 0`) {
+	if code, o, _ := executer(rep, "--pieces", pieces, "--json"); code != 3 || !strings.Contains(o, `"files": 0`) || !strings.Contains(o, `"incomplete_reasons": [
+    "piece_essai"
+  ]`) {
 		t.Errorf("répertoire de pièces vide : %d", code)
 	}
 	ev, _ := os.ReadFile(rep + "/evenement.json")

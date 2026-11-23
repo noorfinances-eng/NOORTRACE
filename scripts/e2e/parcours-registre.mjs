@@ -68,7 +68,10 @@
 // dev-net.sh). verdict.json ne porte aucun chemin du poste (essai : nom du
 // répertoire de sortie seulement). Codes : 0 parcours réussi, contrôle 8
 // réussi pour les deux vérificateurs avec le même verdict, le même code et les
-// mêmes statuts (EX-9.2), et au moins un bloc dont le certificat est exigé ;
+// mêmes statuts (EX-9.2), ce code étant 3 pour la seule raison piece_essai,
+// sans vérification en échec (le registre du réseau de développement est une
+// pièce d'essai : CT-6 EX-6.26, décision du porteur du 2026-11-23 ; code 0
+// avant), et au moins un bloc dont le certificat est exigé ;
 // 1 échec d'une étape, d'un vérificateur ou divergence des deux vérificateurs ;
 // 2 préalable absent (binaire, vérificateur Go), rien n'est envoyé.
 //
@@ -202,14 +205,26 @@ export function periodeDemo({ org_id, journal_id, graine, maintenantMs = Date.no
 
 /**
  * Verdict final de TE-4 (CT-9 EX-9.2) : `reussi` et code 0 seulement
- * si les deux vérificateurs ont rendu le code 0, le même verdict, le même code
- * et les mêmes statuts (parity.equal), et si au moins un bloc a exigé un
- * certificat ; sinon `echoue`, code 1, avec le motif.
+ * si les deux vérificateurs ont rendu le code attendu, le même verdict, le
+ * même code et les mêmes statuts (parity.equal), et si au moins un bloc a
+ * exigé un certificat ; sinon `echoue`, code 1, avec le motif. Le code attendu
+ * est 3 pour la seule raison `piece_essai`, sans vérification en échec
+ * (décision du porteur du 2026-11-23, CT-6 EX-6.26, EX-8.12 : le registre du
+ * réseau de développement est une pièce d'essai, AV-R-4 ; code 0 avant ce
+ * complément). Un code 0 dirait que le registre n'est plus reconnu comme pièce
+ * d'essai ; un autre code 3 dirait une exigence non remplie : échec.
  */
 export function verdictFinal({ reference, go, parity, blocks }) {
   const motifs = [];
-  if (!reference || reference.exit_code !== 0) motifs.push(`implémentation de référence : code ${reference?.exit_code ?? "absent"}`);
-  if (!go || go.exit_code !== 0) motifs.push(`vérificateur Go : code ${go?.exit_code ?? "absent"}`);
+  const RAISONS_ATTENDUES = JSON.stringify(["piece_essai"]);
+  const motif = (v, nom) => {
+    if (!v) return `${nom} : code absent`;
+    const raisons = Array.isArray(v.incomplete_reasons) ? v.incomplete_reasons : null;
+    const echecs = Array.isArray(v.failed_checks) ? v.failed_checks : null;
+    if (v.exit_code === 3 && raisons && JSON.stringify(raisons) === RAISONS_ATTENDUES && echecs && echecs.length === 0) return null;
+    return `${nom} : code ${v.exit_code ?? "absent"} (attendu : 3, raison piece_essai seule, aucune vérification en échec ; raisons ${raisons ? raisons.join(", ") || "aucune" : "absentes"}, en échec ${echecs ? echecs.join(", ") || "aucune" : "absentes"})`;
+  };
+  for (const m of [motif(reference, "implémentation de référence"), motif(go, "vérificateur Go")]) if (m) motifs.push(m);
   if (!parity || parity.equal !== true) motifs.push(`les deux vérificateurs divergent : ${(parity?.differences ?? ["parité non calculée"]).join(" ; ")}`);
   if (!Array.isArray(blocks) || blocks.length === 0) motifs.push("aucun bloc n'a exigé de certificat");
   if (motifs.length) return { code: 1, result: "echoue", error: `EX-9.2 : ${motifs.join(" ; ")}` };
@@ -501,7 +516,7 @@ export async function parcours(argv = process.argv.slice(2), { stdout = process.
       try {
         j = JSON.parse(r.stdout);
       } catch {
-        return { exit_code: r.code, report: `verificateurs/${nom}.json`, verdict: null, control_8: null, checks: [], controls: [], duration_ms: Math.round(r.duree_ms) };
+        return { exit_code: r.code, report: `verificateurs/${nom}.json`, verdict: null, incomplete_reasons: null, failed_checks: null, control_8: null, checks: [], controls: [], duration_ms: Math.round(r.duree_ms) };
       }
       const c8 = j.controls.find((c) => c.number === 8) ?? null;
       const ids = new Set(c8?.checks ?? []);
@@ -509,6 +524,8 @@ export async function parcours(argv = process.argv.slice(2), { stdout = process.
         exit_code: r.code,
         report: `verificateurs/${nom}.json`,
         verdict: j.verdict,
+        incomplete_reasons: Array.isArray(j.incomplete_reasons) ? j.incomplete_reasons : null,
+        failed_checks: Array.isArray(j.failed_checks) ? j.failed_checks : null,
         control_8: c8 ? { status: c8.status, reason: c8.reason, summary: c8.summary ?? null } : null,
         checks: j.checks.filter((x) => ids.has(x.id) || x.controls?.includes(8)).map((x) => ({ id: x.id, status: x.status, reason: x.reason })),
         controls: j.controls.map((c) => ({ number: c.number, status: c.status, reason: c.reason })),

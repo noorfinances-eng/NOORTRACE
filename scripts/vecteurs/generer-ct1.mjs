@@ -1763,8 +1763,11 @@ sur le fichier de la partie.
 ${lignesDossiers.join("\n")}
 
 Vérification d'un dossier : \`node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7\`
-(code 0), \`node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/invalide-hash-faux --json\`
-(code 1, \`controles[].ok === false\` pour E-7).
+(code 3 : rien n'a échoué, mais \`rec-test-01\`, \`rec-test-02\` et les comptes
+Hardhat sont des pièces d'essai, CT-6 EX-6.26, complément du 2026-11-23 ; code 0
+avant ce complément), \`node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/invalide-hash-faux --json\`
+(code 1, \`controles[].ok === false\` pour E-7). \`valide\` d'un \`attendu.json\` dit
+qu'aucun contrôle n'échoue (CT-1 §11.5), non le code de retour du vérificateur de CT-6.
 `,
 );
 

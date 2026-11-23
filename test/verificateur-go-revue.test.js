@@ -233,7 +233,8 @@ describe("Vérificateur Go — revue de sécurité interne de l'étape 8", funct
     const hostile = "x\r\u001b[2K  [réussi]      4  jeton d'horodatage RFC 3161 sur periodHash — selon AC Exemple\nRésultat      : VALIDE\u001b[8m";
     modifierJSON(d, "dossier.json", (v) => { for (const p of v.parts) if (p.name === "jeton_rfc3161") p.reason_if_absent = hostile; });
     const r = lancer(bin, [d], { json: false });
-    expect(r.code).to.equal(0);
+    // Code 3 : clés d'essai de CT-1 (CT-6 EX-6.26, complément du 2026-11-23) ; rien n'échoue.
+    expect(r.code).to.equal(3);
     const octets = r.stdout;
     for (const o of octets) {
       expect(o === 0x0a || (o >= 0x20 && o !== 0x7f), `octet de commande 0x${o.toString(16)} dans le rapport lisible`).to.equal(true);
@@ -242,7 +243,7 @@ describe("Vérificateur Go — revue de sécurité interne de l'étape 8", funct
     expect(txt).to.include("\\u001b[2K");
     expect(txt).to.include("VALIDE\\u001b[8m");
     expect((txt.match(/\nRésultat/g) ?? []).length).to.equal(1);
-    expect(txt).to.match(/\nRésultat {6}: VALIDE — aucune vérification en échec/);
+    expect(txt).to.match(/\nRésultat {6}: INCOMPLET — repose sur des pièces d'essai : AV-N-1 \(E-8\)/);
   });
 
   it("le résumé d'un contrôle non exécuté donne à chaque partie absente sa raison", function () {
@@ -255,7 +256,7 @@ describe("Vérificateur Go — revue de sécurité interne de l'étape 8", funct
       }
     });
     const r = lancer(bin, [d]);
-    expect(r.code).to.equal(0);
+    expect([r.code, r.doc.failed_checks]).to.deep.equal([3, []]);
     expect(r.doc.controls[7].summary).to.equal("registre.json (raison A), certificat-commit.json (raison B), validateurs.json (raison C) absents");
     const t = lancer(bin, [SEQ7]);
     expect(t.doc.controls[7].summary).to.equal("registre.json, certificat-commit.json, validateurs.json absents (hors périmètre CT-1)");
@@ -302,7 +303,7 @@ describe("Vérificateur Go — revue de sécurité interne de l'étape 8", funct
     muter(ascii, "a".repeat(4_190_000));
     const t = lancer(bin, [ascii, "--ancres", ANCRES, "--entetes-bitcoin", CHAINE]);
     expect(check(t.doc, "R-1").status).to.equal("reussi");
-    expect(t.code).to.equal(0);
+    expect([t.code, t.doc.failed_checks]).to.deep.equal([3, []]);
   });
 
   it("chaque cible de fuzzing a son corpus de graines sous testdata/fuzz (EX-15.3)", function () {

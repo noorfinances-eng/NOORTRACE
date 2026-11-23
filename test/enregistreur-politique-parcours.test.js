@@ -57,12 +57,14 @@ function construireVerificateur(dir) {
   return sortie;
 }
 
-/** Rapport du binaire Go sur un dossier : verdict valide, statut de chaque contrôle. */
+/** Rapport du binaire Go sur un dossier : aucun contrôle en échec, statut de chaque contrôle. */
 function verifierParGo(bin, dossier) {
   const r = spawnSync(bin, [dossier, "--json"], { encoding: "utf8" });
-  expect(r.status, r.stdout + r.stderr).to.equal(0);
+  // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : la clé d'enregistreur rec-test-01 est une pièce d'essai (EX-6.24) :
+  // rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+  expect(r.status, r.stdout + r.stderr).to.equal(3);
   const rapport = JSON.parse(r.stdout);
-  expect(rapport.verdict, dossier).to.equal("valide");
+  expect([rapport.verdict, rapport.incomplete_reasons], dossier).to.deep.equal(["incomplet", ["piece_essai"]]);
   expect(rapport.failed_checks).to.deep.equal([]);
   return Object.fromEntries(rapport.controls.map((c) => [c.number, [c.status, c.reason ?? null]]));
 }
@@ -288,7 +290,7 @@ describe("enregistreur, moteur de politique : parcours de bout en bout (agent r�
       expect(JSON.stringify(a)).to.contain(relaye.approval.ticket);
     });
 
-    it("le dossier de chaque appel est valide pour le binaire Go noortrace-verifier (go1.27.3) ; contrôle 7 réussi pour les appels approuvés", function () {
+    it("le dossier de chaque appel, pour le binaire Go noortrace-verifier (go1.27.3) : aucune vérification en échec, verdict incomplet, code 3 (pièces d'essai) ; contrôle 7 réussi pour les appels approuvés", function () {
       if (!bin) { this.test.title += " — en attente : go1.27.3 introuvable (NOORTRACE_GO_BIN ou PATH)"; this.skip(); }
       ev.appels.forEach((e, k) => {
         const statuts = verifierParGo(bin, ev.dossiers[k]);

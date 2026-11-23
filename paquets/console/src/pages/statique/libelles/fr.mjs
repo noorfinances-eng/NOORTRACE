@@ -289,7 +289,7 @@ export default Object.freeze({
   "modele.outil.classe": "Ce qu'il fait",
   "modele.arguments.racine": "(valeur entière)",
   "modele.arguments.non_verifiable_sens":
-    "« Non vérifiable par la console » : la console n'a pas pu confronter cette valeur à la demande retenue ; elle vient du service seul. Si elle compte pour votre décision, confrontez-la aux sources que votre organisation vous désigne, ou votez refuse.",
+    "« Non vérifiable par la console » : la console n'a pas pu confronter cette valeur à la demande retenue ; elle vient du service seul. Si elle compte pour votre décision, confrontez-la aux sources que votre organisation vous désigne, ou refusez.",
   "modele.effets": "Effets annoncés de l'action",
   "modele.effets.declaratif": "Ce que l'action doit produire, d'après le service d'approbation. Votre signature porte sur la demande et ses valeurs, plus haut, et non sur ces effets annoncés.",
   "modele.effets.aucun": "Aucun effet annoncé.",
@@ -495,8 +495,8 @@ export default Object.freeze({
   "vote.suite.approuve": "La demande est approuvée. L'action est autorisée ; la console ne sait pas encore si elle a été lancée, ni si elle a abouti. Pour le savoir, demandez à votre administrateur : une fois lancée, l'action est enregistrée dans le journal de votre organisation.",
   "vote.suite.refuse": "La demande est refusée. L'action n'aura pas lieu.",
   "vote.suite.expire": "La demande a expiré. L'action n'aura pas lieu.",
-  "vote.deja_inscrit": "vote déjà inscrit",
-  "vote.deja_inscrit_motif": "vote déjà inscrit ; le motif n'a pas changé",
+  "vote.deja_inscrit": "décision déjà enregistrée",
+  "vote.deja_inscrit_motif": "décision déjà enregistrée ; le motif n'a pas changé",
   "vote.deja_sens": "Cette décision était déjà enregistrée à votre nom : rien n'a changé.",
   "vote.non_inscrit": "Votre décision n'est pas enregistrée.",
   "vote.non_envoye": "Rien n'a été envoyé : la signature obtenue est écartée.",
@@ -519,16 +519,16 @@ export default Object.freeze({
   "consigne_titre.6": "Si la console annonce elle-même une différence, ne signez rien.",
   "consigne_titre.7": "Après votre décision, vérifiez la notification, si votre organisation en envoie une.",
   "consigne.1":
-    "Lisez la demande : l'outil, chaque argument et sa marque (« inchangé », « non vérifiable par la console »), les effets prévus (« connu après exécution » pour une valeur tirée du résultat), la règle, la délégation, l'intention (« déclarée par l'agent, non vérifiée », ou « non vérifiable par la console » quand l'événement la porte par une référence), le jeu et les votes.",
+    "Lisez la demande : l'outil, chaque argument et sa marque (« inchangé », « non vérifiable par la console »), les effets prévus (« connu après exécution » pour une valeur tirée du résultat), la règle, la délégation, l'intention (« déclarée par l'agent, non vérifiée », ou « non vérifiable par la console » quand l'événement la porte par une référence), le jeu et les décisions déjà données.",
   "consigne.2": "Choisissez votre décision et votre adresse ; la console affiche alors l'empreinte du condensé de cette décision, et elle seule.",
   "consigne.3":
     "Sur l'écran du portefeuille, retrouvez les 64 chiffres hexadécimaux du message (avec ou sans 0x, ou entre hex( et )) et comparez les 8 premiers et les 8 derniers à l'empreinte affichée sous l'intitulé « empreinte du condensé à signer » ; pour une objection ou un montant élevé (votre organisation en dit le seuil), comparez les huit groupes. Sur un appareil qui montre aussi « Message hash », comparez cette valeur à l'empreinte affichée à part, sous l'intitulé « condensé EIP-191, montré par certains appareils sous « Message hash » », et jamais à l'empreinte du condensé à signer.",
   "consigne.4": "Si tout concorde, confirmez dans le portefeuille.",
   "consigne.5":
-    "Si l'empreinte diffère, ou si le portefeuille montre autre chose qu'un message (une transaction, des données typées) : refusez dans le portefeuille, ne réessayez pas depuis cette page, et prévenez l'administrateur de l'organisation par un autre canal que la console. Si le portefeuille ne montre pas les 64 chiffres en hexadécimal, en entier : refusez dans le portefeuille et ne votez pas avec ce portefeuille ; votez avec un portefeuille qui détient la même clé et montre les 64 chiffres, depuis une page de console rechargée ; si aucun ne détient la clé, inscrivez une autre adresse. Refuser dans le portefeuille n'est pas voter refuse : aucun vote n'est envoyé. Pour vous opposer à la demande, signez la décision refuse depuis une console saine : la console de l'organisation ouverte à son origine {origine}, sur un autre poste ou dans un autre profil de navigateur sans extension que celui où l'écart est apparu, ou après que l'administrateur prévenu a écarté la cause. La concordance des empreintes ne prouve pas qu'une console est saine. Tant que vous n'avez pas signé refuse, votre opposition ne compte pas : les autres membres peuvent encore atteindre le seuil approuve ; sans décision scellée avant l'échéance, le ticket expire, et un délai écoulé ne vaut jamais approbation.",
+    "Si l'empreinte diffère, ou si le portefeuille montre autre chose qu'un message (une transaction, des données typées) : refusez dans le portefeuille, ne réessayez pas depuis cette page, et prévenez l'administrateur de l'organisation par un autre canal que la console. Si le portefeuille ne montre pas les 64 chiffres en hexadécimal, en entier : refusez dans le portefeuille et ne décidez pas avec ce portefeuille ; décidez avec un portefeuille qui détient la même clé et montre les 64 chiffres, depuis une page de console rechargée ; si aucun ne détient la clé, inscrivez une autre adresse. Refuser dans le portefeuille n'est pas refuser la demande : aucune décision n'est envoyée. Pour vous opposer à la demande, signez la décision refuse depuis une console saine : la console de l'organisation ouverte à son origine {origine}, sur un autre poste ou dans un autre profil de navigateur sans extension que celui où l'écart est apparu, ou après que l'administrateur prévenu a écarté la cause. La concordance des empreintes ne prouve pas qu'une console est saine. Tant que vous n'avez pas signé refuse, votre opposition ne compte pas : les autres membres peuvent encore atteindre le seuil approuve ; sans décision scellée avant l'échéance, le ticket expire, et un délai écoulé ne vaut jamais approbation.",
   "consigne.6": "Si la console affiche elle-même « empreinte divergente » : il n'y a rien à signer ; prévenez l'administrateur.",
   "consigne.7":
-    "Après le vote, si votre organisation a mis en place la notification indépendante, vérifiez qu'elle annonce le vote inscrit en votre nom avec le ticket, la décision choisie et l'empreinte affichée. Si elle nomme un autre ticket, une autre décision ou une autre empreinte, ou si elle n'arrive pas dans le délai que l'organisation a fixé, prévenez l'administrateur par un autre canal ; tant que le ticket accepte des votes, signez la décision voulue sur le ticket concerné depuis une console saine, ce qui remplace le vote ; une décision déjà scellée ne s'annule pas.",
+    "Après votre décision, si votre organisation a mis en place la notification indépendante, vérifiez qu'elle annonce la décision enregistrée en votre nom avec le ticket, la décision choisie et l'empreinte affichée. Si elle nomme un autre ticket, une autre décision ou une autre empreinte, ou si elle n'arrive pas dans le délai que l'organisation a fixé, prévenez l'administrateur par un autre canal ; tant que le ticket accepte des décisions, signez la décision voulue sur le ticket concerné depuis une console saine, ce qui remplace la précédente ; une décision déjà scellée ne s'annule pas.",
 
   // Autres actions : récusation (EX-10.4, EX-13.5) et retrait (EX-7.15, EX-12.19).
   "recusation.titre": "Me retirer de cette demande",
@@ -730,7 +730,7 @@ export default Object.freeze({
   "console.annonce_en_double":
     "Deux applications de votre navigateur se présentent comme le même portefeuille : la console les écarte toutes les deux. L'une imite peut-être l'autre. Prévenez l'administrateur de votre organisation.",
   "console.adresse_non_exposee": "Votre portefeuille ne présente pas l'adresse de signature que l'annuaire de votre organisation vous attribue. Sélectionnez cette adresse dans votre portefeuille.",
-  "console.refus_approbateur": "signature refusée dans le portefeuille ; aucun vote n'a été envoyé",
+  "console.refus_approbateur": "signature refusée dans le portefeuille ; aucune décision n'a été envoyée",
   "console.non_autorise": "Votre portefeuille n'a pas autorisé cette page. Autorisez-la dans votre portefeuille, puis recommencez.",
   "console.methode_non_prise_en_charge": "Ce portefeuille ne sait pas signer une décision. Choisissez un autre portefeuille.",
   "console.deconnecte": "Votre portefeuille est déconnecté. Rien n'a été envoyé. Reconnectez-le, puis recommencez.",
@@ -810,7 +810,7 @@ export default Object.freeze({
   "raison.recuse": "Vous vous êtes retiré de cette demande : vous ne pouvez plus en décider.",
   "raison.motif_trop_long": "Le motif dépasse 1 024 caractères. Raccourcissez-le.",
   "raison.plafond_atteint": "Ce demandeur a déjà le nombre maximal de demandes en cours. Une de ses demandes doit être décidée avant qu'il en ouvre une autre.",
-  "raison.vote_identique": "vote déjà inscrit",
+  "raison.vote_identique": "décision déjà enregistrée",
   "raison.retrait_non_autorise": "Vous n'avez pas le droit de retirer cette demande.",
   "raison.remise_mal_formee": "La décision n'a pas pu être enregistrée : sa forme est refusée. Prévenez l'administrateur de votre organisation.",
   "raison.request_hash_different": "La décision porte sur une autre demande que celle-ci : elle est refusée. Prévenez l'administrateur de votre organisation.",

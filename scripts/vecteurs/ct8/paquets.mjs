@@ -69,8 +69,8 @@ export function descriptionObservation() {
 
 /** Les dix-sept cas d'EX-A.13, dans l'ordre : nom, archive, empreinte attendue (nom d'archive dont prendre le SHA-256), ancres de la ligne de commande, description. */
 const CAS = [
-  ["valide", "valide.tar", null, null, "Paquet construit par l'outil de référence : trois dossiers valides de ct-6, le fichier d'ancres de test, deux fichiers d'en-têtes, l'attestation de ct-7 ; sans vérificateur joint."],
-  ["valide-empreinte", "valide.tar", "valide.tar", null, "Le même paquet, vérifié avec l'empreinte attendue reçue à part : PR-2 réussit."],
+  ["valide", "valide.tar", null, null, "Paquet construit par l'outil de référence : trois dossiers de ct-6 dont aucune vérification n'échoue, le fichier d'ancres de test, deux fichiers d'en-têtes, l'attestation de ct-7 ; sans vérificateur joint. Depuis le complément du 2026-11-23 de CT-6 (EX-6.26), chaque dossier rend le code 3, non 0 : il est fait de pièces d'essai (clés de CT-1 §13, comptes Hardhat, autorité de test, registre de développement) ; le paquet rend donc 3."],
+  ["valide-empreinte", "valide.tar", "valide.tar", null, "Le même paquet, vérifié avec l'empreinte attendue reçue à part : PR-2 réussit ; code 3, pièces d'essai."],
   ["empreinte-fausse", "valide.tar", "fichier-altere.tar", null, "Le même paquet, vérifié avec l'empreinte d'un autre paquet : PR-2 échoue, rien d'autre n'est lu."],
   ["fichier-altere", "fichier-altere.tar", null, null, "Un octet de dossiers/valide-seq-7-complet/evenement.json changé (seq 7 devenu 9), manifeste inchangé : PR-8."],
   ["fichier-manquant", "fichier-manquant.tar", null, null, "dossiers/valide-seq-7-complet/voisins.json retiré de l'archive, toujours déclaré : PR-8."],
@@ -85,7 +85,7 @@ const CAS = [
   ["metadonnees-non-fixees", "metadonnees-non-fixees.tar", null, null, "paquet-reviseur/README.md au mode 0600 : PR-6."],
   ["ancres-du-reviseur-discordantes", "valide.tar", null, "spec/vecteurs/ct-6/ancres/ancres-cle-enregistreur-autre.json", "Le paquet valide, vérifié avec un fichier d'ancres du réviseur qui attribue à rec-test-01 la clé de rec-test-02 : paquet intact, N-3 échoue dans chaque dossier, code 1."],
   ["ancres-non-conformes", "valide.tar", null, "spec/vecteurs/ct-6/ots/entetes/chaine.json", "Le paquet valide, vérifié avec --ancres désignant un fichier qui n'est pas un fichier d'ancres : chaque dossier rend le code 2 (N-1), code 2."],
-  ["observation", "observation.tar", null, null, "Paquet des dossiers de seq 1 (annonce de l'ensemble, policy.rule nulle) et de seq 3 (appel marqué) du journal d'exemple de 12.4, avec la pièce de l'ensemble : les deux dossiers sont déclarés en mode observation (policy_version en -observation), seq 3 avec la marque a_approuver (EX-12.9, EX-A.15)."],
+  ["observation", "observation.tar", null, null, "Paquet des dossiers de seq 1 (annonce de l'ensemble, policy.rule nulle) et de seq 3 (appel marqué) du journal d'exemple de 12.4, avec la pièce de l'ensemble : les deux dossiers sont déclarés en mode observation (policy_version en -observation), seq 3 avec la marque a_approuver (EX-12.9, EX-A.15) ; code 3 : le journal d'exemple est signé par une clé d'essai (CT-6 EX-6.26)."],
 ];
 
 /**

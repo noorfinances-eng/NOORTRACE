@@ -77,7 +77,8 @@ func TestRapportLisibleNeutralise(t *testing.T) {
 	rep := copier(t, seq7)
 	avecRaison(t, rep, "jeton_rfc3161", raisonHostile)
 	res := lancer(t, rep)
-	if res.Code != 0 {
+	// Code 3 : clés d'essai de CT-1 (EX-6.26) ; rien n'échoue.
+	if res.Code != 3 || len(res.Rapport.FailedChecks) != 0 {
 		t.Fatalf("code %d : %v", res.Code, res.Erreur)
 	}
 	txt := rapport.Lisible(res.Rapport, rapport.InfosLisibles{Verificateur: "essai", Repertoire: rep}, false)

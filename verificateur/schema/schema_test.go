@@ -40,7 +40,8 @@ func TestCopiesConformes(t *testing.T) {
 		"0x233e7ee41d597119c9319382eacc673f316fe891f8e271cc1032a183972825fd",
 		"0x1ab686a61d7dad8ea8e1d26b69e750e414b19e819f9a3516cb1d7c737c807d04",
 		"0x77e991e484add0e308291578d8576c28a4264b5d2b2ae2c06b6832b470b6308c",
-		"0xbe8494a287d2185390beb1a0515d157a53e295289342fbc127b362ce60d06019",
+		// Complément du 2026-11-23 : membre incomplete_reasons (EX-8.12).
+		"0x54a8556e83a9cfa3baadcb5e2bb5501acff34fb4a2cbd961f138202a360f700c",
 	}
 	for i, s := range liste {
 		if s.Sha256 != attendus[i] {

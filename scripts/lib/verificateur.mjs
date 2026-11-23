@@ -133,18 +133,26 @@ export const estCleEnregistreurEssai = (publicKey) => CLES_ENREGISTREUR_ESSAI.ha
 export const estCleChaineEssai = (chainKey) => CLES_CHAINE_ESSAI.has(minuscule(chainKey));
 export const estApprobateurEssai = (adresse) => APPROBATEURS_ESSAI.has(minuscule(adresse));
 
-const SANS_VALEUR = " : clé d'essai publiée, sans valeur probante hors des tests";
+/** Identifiants des avertissements de pièce d'essai (EX-6.24) : un seul suffit à rendre le verdict `incomplet` (EX-6.26). */
+export const AVERTISSEMENTS_ESSAI = Object.freeze(new Set(["AV-O-3", "AV-T-5", "AV-R-4", "AV-N-1", "AV-N-2"]));
+export const estAvertissementEssai = (id) => AVERTISSEMENTS_ESSAI.has(id);
+/** Valeurs de `incomplete_reasons` (EX-8.12), dans leur ordre. */
+export const RAISONS_INCOMPLET = Object.freeze(["exigence_non_remplie", "piece_essai"]);
+
+const SANS_VALEUR = " : clé d'essai publiée, sans valeur de preuve hors des essais";
+/** Mention qui suit, dans l'énoncé, chaque pièce d'essai qu'il nomme (EX-6.8, complément du 2026-11-23). */
+export const MENTION_ESSAI = Object.freeze({ fr: " (pièce d'essai, sans valeur de preuve hors des essais)", en: " (test piece, no evidential value outside tests)" });
 
 /** Détails d'EX-6.24, dans les deux langues. */
 export const detailsEssai = {
-  autorite: (nom, sha) => ({ fr: `autorité ${nom} : certificat d'essai ${sha}, sans valeur probante hors des tests`, en: `authority ${nom}: test certificate ${sha}, no evidential value outside tests` }),
-  registre: (chainId) => ({ fr: `registre ${chainId} : réseau de développement, sans valeur probante hors des tests`, en: `registry ${chainId}: development network, no evidential value outside tests` }),
+  autorite: (nom, sha) => ({ fr: `autorité ${nom} : certificat d'essai ${sha}, sans valeur de preuve hors des essais`, en: `authority ${nom}: test certificate ${sha}, no evidential value outside tests` }),
+  registre: (chainId) => ({ fr: `registre ${chainId} : réseau de développement, sans valeur de preuve hors des essais`, en: `registry ${chainId}: development network, no evidential value outside tests` }),
   cle: (keyId, role) => ({
     fr: `clé d'enregistreur ${keyId} (${{ evenement: "événement", manifeste: "manifeste", point: "point de contrôle" }[role]})${SANS_VALEUR}`,
     en: `recorder key ${keyId} (${{ evenement: "event", manifeste: "manifest", point: "checkpoint" }[role]}): published test key, no evidential value outside tests`,
   }),
   cleChaine: (chainKey, keyId) => ({ fr: `clé de chaîne ${chainKey} de ${keyId}${SANS_VALEUR}`, en: `chain key ${chainKey} of ${keyId}: published test key, no evidential value outside tests` }),
-  approbateur: (adresse) => ({ fr: `approbateur ${adresse} : compte d'essai publié, sans valeur probante hors des tests`, en: `approver ${adresse}: published test account, no evidential value outside tests` }),
+  approbateur: (adresse) => ({ fr: `approbateur ${adresse} : compte d'essai publié, sans valeur de preuve hors des essais`, en: `approver ${adresse}: published test account, no evidential value outside tests` }),
 };
 
 /**
@@ -1095,13 +1103,18 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
 
   // Pièces d'essai (CT-6 EX-6.23, EX-6.24, complément du 2026-11-19) : clés d'enregistreur (AV-N-1) et approbateurs (AV-N-2).
   const avertissementsEssai = [];
+  // Pièces d'essai que l'énoncé marque (EX-6.8, complément du 2026-11-23) : celles qui lèvent un avertissement ci-dessous.
+  const piecesEssai = { cles: new Set(), approbateurs: new Set(), autorites: new Set(), registres: new Set() };
   {
     const clePublique = (k) => clesListe?.find((x) => x.key_id === k)?.public_key ?? null;
     const dites = new Set();
     const cleEssai = (k, role, check) => {
       if (typeof k !== "string" || dites.has(k)) return;
       dites.add(k);
-      if (estCleEnregistreurEssai(clePublique(k))) avertissementsEssai.push({ id: "AV-N-1", check, detail: detailsEssai.cle(k, role) });
+      if (estCleEnregistreurEssai(clePublique(k))) {
+        avertissementsEssai.push({ id: "AV-N-1", check, detail: detailsEssai.cle(k, role) });
+        piecesEssai.cles.add(k);
+      }
     };
     if (reussi(6)) {
       cleEssai(ev?.recorder_key_id, "evenement", "E-8");
@@ -1111,7 +1124,13 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
       if (!reussi(6)) dites.add(ev?.recorder_key_id).add(manifesteSig?.recorder_key_id);
       cleEssai(point.key_id, "point", "K-3");
     }
-    if (reussi(7)) for (const a of ev.approval.approvers) if (estApprobateurEssai(a)) avertissementsEssai.push({ id: "AV-N-2", check: "E-9", detail: detailsEssai.approbateur(a) });
+    if (reussi(7)) {
+      for (const a of ev.approval.approvers) {
+        if (!estApprobateurEssai(a)) continue;
+        avertissementsEssai.push({ id: "AV-N-2", check: "E-9", detail: detailsEssai.approbateur(a) });
+        piecesEssai.approbateurs.add(minuscule(a));
+      }
+    }
     // Autorité d'horodatage d'essai (AV-T-5) : celle que T-7 a retenue, premier pointeur des ancres employées, pour le
     // contrôle 4 réussi (vérification T-7) et pour K-7 réussie (jeton du point).
     const autoriteEssai = (pointeur, check) => {
@@ -1119,12 +1138,18 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
       const a = m ? ancres?.tsa_authorities?.[Number(m[1])] : undefined;
       if (!a) return;
       const sha = "0x" + crypto.createHash("sha256").update(Buffer.from(a.certificate.replace(/-----[^-]+-----/g, "").replace(/\s+/g, ""), "base64")).digest("hex");
-      if (estCertificatEssai(sha)) avertissementsEssai.push({ id: "AV-T-5", check, detail: detailsEssai.autorite(a.name, sha) });
+      if (estCertificatEssai(sha)) {
+        avertissementsEssai.push({ id: "AV-T-5", check, detail: detailsEssai.autorite(a.name, sha) });
+        piecesEssai.autorites.add(a.name);
+      }
     };
     if (reussi(4)) autoriteEssai(c4.anchors_used?.[0], "T-7");
     if (kStatut("K-7") === "reussi") autoriteEssai(ancresEmployeesK[4]?.[0], "K-7");
     // Registre d'essai (AV-R-4) : contrôle 8 réussi sur le réseau de développement.
-    if (reussi(8) && estChaineEssai(ancres?.registry?.chain_id)) avertissementsEssai.push({ id: "AV-R-4", check: "R-4", detail: detailsEssai.registre(ancres.registry.chain_id) });
+    if (reussi(8) && estChaineEssai(ancres?.registry?.chain_id)) {
+      avertissementsEssai.push({ id: "AV-R-4", check: "R-4", detail: detailsEssai.registre(ancres.registry.chain_id) });
+      piecesEssai.registres.add(ancres.registry.chain_id);
+    }
     // Clé de chaîne d'essai (AV-N-1 sur N-4) : N-4 réussie ; l'enregistreur de l'ancre est la dernière ancre employée du contrôle 8.
     if (c8?.n4?.status === "reussi") {
       const m = /^\/recorders\/([0-9]+)$/.exec((c8.ancresEmployees ?? []).at(-1) ?? "");
@@ -1224,8 +1249,14 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
   const requis = [...new Set(exiger)].sort((a, b) => a - b);
   const nonReussisExiges = requis.filter((n) => !reussi(n));
   const sansValeurExiges = requis.filter((n) => sansValeur.includes(n));
-  const verdict = failed_checks.length || blocking_unexecuted.length ? "invalide" : nonReussisExiges.length || sansValeurExiges.length ? "incomplet" : "valide";
+  // Complément du 2026-11-23 (EX-6.26) : une seule pièce d'essai, quelle que soit sa vérification (K-3, K-7, K-9
+  // compris) et quel que soit le seuil, suffit : le verdict n'est jamais `valide`.
+  const pieceEssai = warnings.some((w) => estAvertissementEssai(w.id));
+  const exigenceNonRemplie = nonReussisExiges.length > 0 || sansValeurExiges.length > 0;
+  const verdict = failed_checks.length || blocking_unexecuted.length ? "invalide" : exigenceNonRemplie || pieceEssai ? "incomplet" : "valide";
   const exit_code = { valide: 0, invalide: 1, incomplet: 3 }[verdict];
+  // Pourquoi le verdict est `incomplet` (EX-8.12) : dans l'ordre de RAISONS_INCOMPLET ; vide sinon.
+  const incomplete_reasons = verdict === "incomplet" ? RAISONS_INCOMPLET.filter((r) => (r === "exigence_non_remplie" ? exigenceNonRemplie : pieceEssai)) : [];
 
   // Désignation de l'événement et de la période (EX-6.13) : valeurs bien formées seulement.
   const event = ev && Number.isSafeInteger(ev.seq) && ev.seq >= 0 && typeof ev.hash === "string" && RE_HEX32.test(ev.hash) && typeof ev.ts === "string" && RE_HORODATAGE.test(ev.ts) ? { seq: ev.seq, hash: ev.hash, ts: ev.ts, tool: typeof ev.execution?.tool === "string" ? ev.execution.tool : null } : null;
@@ -1319,6 +1350,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
       statuts,
       pointDeControle: fk,
       perimetre: attestation,
+      essai: piecesEssai,
     });
   }
   const nonExecutes = controls.filter((c) => c.status === "non_execute");
@@ -1338,6 +1370,7 @@ export function verifierDossierComplet({ fichiers, nonLus = new Map(), schemas, 
     facts,
     verdict,
     exit_code,
+    incomplete_reasons,
     statement,
     bound,
     required_not_passed: verdict === "incomplet" ? nonReussisExiges : [],
@@ -1370,8 +1403,28 @@ export function ordonnerAvertissements(avertissements, liste) {
  * provenance_point, jeton (faits d'EX-9.19 ou null), bitcoin (faits d'EX-10.14
  * ou null), registre ({ chain_id, block_number, block_time, contract } ou null) }.
  */
-export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEvenement, cleManifeste, provenance, provenanceEvenement = provenance, provenanceManifeste = provenance, approbation, propositions, statuts, pointDeControle = null, perimetre = null }) {
+export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEvenement, cleManifeste, provenance, provenanceEvenement = provenance, provenanceManifeste = provenance, approbation, propositions, statuts, pointDeControle = null, perimetre = null, essai = null }) {
   const { p, n } = voisinsSeq;
+  // Complément du 2026-11-23 (EX-6.8) : chaque pièce d'essai que l'énoncé nomme (clé d'enregistreur, approbateur,
+  // autorité d'horodatage, registre) est suivie de la mention, si et seulement si elle lève un avertissement d'EX-6.24.
+  const M = MENTION_ESSAI;
+  const cle = (id, langue) => (essai?.cles.has(id) ? id + M[langue] : id);
+  const adr = (a, langue) => (essai?.approbateurs.has(minuscule(a)) ? a + M[langue] : a);
+  const autorite = (nom, langue) => (essai?.autorites.has(nom) ? nom + M[langue] : nom);
+  const registre = (id, langue) => (essai?.registres.has(id) ? id + M[langue] : id);
+  /** La proposition d'EX-9.20 (F4) ou d'EX-11.22 (F6), avec la mention après l'autorité, le registre et les clés qu'elle nomme. */
+  const marquerProposition = (texte, langue) => {
+    let t = texte;
+    if (!essai) return t;
+    const [selon, unite] = langue === "fr" ? ["selon ", " (unité "] : ["according to ", " (unit "];
+    for (const nom of essai.autorites) if (t.startsWith(`${selon}${nom}${unite}`)) t = `${selon}${nom}${M[langue]}${t.slice(selon.length + nom.length)}`;
+    const sur = langue === "fr" ? "sur le registre " : "on registry ";
+    for (const id of essai.registres) if (t.startsWith(`${sur}${id}, `)) t = `${sur}${id}${M[langue]}${t.slice(sur.length + id.length)}`;
+    for (const id of essai.cles) {
+      for (const avant of langue === "fr" ? ["pour la clé d'enregistreur ", "la clé de chaîne de "] : ["for recorder key ", "the chain key of "]) t = t.split(`${avant}${id}`).join(`${avant}${id}${M[langue]}`);
+    }
+    return t;
+  };
   const voisinage =
     p !== null && n !== null ? T(`chaîné à ses voisins seq ${p} et ${n}`, `chained to its neighbours seq ${p} and ${n}`)
     : p !== null ? T(`chaîné à son voisin précédent seq ${p} (le dossier ne fournit pas de suivant)`, `chained to its previous neighbour seq ${p} (the dossier gives no next event)`)
@@ -1395,16 +1448,16 @@ export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEve
   const provenanceTexte =
     provenance === "mixte"
       ? {
-          fr: `clé ${cleEvenement} ${PROV[provenanceEvenement].fr[2]}, clé ${cleManifeste} ${PROV[provenanceManifeste].fr[2]}`,
-          en: `key ${cleEvenement} ${PROV[provenanceEvenement].en[2]}, key ${cleManifeste} ${PROV[provenanceManifeste].en[2]}`,
+          fr: `clé ${cle(cleEvenement, "fr")} ${PROV[provenanceEvenement].fr[2]}, clé ${cle(cleManifeste, "fr")} ${PROV[provenanceManifeste].fr[2]}`,
+          en: `key ${cle(cleEvenement, "en")} ${PROV[provenanceEvenement].en[2]}, key ${cle(cleManifeste, "en")} ${PROV[provenanceManifeste].en[2]}`,
         }
       : { fr: PROV[provenance].fr[cleEvenement !== cleManifeste ? 0 : 1], en: PROV[provenance].en[cleEvenement !== cleManifeste ? 0 : 1] };
   if (cleEvenement !== cleManifeste) {
-    fr.push(` ; l'événement est signé par la clé d'enregistreur ${cleEvenement} et le manifeste par la clé ${cleManifeste}, ${provenanceTexte.fr}`);
-    en.push(`; the event is signed by recorder key ${cleEvenement} and the manifest by key ${cleManifeste}, ${provenanceTexte.en}`);
+    fr.push(` ; l'événement est signé par la clé d'enregistreur ${cle(cleEvenement, "fr")} et le manifeste par la clé ${cle(cleManifeste, "fr")}, ${provenanceTexte.fr}`);
+    en.push(`; the event is signed by recorder key ${cle(cleEvenement, "en")} and the manifest by key ${cle(cleManifeste, "en")}, ${provenanceTexte.en}`);
   } else {
-    fr.push(` ; l'événement est signé, comme le manifeste, par la clé d'enregistreur ${cleEvenement}, ${provenanceTexte.fr}`);
-    en.push(`; the event is signed, like the manifest, by recorder key ${cleEvenement}, ${provenanceTexte.en}`);
+    fr.push(` ; l'événement est signé, comme le manifeste, par la clé d'enregistreur ${cle(cleEvenement, "fr")}, ${provenanceTexte.fr}`);
+    en.push(`; the event is signed, like the manifest, by recorder key ${cle(cleEvenement, "en")}, ${provenanceTexte.en}`);
   }
   // F3 : selon approval.decision (approuve, refuse, expire). Les approbateurs
   // signent la demande (request_hash, ticket : CT-1 §6.3), non l'appel prouvé :
@@ -1414,37 +1467,39 @@ export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEve
     const sig = k === 1 ? "1 signature" : `${k} signatures`;
     const seuilFr = `seuil de ${approbation.threshold.required} sur ${approbation.threshold.size} du jeu déclaré par le dossier`;
     const seuilEn = `threshold ${approbation.threshold.required} of ${approbation.threshold.size} of the set declared by the dossier`;
+    const approbateursFr = joindreListe(approbation.approvers.map((a) => adr(a, "fr")), "fr");
+    const approbateursEn = joindreListe(approbation.approvers.map((a) => adr(a, "en")), "en");
     if (approbation.decision === "refuse") {
-      fr.push(` ; l'événement porte le refus de la demande ${approbation.request_hash} (ticket ${approbation.ticket}), signé par ${joindreListe(approbation.approvers, "fr")} (${sig}, ${seuilFr})`);
-      en.push(`; the event carries the refusal of request ${approbation.request_hash} (ticket ${approbation.ticket}), signed by ${joindreListe(approbation.approvers, "en")} (${sig}, ${seuilEn})`);
+      fr.push(` ; l'événement porte le refus de la demande ${approbation.request_hash} (ticket ${approbation.ticket}), signé par ${approbateursFr} (${sig}, ${seuilFr})`);
+      en.push(`; the event carries the refusal of request ${approbation.request_hash} (ticket ${approbation.ticket}), signed by ${approbateursEn} (${sig}, ${seuilEn})`);
     } else if (approbation.decision === "expire") {
       fr.push(` ; l'événement porte une demande d'approbation expirée sans signature (${seuilFr})`);
       en.push(`; the event carries an approval request that expired without signature (${seuilEn})`);
     } else {
-      fr.push(` ; l'événement porte l'approbation de la demande ${approbation.request_hash} (ticket ${approbation.ticket}), signée par ${joindreListe(approbation.approvers, "fr")} (${sig}, ${seuilFr})`);
-      en.push(`; the event carries the approval of request ${approbation.request_hash} (ticket ${approbation.ticket}), signed by ${joindreListe(approbation.approvers, "en")} (${sig}, ${seuilEn})`);
+      fr.push(` ; l'événement porte l'approbation de la demande ${approbation.request_hash} (ticket ${approbation.ticket}), signée par ${approbateursFr} (${sig}, ${seuilFr})`);
+      en.push(`; the event carries the approval of request ${approbation.request_hash} (ticket ${approbation.ticket}), signed by ${approbateursEn} (${sig}, ${seuilEn})`);
     }
   }
   // F4, F5, F6
   for (const k of [4, 5, 8]) {
     const prop = propositions[k];
     if (prop) {
-      fr.push(` ; ${prop.fr}`);
-      en.push(`; ${prop.en}`);
+      fr.push(` ; ${marquerProposition(prop.fr, "fr")}`);
+      en.push(`; ${marquerProposition(prop.en, "en")}`);
     }
   }
   // FK (révision 0.2, EX-6.16) : point de contrôle du journal qui couvre l'événement.
   if (pointDeControle) {
     const k = pointDeControle;
-    fr.push(` ; l'événement est couvert par le point de contrôle du journal de taille ${k.tree_size} de sa période (empreinte ${k.checkpoint_hash}, signé par la clé d'enregistreur ${k.key_id}, ${PROV[k.provenance_point].fr[2]}), préfixe prouvé de ce manifeste`);
-    en.push(`; the event is covered by the journal checkpoint of size ${k.tree_size} of its period (digest ${k.checkpoint_hash}, signed by recorder key ${k.key_id}, ${PROV[k.provenance_point].en[2]}), a proven prefix of this manifest`);
+    fr.push(` ; l'événement est couvert par le point de contrôle du journal de taille ${k.tree_size} de sa période (empreinte ${k.checkpoint_hash}, signé par la clé d'enregistreur ${cle(k.key_id, "fr")}, ${PROV[k.provenance_point].fr[2]}), préfixe prouvé de ce manifeste`);
+    en.push(`; the event is covered by the journal checkpoint of size ${k.tree_size} of its period (digest ${k.checkpoint_hash}, signed by recorder key ${cle(k.key_id, "en")}, ${PROV[k.provenance_point].en[2]}), a proven prefix of this manifest`);
     if (k.jeton) {
       const j = k.jeton;
       const unite = j.tsu_subject_cn ?? j.tsu_certificate_sha256;
       const quandFr = j.upper_bound ? `${j.upper_bound} UTC` : `${j.gen_time} UTC, à la précision près de la politique ${j.policy}, que le jeton n'indique pas`;
       const quandEn = j.upper_bound ? `${j.upper_bound} UTC` : `${j.gen_time} UTC, within the accuracy of policy ${j.policy}, not stated in the token`;
-      fr.push(`, horodaté au plus tard le ${quandFr} selon ${j.authority} (unité ${unite})`);
-      en.push(`, time-stamped no later than ${quandEn} according to ${j.authority} (unit ${unite})`);
+      fr.push(`, horodaté au plus tard le ${quandFr} selon ${autorite(j.authority, "fr")} (unité ${unite})`);
+      en.push(`, time-stamped no later than ${quandEn} according to ${autorite(j.authority, "en")} (unit ${unite})`);
       if (j.qualified) {
         const cadre = j.qualified.framework === "eidas" ? "eIDAS" : "ZertES";
         fr.push(` (horodatage qualifié ${cadre} selon le réviseur (${j.qualified.source}))`);
@@ -1453,13 +1508,13 @@ export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEve
     }
     if (k.bitcoin) {
       const b = k.bitcoin;
-      fr.push(`, antérieur à la création du bloc Bitcoin ${b.retained_height} (${b.block_hash}, réseau ${b.network}) sous ${b.confirmations} blocs rattachés au point de contrôle Bitcoin ${b.checkpoint.height} du réviseur${b.network === "regtest" ? " (réseau d'essai, sans valeur probante)" : ""}`);
-      en.push(`, earlier than the creation of Bitcoin block ${b.retained_height} (${b.block_hash}, ${b.network} network) under ${b.confirmations} blocks connected to the reviewer's Bitcoin checkpoint ${b.checkpoint.height}${b.network === "regtest" ? " (test network, no evidential value)" : ""}`);
+      fr.push(`, antérieur à la création du bloc Bitcoin ${b.retained_height} (${b.block_hash}, réseau ${b.network}) sous ${b.confirmations} blocs rattachés au point de contrôle Bitcoin ${b.checkpoint.height} du réviseur${b.network === "regtest" ? " (réseau d'essai, sans valeur de preuve hors des essais)" : ""}`);
+      en.push(`, earlier than the creation of Bitcoin block ${b.retained_height} (${b.block_hash}, ${b.network} network) under ${b.confirmations} blocks connected to the reviewer's Bitcoin checkpoint ${b.checkpoint.height}${b.network === "regtest" ? " (test network, no evidential value outside tests)" : ""}`);
     }
     if (k.registre) {
       const r = k.registre;
-      fr.push(`, ancré au registre ${r.chain_id} au bloc ${r.block_number} (heure déclarée par le bloc : ${r.block_time} UTC) par AttestationRegistry ${r.contract}`);
-      en.push(`, anchored in registry ${r.chain_id} in block ${r.block_number} (time declared by the block: ${r.block_time} UTC) by AttestationRegistry ${r.contract}`);
+      fr.push(`, ancré au registre ${registre(r.chain_id, "fr")} au bloc ${r.block_number} (heure déclarée par le bloc : ${r.block_time} UTC) par AttestationRegistry ${r.contract}`);
+      en.push(`, anchored in registry ${registre(r.chain_id, "en")} in block ${r.block_number} (time declared by the block: ${r.block_time} UTC) by AttestationRegistry ${r.contract}`);
     }
     if (k.jeton) {
       fr.push(" ; une réécriture postérieure à cet instant serait détectée");
@@ -1474,7 +1529,7 @@ export function construireEnonce({ ev, voisinsSeq, manifeste, periodHash, cleEve
   }
   // FP (révision 0.3, EX-6.19) : partie attestation-perimetre.json déclarée présente.
   if (perimetre) {
-    const fp = fragmentPerimetre(perimetre, provenanceEvenement);
+    const fp = fragmentPerimetre(perimetre, provenanceEvenement, essai);
     fr.push(fp.fr);
     en.push(fp.en);
   }
@@ -1522,7 +1577,8 @@ const PROVENANCE_CLE = {
  * `registre`, `dossier`), qui est aussi celle de l'inscription quand AT-6
  * réussit (même clé). Aucun texte libre de l'attestation n'y entre.
  */
-export function fragmentPerimetre(perimetre, provenanceCle = "dossier") {
+export function fragmentPerimetre(perimetre, provenanceCle = "dossier", essai = null) {
+  const marque = (x, langue, ensemble) => (ensemble.has(x) ? x + MENTION_ESSAI[langue] : x);
   if (!perimetre.retenue) {
     const ids = (perimetre.nonRetenue ?? []).join(", ");
     if (perimetre.motifNonRetenue === "non_execute") return { fr: ` ; l'attestation de périmètre jointe n'est pas retenue (vérification(s) non exécutée(s) : ${ids})`, en: `; the attached perimeter attestation is not retained (check(s) not run: ${ids})` };
@@ -1531,13 +1587,13 @@ export function fragmentPerimetre(perimetre, provenanceCle = "dossier") {
   const f = perimetre.faits;
   const nb = f.signers.length;
   const sig = nb === 1 ? "1 signature" : `${nb} signatures`;
-  let fr = ` ; le périmètre de capture est déclaré, non prouvé, par l'attestation ${f.digest} valable du ${instantEnonce(f.valid_from)} au ${instantEnonce(f.valid_until)}, signée par ${joindreListe(f.signers, "fr")} (${sig}, seuil de ${f.required} sur ${f.size} du jeu déclaré par le dossier)`;
-  let en = `; the capture perimeter is declared, not proven, by attestation ${f.digest} valid from ${instantEnonce(f.valid_from)} to ${instantEnonce(f.valid_until)}, signed by ${joindreListe(f.signers, "en")} (${sig}, threshold ${f.required} of ${f.size} of the set declared by the dossier)`;
+  let fr = ` ; le périmètre de capture est déclaré, non prouvé, par l'attestation ${f.digest} valable du ${instantEnonce(f.valid_from)} au ${instantEnonce(f.valid_until)}, signée par ${joindreListe(f.signers.map((a) => (essai?.approbateurs.has(minuscule(a)) ? a + MENTION_ESSAI.fr : a)), "fr")} (${sig}, seuil de ${f.required} sur ${f.size} du jeu déclaré par le dossier)`;
+  let en = `; the capture perimeter is declared, not proven, by attestation ${f.digest} valid from ${instantEnonce(f.valid_from)} to ${instantEnonce(f.valid_until)}, signed by ${joindreListe(f.signers.map((a) => (essai?.approbateurs.has(minuscule(a)) ? a + MENTION_ESSAI.en : a)), "en")} (${sig}, threshold ${f.required} of ${f.size} of the set declared by the dossier)`;
   const at6 = (perimetre.checks ?? []).find((c) => c.id === "AT-6");
   if (f.inscription) {
     const p = PROVENANCE_CLE[provenanceCle] ?? PROVENANCE_CLE.dossier;
-    fr += `, inscrite au journal par l'événement seq ${f.inscription.seq} (clé ${f.inscription.key_id} ${p.fr})`;
-    en += `, recorded in the journal by event seq ${f.inscription.seq} (key ${f.inscription.key_id} ${p.en})`;
+    fr += `, inscrite au journal par l'événement seq ${f.inscription.seq} (clé ${marque(f.inscription.key_id, "fr", essai?.cles ?? new Set())} ${p.fr})`;
+    en += `, recorded in the journal by event seq ${f.inscription.seq} (key ${marque(f.inscription.key_id, "en", essai?.cles ?? new Set())} ${p.en})`;
     if (f.inscription.same_policy_version) {
       fr += " sous une version de politique de même nom que celle de cet événement";
       en += " under a policy version with the same name as this event's";
@@ -1594,6 +1650,7 @@ export function rapportJSON({ verifier, langue, inputs, corps }) {
     facts: corps.facts,
     verdict: corps.verdict,
     exit_code: corps.exit_code,
+    incomplete_reasons: corps.incomplete_reasons,
     statement: corps.statement,
     bound: corps.bound,
   };
@@ -1796,6 +1853,12 @@ function ligneResultat(r) {
     const m = [];
     if (nums) m.push(en ? `required control(s) not passed: ${nums}` : `contrôle(s) exigé(s) non réussi(s) : ${nums}`);
     if (sv) m.push(en ? `required control(s) without evidential value (test piece): ${sv}` : `contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : ${sv}`);
+    // Complément du 2026-11-23 (EX-6.26, EX-8.6 point 11) : les avertissements de pièce d'essai, un par couple
+    // (identifiant, vérification), dans l'ordre du rapport ; un rapport antérieur au complément n'a pas le membre.
+    if ((r.incomplete_reasons ?? []).includes("piece_essai")) {
+      const pieces = [...new Set(r.warnings.filter((w) => estAvertissementEssai(w.id)).map((w) => (w.check ? `${w.id} (${w.check})` : w.id)))].join(", ");
+      m.push(en ? `rests on test pieces: ${pieces}` : `repose sur des pièces d'essai : ${pieces}`);
+    }
     return (en ? "INCOMPLETE — " : "INCOMPLET — ") + m.join(en ? "; " : " ; ");
   }
   const morceaux = [];

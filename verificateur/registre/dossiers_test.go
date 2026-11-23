@@ -201,10 +201,13 @@ func TestDossiersControle8(t *testing.T) {
 				t.Errorf("avertissements %v, attendu %v", av, avAtt)
 			}
 			if att.Valid && st == commun.Reussi && att.Statement != nil {
-				if !strings.Contains(att.Statement.Fr, " ; "+r.Proposition.Fr+" ; ") && !strings.Contains(att.Statement.Fr, " ; "+r.Proposition.Fr+".") {
+				// Complément du 2026-11-23 (CT-6 EX-6.8) : l'énoncé fait suivre le registre et les clés d'essai de la mention ; elle est retirée avant la comparaison.
+				sansFr := strings.ReplaceAll(att.Statement.Fr, commun.MentionEssaiFr, "")
+				sansEn := strings.ReplaceAll(att.Statement.En, commun.MentionEssaiEn, "")
+				if !strings.Contains(sansFr, " ; "+r.Proposition.Fr+" ; ") && !strings.Contains(sansFr, " ; "+r.Proposition.Fr+".") {
 					t.Errorf("F6 fr absent de l'énoncé :\n %s", r.Proposition.Fr)
 				}
-				if !strings.Contains(att.Statement.En, "; "+r.Proposition.En+"; ") && !strings.Contains(att.Statement.En, "; "+r.Proposition.En+".") {
+				if !strings.Contains(sansEn, "; "+r.Proposition.En+"; ") && !strings.Contains(sansEn, "; "+r.Proposition.En+".") {
 					t.Errorf("F6 en absent de l'énoncé :\n %s", r.Proposition.En)
 				}
 			}

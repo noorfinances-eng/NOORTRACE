@@ -238,8 +238,17 @@ describe("Revue de sécurité de l'étape 8, CT-9 EX-11.11, CT-9 EX-9.2 : rien d
 
   it("CT-9 EX-9.2 : verdictFinal rend echoue et code 1 quand les deux vérificateurs divergent, quand l'un rend un code non nul, ou quand aucun bloc n'a exigé de certificat ; reussi et 0 sinon ; mutant (divergence ignorée) : reussi malgré la divergence", async function () {
     const P = await importer(S("e2e", "parcours-registre.mjs"));
-    const bon = { reference: { exit_code: 0 }, go: { exit_code: 0 }, parity: { equal: true, differences: [] }, blocks: [10, 11] };
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26, CT-9 EX-9.2) : le registre du réseau de développement est une pièce
+    // d'essai (AV-R-4) ; les deux vérificateurs rendent le code 3 pour la seule raison piece_essai, sans vérification en
+    // échec, et c'est ce verdict-là que TE-4 attend ; le code 0 (plus de pièce d'essai reconnue) et tout autre code 3
+    // (exigence non remplie, ou vérification en échec) font échouer le parcours.
+    const essai = { exit_code: 3, incomplete_reasons: ["piece_essai"], failed_checks: [] };
+    const bon = { reference: essai, go: essai, parity: { equal: true, differences: [] }, blocks: [10, 11] };
     expect(P.verdictFinal(bon)).to.deep.equal({ code: 0, result: "reussi", error: null });
+    expect(P.verdictFinal({ ...bon, go: { exit_code: 0 } }).code, "code 0 : le registre de développement n'est plus reconnu comme pièce d'essai").to.equal(1);
+    expect(P.verdictFinal({ ...bon, reference: { exit_code: 3, incomplete_reasons: ["exigence_non_remplie", "piece_essai"], failed_checks: [] } }).code).to.equal(1);
+    expect(P.verdictFinal({ ...bon, reference: { exit_code: 3, incomplete_reasons: ["piece_essai"], failed_checks: ["R-4"] } }).code).to.equal(1);
+    expect(P.verdictFinal({ ...bon, reference: { exit_code: 3 } }).error, "rapport sans incomplete_reasons").to.include("implémentation de référence");
     const d1 = P.verdictFinal({ ...bon, parity: { equal: false, differences: ["R-4 : référence reussi, Go echoue"] } });
     expect(d1.code).to.equal(1);
     expect(d1.result).to.equal("echoue");

@@ -1596,15 +1596,22 @@ describe("CT-2 : vecteurs spec/vecteurs/ct-2, rejoués", function () {
     expect(C.evaluerGabaritsEffets(pol.servers.demo.tools["payments.create"].effects, { arguments: valeur(evs[6].execution.arguments), result: valeur(evs[6].execution.result) }).effects).to.deep.equal(evs[6].effects);
   });
 
-  it("evenements/journal-demo/dossier-seq-7 : dossier CT-1 valide par verifierDossier et par scripts/verify/dossier.mjs (code 0)", function () {
+  it("evenements/journal-demo/dossier-seq-7 : dossier CT-1 valide pour le noyau (verifierDossier) ; scripts/verify/dossier.mjs : aucune vérification en échec, pièces d'essai (clé rec-test-01, comptes Hardhat), verdict incomplet, code 3", function () {
     const repertoire = path.join(VECTEURS, "evenements", "journal-demo", "dossier-seq-7");
     const fichiers = Object.fromEntries(fs.readdirSync(repertoire).filter((f) => f !== "attendu.json").map((f) => [f, fs.readFileSync(path.join(repertoire, f))]));
     const rapport = J.verifierDossier(fichiers, { schemas: SCHEMAS });
     expect([rapport.valide, J.controlesEnEchec(rapport), rapport.nonExecutesBloquants]).to.deep.equal([true, [], []]);
     expect(rapport.evenement.seq).to.equal(7);
-    const r = lancer(["verify", "dossier.mjs"], [repertoire]);
-    expect(r.code, r.stderr + r.stdout).to.equal(0);
-    expect(r.stdout).to.include("VALIDE");
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : rien n'a échoué, mais le journal de démonstration est signé par
+    // la clé d'essai rec-test-01 et approuvé par des comptes Hardhat (pièces d'essai, EX-6.24) : code 3, jamais VALIDE.
+    const r = lancer(["verify", "dossier.mjs"], [repertoire, "--json"]);
+    expect(r.code, r.stderr + r.stdout).to.equal(3);
+    const corps = JSON.parse(r.stdout);
+    expect([corps.verdict, corps.exit_code, corps.incomplete_reasons, corps.failed_checks]).to.deep.equal(["incomplet", 3, ["piece_essai"], []]);
+    const lisible = lancer(["verify", "dossier.mjs"], [repertoire]);
+    expect(lisible.code, lisible.stderr + lisible.stdout).to.equal(3);
+    expect(lisible.stdout).to.include("INCOMPLET — repose sur des pièces d'essai : ");
+    expect(lisible.stdout).to.not.include("VALIDE");
   });
 
   it("rejouer scripts/vecteurs/generer-ct2.mjs produit exactement les mêmes fichiers que spec/vecteurs/ct-2", function () {

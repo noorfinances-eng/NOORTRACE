@@ -433,8 +433,9 @@ describe("CT-2 §19 : démonstration de référence, sans moteur de conteneurs (
 
   describe("§19.4 : sortie du vérificateur de la démonstration", function () {
     /** Rapport de vérification réduit aux membres que l'impression lit (forme de rapport-verification-v0). */
+    // Depuis le complément du 2026-11-23 de CT-6 (EX-6.26, EX-8.12) : verdict incomplet, code 3, pour les seules pièces d'essai.
     const rapport = (o = {}) => ({
-      verdict: "valide", exit_code: 0, bound: "verdict borné : contrôle 4 non exécuté (partie_absente), contrôle 5 non exécuté (partie_absente)",
+      verdict: "incomplet", exit_code: 3, incomplete_reasons: ["piece_essai"], failed_checks: [], bound: "verdict borné : contrôle 4 non exécuté (partie_absente), contrôle 5 non exécuté (partie_absente)",
       event: { seq: 7, tool: "demo__payments.create" },
       period: { period_start: 1794304800, period_end: 1794308400 },
       controls: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ number: n, status: [4, 5].includes(n) ? "non_execute" : "reussi", reason: [4, 5].includes(n) ? "partie_absente" : null })),
@@ -473,10 +474,10 @@ describe("CT-2 §19 : démonstration de référence, sans moteur de conteneurs (
       expect(verificateur.abreger("0x70997970c51812dc3a010c7d01b50e0d17dc79c8")).to.equal("0x7099…79c8");
     });
 
-    it("un dossier qui n'est pas celui de la démonstration n'imprime jamais « VALIDE — cet événement… » : verdict invalide, contrôle en échec, inscription non prouvée par le dossier, bloc certifié par moins de validateurs que le jeu ; la phrase sur ce que le dossier ne prouve pas reste", function () {
+    it("un dossier qui n'est pas celui de la démonstration n'imprime jamais « INCOMPLET — cet événement est bien formé… » (ni « VALIDE », que le vérificateur ne rend plus sur un dossier d'essai) : verdict invalide, contrôle en échec, inscription non prouvée par le dossier, bloc certifié par moins de validateurs que le jeu ; la phrase sur ce que le dossier ne prouve pas reste", function () {
       const invalide = imprimer(rapport({ verdict: "invalide", exit_code: 1, controls: [1, 2, 3, 4, 5, 6, 7, 8].map((n) => ({ number: n, status: n === 2 ? "echoue" : [4, 5].includes(n) ? "non_execute" : "reussi", reason: [4, 5].includes(n) ? "partie_absente" : null })) }));
       expect(invalide.reference).to.equal(false);
-      expect(invalide.lignes.join("\n")).to.not.include("VALIDE — cet événement");
+      expect(invalide.lignes.join("\n")).to.not.include("cet événement est bien formé");
       expect(invalide.lignes[6]).to.match(/^ {2}Résultat : INVALIDE — le dossier n'est pas vérifié/);
       expect(invalide.lignes[5]).to.include("1 en échec (2)");
       expect(invalide.lignes[7]).to.include("Il ne prouve pas la date");
@@ -485,7 +486,15 @@ describe("CT-2 §19 : démonstration de référence, sans moteur de conteneurs (
       const s2 = imprimer(sansInscription);
       expect(s2.reference).to.equal(false);
       expect(s2.lignes[3]).to.include("inscription de la clé non prouvée par le dossier");
-      expect(s2.lignes.join("\n")).to.not.include("VALIDE — cet événement");
+      expect(s2.lignes.join("\n")).to.not.include("cet événement est bien formé");
+      // Un rapport « valide » (code 0) n'est plus celui de la démonstration : il viendrait d'un dossier sans pièce d'essai.
+      const valide = imprimer(rapport({ verdict: "valide", exit_code: 0, incomplete_reasons: [] }));
+      expect(valide.reference).to.equal(false);
+      expect(valide.lignes[6]).to.match(/^ {2}Résultat : VALIDE — le dossier est valide, mais il n'est pas celui que la démonstration attend/);
+      // Un code 3 pour une exigence non remplie, ou pour une autre raison en plus des pièces d'essai, n'est pas non plus celui attendu.
+      const exige = imprimer(rapport({ incomplete_reasons: ["exigence_non_remplie", "piece_essai"] }));
+      expect(exige.reference).to.equal(false);
+      expect(exige.lignes[6]).to.match(/^ {2}Résultat : INCOMPLET — le dossier n'est pas celui que la démonstration attend/);
       const troisSignataires = rapport();
       troisSignataires.facts.registry.certificates[1].signers = ["v1", "v2", "v4"];
       expect(imprimer(troisSignataires).lignes[3]).to.include("bloc certifié par 3 validateurs");

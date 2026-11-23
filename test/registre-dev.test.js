@@ -61,7 +61,13 @@ describe("TE-4 — parcours du registre sur le réseau de développement noorcor
     expect(verdict.verifiers.parity.equal, JSON.stringify(verdict.verifiers.parity.differences)).to.equal(true);
     expect(r.code, `code de sortie du parcours ; ${verdict.error ?? ""} ; ${contexte}`).to.equal(0);
     expect(verdict.result).to.equal("reussi");
-    for (const e of verdict.steps) expect(e.exit_code, `${e.number} ${e.name} : ${e.error ?? ""}`).to.equal(0);
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26, CT-9 EX-9.2) : le registre du réseau de développement est une pièce
+    // d'essai (AV-R-4) ; les deux étapes des vérificateurs rendent le code 3 pour la seule raison piece_essai, sans
+    // vérification en échec ; chaque autre étape rend 0.
+    const VERIFICATEURS = new Set(["controle 8 : implementation de reference", "controle 8 : verificateur Go"]);
+    for (const e of verdict.steps) expect(e.exit_code, `${e.number} ${e.name} : ${e.error ?? ""}`).to.equal(VERIFICATEURS.has(e.name) ? 3 : 0);
+    expect(verdict.steps.filter((e) => VERIFICATEURS.has(e.name))).to.have.length(2);
+    for (const v of [verdict.verifiers.reference, verdict.verifiers.go]) expect([v.exit_code, v.verdict, v.incomplete_reasons, v.failed_checks]).to.deep.equal([3, "incomplet", ["piece_essai"], []]);
     // Six transactions (jeu, assignation, approvisionnement, inscription, ancre, clôture), toutes incluses.
     expect(verdict.transactions.map((t) => t.step)).to.deep.equal(["jeu_approbateurs", "assignation", "approvisionnement", "inscription", "premiere_ancre", "premiere_cloture"]);
     for (const t of verdict.transactions) expect(t.status, t.step).to.equal("0x1");

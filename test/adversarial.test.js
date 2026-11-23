@@ -330,13 +330,15 @@ describe("CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques
     });
 
     it("TA-89 (MN-89) : valide-at1-taille (ct-1) et valide-seq-7-complet-attestation-non-retenue (ct-6) gardent le verdict valide avec une AT- en échec ; mutant qui compte les AT- dans failed_checks : verdict invalide (tué)", async function () {
+      // Complément du 2026-11-23 de CT-6 (EX-6.26) : ces dossiers portent des pièces d'essai, leur verdict est `incomplet`
+      // (code 3), jamais `valide` ; la règle éprouvée ici est que l'AT- en échec ne rend pas le dossier invalide.
       const m = mutant("mn89", [{ fichier: "lib/verificateur.mjs", ancien: 'const estAT = (id) => id.startsWith("AT-");', nouveau: "const estAT = (id) => false;" }]);
       const r0 = rapportDossier(RACINE, dossierCt1("valide-at1-taille"));
-      expect([r0.verdict, r0.failed_checks, r0.checks.find((c) => c.id === "AT-1").status]).to.deep.equal(["valide", [], "echoue"]);
+      expect([r0.verdict, r0.exit_code, r0.incomplete_reasons, r0.failed_checks, r0.checks.find((c) => c.id === "AT-1").status]).to.deep.equal(["incomplet", 3, ["piece_essai"], [], "echoue"]);
       const r1 = rapportDossier(m.racine, dossierCt1("valide-at1-taille"));
       expect([r1.verdict, r1.failed_checks]).to.deep.equal(["invalide", ["AT-1"]]);
       const p = paireCt6(m, "valide-seq-7-complet-attestation-non-retenue");
-      expect([p.reference.verdict, p.reference.failed_checks]).to.deep.equal(["valide", []]);
+      expect([p.reference.verdict, p.reference.exit_code, p.reference.failed_checks]).to.deep.equal(["incomplet", 3, []]);
       expect([p.mutant.verdict, p.mutant.failed_checks]).to.deep.equal(["invalide", ["AT-3"]]);
     });
 
@@ -353,7 +355,8 @@ describe("CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques
       const m = mutant("mn85", [{ fichier: "lib/verificateur.mjs", ancien: ", non inscrite au journal (ni sa date ni son rang ne sont établis)", nouveau: ", inscrite au journal" }]);
       const rep = dossierCt1("valide-seq-7-attestation-sans-inscription");
       const r0 = rapportDossier(RACINE, rep);
-      expect(r0.verdict).to.equal("valide");
+      // Verdict `incomplet` (pièces d'essai de CT-1, CT-6 EX-6.26) ; rien n'échoue.
+      expect([r0.verdict, r0.failed_checks]).to.deep.equal(["incomplet", []]);
       expect(r0.statement.fr).to.include(CLAUSE);
       const r1 = rapportDossier(m.racine, rep);
       expect(r1.statement.fr).to.not.include(CLAUSE);
@@ -364,7 +367,7 @@ describe("CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques
       const m = mutant("mn91", [{ fichier: "lib/verificateur.mjs", ancien: " sous une version de politique de même nom que celle de cet événement", nouveau: " en vigueur pour cet événement" }]);
       const rep = dossierCt1("valide-at7-nom-reannonce");
       const r0 = rapportDossier(RACINE, rep);
-      expect([r0.verdict, r0.checks.find((c) => c.id === "AT-7").status]).to.deep.equal(["valide", "reussi"]);
+      expect([r0.verdict, r0.failed_checks, r0.checks.find((c) => c.id === "AT-7").status]).to.deep.equal(["incomplet", [], "reussi"]);
       expect(r0.statement.fr).to.include("de même nom que celle de cet événement");
       expect(r0.statement.fr).to.not.match(/attestation[^.]*en vigueur pour cet événement/);
       const r1 = rapportDossier(m.racine, rep);
@@ -490,7 +493,9 @@ describe("CT-9 : tests adversariaux TA- exécutables (mutants des bibliothèques
         expect(resume(independant), `${nom} : référence et binaire concordent`).to.deep.equal(resume(reference));
         const mutantJs = rapportDossier(m.racine, rep, args);
         expect(mutantJs.failed_checks, `${nom} : le mutant ne voit plus ${id}`).to.not.include(id);
-        expect(mutantJs.verdict, `${nom} : le mutant dit valide à tort`).to.equal("valide");
+        // Le mutant ne dit plus `invalide` ; il ne dit pas `valide` non plus : le dossier porte des pièces d'essai, et le
+        // complément du 2026-11-23 (CT-6 EX-6.26) le garde au code 3. La discordance avec le binaire reste entière.
+        expect([mutantJs.verdict, mutantJs.exit_code], `${nom} : le mutant ne dit plus invalide, à tort`).to.deep.equal(["incomplet", 3]);
         expect(resume(mutantJs), `${nom} : la confrontation au binaire voit la discordance`).to.not.deep.equal(resume(independant));
       }
     });

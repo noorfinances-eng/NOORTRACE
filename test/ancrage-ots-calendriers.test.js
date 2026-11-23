@@ -716,7 +716,9 @@ describe("ancrage, client OpenTimestamps : essais hors ligne du dépôt avec le 
     const r = spawnSync(bin, [dossier, "--ancres", path.resolve(dossier, attendu.anchors), "--entetes-bitcoin", chemin, "--json"], { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
     expect(r.status, r.stderr).to.equal(attendu.exit_code);
     const rapport = JSON.parse(r.stdout);
-    expect(rapport.verdict ?? rapport.valid).to.satisfy((v) => v === "valide" || v === true);
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : le vecteur repose sur des pièces d'essai, verdict « incomplet »
+    // (code 3) sans aucun contrôle en échec.
+    expect([attendu.exit_code, rapport.verdict, rapport.incomplete_reasons, rapport.failed_checks]).to.deep.equal([3, "incomplet", ["piece_essai"], []]);
     const controle5 = (rapport.controls ?? rapport.controles ?? []).find((c) => String(c.id ?? c.number ?? c.numero) === "5");
     expect(controle5 && (controle5.status ?? controle5.statut)).to.equal("reussi");
   });

@@ -668,7 +668,9 @@ describe("CT-8 §11.4 chemin A (TE-9, TM-37 hors système de référence) : sauv
       const dest = path.join(j.exports, `te9-${nom}`);
       await demon.commande({ cmd: "exporter", seq, destination: dest });
       const v = spawnSync(process.execPath, [path.join(RACINE, "scripts", "verify", "dossier.mjs"), dest, "--json"], { encoding: "utf8", cwd: RACINE, maxBuffer: 64 * 1024 * 1024 });
-      expect(v.status, `${nom} : ${v.stdout.slice(0, 2000)}`).to.equal(0);
+      // Code 3 (CT-6 EX-6.26, complément du 2026-11-23) : la clé rec-test-01 du banc est une clé d'essai ; rien n'échoue.
+      expect(v.status, `${nom} : ${v.stdout.slice(0, 2000)}`).to.equal(3);
+      expect(JSON.parse(v.stdout).failed_checks, nom).to.deep.equal([]);
     }
     const fin = JSON.parse(outil("verifier-journal.mjs", [j.repertoire, "--cles", cles, "--json"]).stdout);
     expect(fin.verdict).to.equal("valide");
@@ -770,7 +772,7 @@ describe("CT-8 §7.3, EX-7.3 (ancrage de l'installation rapide) : l'installation
     expect(fs.existsSync(path.join(rep, "c2.json"))).to.equal(false);
   });
 
-  it("TE-6 (ancrage, IR-8) : démon réel avec le document de l'installation rapide (calendriers factices en TLS, serveur interne lancé par l'essai, chemins) : jeton de clôture du serveur interne et preuve OpenTimestamps du manifeste ; dossier exporté avec jeton-rfc3161.der et preuve.ots, valide pour le vérificateur de référence, contrôle 4 réussi contre l'AC du serveur", async function () {
+  it("TE-6 (ancrage, IR-8) : démon réel avec le document de l'installation rapide (calendriers factices en TLS, serveur interne lancé par l'essai, chemins) : jeton de clôture du serveur interne et preuve OpenTimestamps du manifeste ; dossier exporté avec jeton-rfc3161.der et preuve.ots : contrôle 4 réussi contre l'AC du serveur, rien n'échoue, verdict incomplet, code 3 (clé d'essai)", async function () {
     const dir = path.join(TRAVAIL, "e6");
     fs.mkdirSync(dir);
     const tls = materielTls(path.join(dir, "tls"));
@@ -837,7 +839,9 @@ describe("CT-8 §7.3, EX-7.3 (ancrage de l'installation rapide) : l'installation
       const ancres = path.join(dir, "ancres.json");
       fs.writeFileSync(ancres, JSON.stringify({ version: 0, label: "Ancres de l'essai de l'installation rapide", prepared_by: "essai TE-6", prepared_at: "2026-11-05T08:10:00.000Z", tsa_authorities: [{ name: "AC interne de développement (interne, non qualifié)", certificate: acPem, intermediates: [], accepted_policies: ["1.3.6.1.4.1.99999.1.1"], qualified: null, source: "AC du serveur interne lancé par l'essai" }], revocation: { crls: [fs.readFileSync(path.join(repTsa, FICHIERS_AUTORITE.crl), "utf8")], statements: [] }, bitcoin: null, registry: null, recorders: [] }, null, 2));
       const v = spawnSync(process.execPath, [path.join(RACINE, "scripts", "verify", "dossier.mjs"), dest, "--ancres", ancres, "--json"], { encoding: "utf8", cwd: RACINE, maxBuffer: 64 * 1024 * 1024 });
-      expect(v.status, v.stdout.slice(0, 3000)).to.equal(0);
+      // Code 3 (CT-6 EX-6.26) : clé rec-test-01 du banc ; rien n'échoue, le contrôle 4 réussit.
+      expect(v.status, v.stdout.slice(0, 3000)).to.equal(3);
+      expect(JSON.parse(v.stdout).failed_checks).to.deep.equal([]);
       const c4 = JSON.parse(v.stdout).controls.find((x) => x.number === 4);
       expect(c4.status, JSON.stringify(c4)).to.equal("reussi");
     } finally {

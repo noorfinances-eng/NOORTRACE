@@ -373,7 +373,9 @@ describe("ancrage, exportateur : dossier complet depuis un dépôt d'ancres d'EX
     const attendu = lireJson(path.join(DOSSIERS_CT6, "valide-point-de-controle-complet", "attendu.json"));
     const js = verificateurJs(destination, path.join(CT6, "ancres", "ancres-test.json"), path.join(destination, "entetes-bitcoin.json"));
     expect(js.code).to.equal(attendu.exit_code);
-    expect(js.rapport.verdict).to.equal("valide");
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : les ancres de test (autorité d'essai, clés rec-test) sont des
+    // pièces d'essai : rien n'échoue, verdict « incomplet », code 3, raison « piece_essai » seule (EX-8.12).
+    expect([js.code, js.rapport.verdict, js.rapport.incomplete_reasons, js.rapport.failed_checks]).to.deep.equal([3, "incomplet", ["piece_essai"], []]);
     expect(statuts(js.rapport, "K-")).to.deep.equal(Object.fromEntries(["K-1", "K-2", "K-3", "K-4", "K-5", "K-6", "K-7", "K-8", "K-9"].map((k) => [k, "reussi"])));
     expect(Object.fromEntries(js.rapport.controls.map((c) => [c.number, c.status]))).to.deep.equal(attendu.control_statuses);
     expect(js.rapport.statement.fr).to.equal(attendu.statement.fr);
@@ -387,8 +389,7 @@ describe("ancrage, exportateur : dossier complet depuis un dépôt d'ancres d'EX
     const entetes = path.join(destination, "entetes-bitcoin.json");
     const js = verificateurJs(destination, ancres, entetes);
     const go = verificateurGo(bin, destination, ancres, entetes);
-    expect(go.code).to.equal(0);
-    expect(go.rapport.verdict).to.equal("valide");
+    expect([go.code, go.rapport.verdict, go.rapport.incomplete_reasons, go.rapport.failed_checks]).to.deep.equal([3, "incomplet", ["piece_essai"], []]);
     expect(statuts(go.rapport, "K-")).to.deep.equal(statuts(js.rapport, "K-"));
     expect(go.rapport.statement.fr).to.equal(js.rapport.statement.fr);
     expect(go.rapport.statement.en).to.equal(js.rapport.statement.en);
@@ -409,7 +410,8 @@ describe("ancrage, exportateur : dossier complet depuis un dépôt d'ancres d'EX
     expect(parts.points_de_controle.present).to.equal(true);
     expect(r.resume.point.ancres.ots.etat).to.equal("en_attente");
     const js = verificateurJs(destination, path.join(CT6, "ancres", "ancres-test.json"), path.join(destination, "entetes-bitcoin.json"));
-    expect(js.code).to.equal(0);
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : pièces d'essai, verdict « incomplet », code 3, rien en échec.
+    expect([js.code, js.rapport.verdict, js.rapport.incomplete_reasons, js.rapport.failed_checks]).to.deep.equal([3, "incomplet", ["piece_essai"], []]);
     expect(statuts(js.rapport, "K-")["K-9"]).to.equal("non_execute");
     expect(js.rapport.checks.find((c) => c.id === "K-9").reason).to.equal("partie_absente");
     expect(js.rapport.checks.find((c) => c.id === "K-8").reason).to.equal("partie_absente");

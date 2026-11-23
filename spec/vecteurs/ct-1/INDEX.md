@@ -326,5 +326,8 @@ sur le fichier de la partie.
 | `illisible-index-non-json/` | code 2 (`dossier_illisible`) | valide-seq-7 dont dossier.json est le texte « { » (un octet, pas un texte JSON) : l'entrée est inutilisable, code 2, sans verdict (CT-1 §11.4, révision 0.5 ; CT-6 EX-4.12, type dossier_illisible). Forme d'attendu d'une entrée en code 2 (CT-1 §11.5) : valide null, controle null, controles_en_echec [], exit_code 2 et error_kind. |
 
 Vérification d'un dossier : `node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7`
-(code 0), `node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/invalide-hash-faux --json`
-(code 1, `controles[].ok === false` pour E-7).
+(code 3 : rien n'a échoué, mais `rec-test-01`, `rec-test-02` et les comptes
+Hardhat sont des pièces d'essai, CT-6 EX-6.26, complément du 2026-11-23 ; code 0
+avant ce complément), `node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/invalide-hash-faux --json`
+(code 1, `controles[].ok === false` pour E-7). `valide` d'un `attendu.json` dit
+qu'aucun contrôle n'échoue (CT-1 §11.5), non le code de retour du vérificateur de CT-6.

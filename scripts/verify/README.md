@@ -334,7 +334,7 @@ comme un succès.
 | `valide` | 0 | aucune vérification en échec ; toute non-exécution a une raison admise |
 | `invalide` | 1 | au moins une vérification en échec, ou non exécutée sans raison admise |
 | — | 2 | entrée inutilisable : usage, dossier, schémas, fichier d'ancres ou entrée à part illisibles, limite de taille dépassée, erreur interne ; rien n'est affirmé |
-| `incomplet` | 3 | comme 0, mais un contrôle exigé par `--exiger` n'a pas réussi, ou repose sur une pièce d'essai (CT-6 6.10, EX-6.25) |
+| `incomplet` | 3 | comme 0, mais un contrôle exigé par `--exiger` n'a pas réussi, ou le dossier repose sur au moins une pièce d'essai (CT-6 6.10, EX-6.25, EX-6.26) : l'énoncé reste exact, mais le dossier ne vaut pas comme preuve hors des essais ; `incomplete_reasons` dit pourquoi (EX-8.12) |
 
 Les codes 0, 1 et 2 gardent le sens de la version CT-1. Sur les quarante
 dossiers de `spec/vecteurs/ct-1/dossiers` (cinq parties absentes avec la raison
@@ -384,7 +384,9 @@ Tout ce qui vient du dossier est **déclaratif** ; seul le fichier d'ancres est
 ## Usage
 
 ```bash
-# dossier complet des vecteurs CT-6, avec les ancres et les en-têtes de test : code 0
+# dossier complet des vecteurs CT-6, avec les ancres et les en-têtes de test : code 3 (rien n'a échoué, mais le dossier
+# repose sur des pièces d'essai : clés de CT-1 §13, comptes Hardhat, autorité de test, registre de développement ;
+# CT-6 EX-6.26, complément du 2026-11-23 ; le rapport JSON dit pourquoi dans incomplete_reasons, EX-8.12)
 node scripts/verify/dossier.mjs spec/vecteurs/ct-6/dossiers/valide-seq-7-complet \
   --ancres spec/vecteurs/ct-6/ancres/ancres-test.json \
   --entetes-bitcoin spec/vecteurs/ct-6/ots/entetes/chaine.json
@@ -394,10 +396,12 @@ node scripts/verify/dossier.mjs spec/vecteurs/ct-6/dossiers/valide-seq-7-complet
   --ancres spec/vecteurs/ct-6/ancres/ancres-test.json \
   --entetes-bitcoin spec/vecteurs/ct-6/ots/entetes/chaine.json --langue en --detail
 
-# dossier de CT-1 sans ancres : code 0, verdict borné (4, 5, 8 non exécutés)
+# dossier de CT-1 sans ancres : code 3 (clés et approbateurs d'essai), verdict borné (4, 5, 8 non exécutés) ; le code 0
+# n'est rendu que par un dossier sans pièce d'essai (aucun des vecteurs publiés : test/verificateur.test.js en construit
+# un au moment de l'essai, avec des clés tirées au hasard)
 node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7
 
-# exiger une date et une inscription au registre : code 3 (incomplet)
+# exiger une date et une inscription au registre : code 3 (incomplet), pour l'exigence non remplie et les pièces d'essai
 node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7 --exiger 4,5,8
 
 # dossier invalide : code 1, le rapport nomme la vérification en échec (ici E-7)
@@ -416,7 +420,7 @@ npx --yes ajv-cli@5 validate --spec=draft2020 --strict=true \
 | `--entetes-bitcoin <fichier>` | chaîne d'en-têtes Bitcoin (`spec/schemas/entetes-bitcoin-v0.schema.json`) ; déclarative, crue seulement par O-5 |
 | `--pieces <répertoire>` | pièces nommées par leur `sha256` en hexadécimal minuscule sans `0x` (E-6) |
 | `--second-manifeste <fichier>` | manifeste précédent ou suivant du même journal (P-5) |
-| `--exiger <contrôles>` | numéros de 1 à 8 séparés par `,`, ou `tous` : un contrôle exigé qui n'a pas réussi rend le verdict `incomplet` (code 3) |
+| `--exiger <contrôles>` | numéros de 1 à 8 séparés par `,`, ou `tous` : un contrôle exigé qui n'a pas réussi, ou qui repose sur une pièce d'essai, rend le verdict `incomplet` (code 3) |
 | `--langue fr\|en` | langue du rapport lisible et des textes du rapport JSON (défaut `fr`) ; l'énoncé JSON est toujours donné dans les deux langues |
 | `--json` | rapport JSON (`spec/schemas/rapport-verification-v0.schema.json`) au lieu du rapport lisible, y compris pour le code 2 |
 | `--detail` | rapport lisible : toutes les vérifications, pas seulement celles qui n'ont pas réussi |

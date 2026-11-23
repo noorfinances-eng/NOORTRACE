@@ -386,14 +386,16 @@ describe("enregistreur, rédaction : parcours de bout en bout (pii-v1), journal 
     expect(k.verdict).to.not.equal("valide");
   });
 
-  it("le dossier de l'appel relayé, avec ses pièces rédigées (--pieces), est valide pour le binaire Go noortrace-verifier (go1.27.3)", function () {
+  it("le dossier de l'appel relayé, avec ses pièces rédigées (--pieces), pour le binaire Go noortrace-verifier (go1.27.3) : aucune vérification en échec, verdict incomplet, code 3 (clé d'enregistreur d'essai)", function () {
     const bin = construireVerificateur(dir);
     if (!bin) { this.test.title += " — en attente : go1.27.3 introuvable (NOORTRACE_GO_BIN ou PATH)"; this.skip(); }
     const { rep } = piecesAPart();
     const r = spawnSync(bin, [path.join(dir, "dossier"), "--pieces", rep, "--json"], { encoding: "utf8" });
-    expect(r.status, r.stdout + r.stderr).to.equal(0);
+    // Décision du porteur du 2026-11-23 (CT-6 EX-6.26) : la clé d'enregistreur rec-test-01 est une pièce d'essai (EX-6.24) :
+    // rien n'échoue, mais le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
+    expect(r.status, r.stdout + r.stderr).to.equal(3);
     const rapport = JSON.parse(r.stdout);
-    expect(rapport.verdict).to.equal("valide");
+    expect([rapport.verdict, rapport.incomplete_reasons]).to.deep.equal(["incomplet", ["piece_essai"]]);
     expect(rapport.failed_checks).to.deep.equal([]);
     const statuts = Object.fromEntries(rapport.controls.map((c) => [c.number, [c.status, c.reason ?? null]]));
     for (const id of [1, 2, 3, 6, 7]) expect(statuts[id][0], `contrôle ${id}`).to.equal("reussi");

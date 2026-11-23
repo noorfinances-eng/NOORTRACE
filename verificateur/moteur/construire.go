@@ -44,7 +44,7 @@ func (c *calcul) construireRapport(verifs []commun.Verification, parID map[strin
 	ver, _ := Verificateur(c.o.Version)
 	r := &rapport.Rapport{
 		Format: rapport.Format, Version: rapport.Version, Verifier: ver, Language: l,
-		Inputs: *c.res.Entrees, Verdict: c.res.Verdict, ExitCode: c.res.Code,
+		Inputs: *c.res.Entrees, Verdict: c.res.Verdict, ExitCode: c.res.Code, IncompleteReasons: nonNul(c.res.RaisonsIncomplet),
 		FailedChecks: nonNul(echecs), BlockingUnexecuted: nonNul(bloquantes),
 		AbsentParts: []rapport.PartieAbsente{}, Warnings: []rapport.Avertissement{}, Checks: []rapport.Verification{},
 	}
@@ -177,7 +177,7 @@ func (c *calcul) construireRapport(verifs []commun.Verification, parID map[strin
 				CheckpointHash: cryptographie.Hex32(pt.CheckpointHash), KeyID: pt.KeyID, KeySource: c.provenance(pt.KeyID, ctrl8),
 				Consistency:     rapport.Coherence{FirstSize: pt.PremiereTaille, SecondSize: pt.SecondeTaille, PathLength: pt.LongueurChemin},
 				LastHashChecked: pt.DernierHashVerifie}
-			dk := rapport.DonneesFK{TreeSize: pt.TreeSize, CheckpointHash: fp.CheckpointHash, KeyID: pt.KeyID, Provenance: fp.KeySource}
+			dk := rapport.DonneesFK{TreeSize: pt.TreeSize, CheckpointHash: fp.CheckpointHash, KeyID: pt.KeyID, Provenance: fp.KeySource, Essai: c.pieces}
 			if parID["K-7"].Statut == commun.Reussi && c.jetonPt != nil && c.jetonPt.Faits != nil {
 				fp.Timestamp = c.jetonPt.Faits
 				dk.Jeton = c.jetonPt.Faits
@@ -208,7 +208,7 @@ func (c *calcul) construireRapport(verifs []commun.Verification, parID map[strin
 	if at := an.Attestation; at != nil {
 		lp := c.lignePerimetre(at, parID)
 		r.Lisible.LignePerimetre = &lp
-		d := rapport.DonneesFP{Retenue: at.Retenue, IDs: at.IDs, IDsEnEchec: at.IDsEnEchec}
+		d := rapport.DonneesFP{Retenue: at.Retenue, IDs: at.IDs, IDsEnEchec: at.IDsEnEchec, Essai: c.pieces}
 		if at.Retenue {
 			P := at.V.Chemin("signed", "attestation")
 			jeu := at.V.Membre("approver_set")
@@ -286,7 +286,7 @@ func (c *calcul) construireRapport(verifs []commun.Verification, parID map[strin
 		seq, _ := ev.Seq()
 		d := rapport.DonneesEnonce{Seq: seq, Hash: ev.V.Membre("hash").S(), JournalID: ev.V.Membre("journal_id").S(), OrgID: ev.V.Membre("org_id").S(),
 			PeriodHash: cryptographie.Hex32(an.PeriodHash), CleEvenement: cleEv, CleManifeste: cleMan, ProvEvenement: provEv, ProvManifeste: provMan,
-			Approbation: approbation, FK: fk, FP: fpTexte, NonExecutes: nonExecutes}
+			Approbation: approbation, FK: fk, FP: fpTexte, NonExecutes: nonExecutes, Essai: c.pieces}
 		d.PeriodStart, _ = an.Manifeste.Membre("period_start").Entier()
 		d.PeriodEnd, _ = an.Manifeste.Membre("period_end").Entier()
 		if an.Precedent != nil {

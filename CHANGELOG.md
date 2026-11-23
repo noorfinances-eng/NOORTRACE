@@ -6,6 +6,69 @@ is tagged.
 
 ## Unreleased
 
+- Build step 8, supplement of 2026-11-23: owner's decision on test dossiers
+  (étape 8, complément du 2026-11-23 : décision du porteur, dossiers
+  d'essai). A dossier that rests on at least one test piece is never
+  `valide`. Under the supplement of 2026-11-19, a test piece was flagged
+  (AV-T-5, AV-R-4, AV-N-1, AV-N-2, AV-O-3) and only a control required with
+  `--exiger` that rested on one changed the verdict; without `--exiger`, a
+  dossier signed with a published test key, approved by a Hardhat account,
+  timestamped by the test authority or registered on the development
+  registry still read "Valide", exit code 0. From this supplement (CT-6
+  EX-6.26), one such piece is enough, whatever the rest of the dossier and
+  whatever the threshold: when no check failed and no check is left unrun
+  without an admitted reason, the verdict is `incomplet`, exit code 3, with
+  or without `--exiger`; an invalid dossier stays `invalide`, code 1. The
+  reason: a test piece is published with its key or its seed, anyone can
+  produce a dossier that carries it, and a "Valide" verdict on it would
+  mislead its reader. The JSON report gains one member, never removed or
+  renamed: `incomplete_reasons`, a list drawn from `exigence_non_remplie`
+  then `piece_essai`, empty under `valide` and `invalide` (CT-6 EX-8.12,
+  schema `rapport-verification-v0`); a report written before the member
+  reads as before. The `Résultat` line of the readable report gives the
+  reason in clear ("INCOMPLET — repose sur des pièces d'essai : AV-N-1
+  (E-8), …"). By this rule alone the statement does not change; a further
+  decision of the same day, below, adds the test-piece mentions to it.
+  Both verifiers apply the rule (the Go binary, still reproducible, and
+  the JavaScript reference), and the two now report AV-O-2 for a Bitcoin
+  attestation under an out-of-profile operation from the same check, O-3,
+  as EX-10.7 says (the reference said O-4). The 48 published CT-6 vectors
+  that returned 0 now return 3, by their generator; their `valide-*` names
+  stay (they say that no check failed, not the exit code); the CT-7 report
+  and the CT-8 cases follow. Exit code 0 is proven by a dossier built at
+  test time with a recorder key, approvers and a timestamp authority drawn
+  at random, never written in the repository; the same dossier with one
+  piece replaced by a test piece returns 3 each time. The verification page
+  calculates no status: under code 3 it reads `incomplete_reasons` and
+  says "Incomplet : ce dossier repose sur des pièces d'essai", the reason in
+  plain words, the list of test pieces, and "Sans valeur de preuve" under
+  each control concerned; "Valide" appears only under code 0. The
+  acceptance tests whose benches sign with test pieces (TE-1, TE-4, TE-6,
+  TE-13, TE-17, TE-18 and the recorder benches), the demonstration
+  (CT-2 section 19.4), the reviewer package (CT-8 section 13.7, code 3 when
+  every dossier is incomplete) and the CI step on the published dossiers
+  expect this verdict; the registry run of TE-4 (CT-9 EX-9.2) now expects
+  code 3 for the sole reason `piece_essai` from both verifiers. CT-9
+  catalogue, line references and design freeze updated.
+  Three further decisions of the owner on the same day. The statement
+  (CT-6 7.1, EX-6.8), the one sentence a lawyer cites, now names each test
+  piece it mentions as such: every recorder key, approver address,
+  time-stamp authority or registry that raises a test-piece warning is
+  followed, wherever the statement names it, by "(pièce d'essai, sans
+  valeur de preuve hors des essais)" ("(test piece, no evidential value
+  outside tests)"), and the `regtest` network keeps its mention in the same
+  words; the French details of the test-piece warnings say "sans valeur de
+  preuve hors des essais" (the page already did); the statement of every
+  test dossier changes by this mention alone, in both verifiers, and the
+  CT-6 and CT-7 vectors and the text examples follow. The verification
+  page no longer says that the published `SHA256SUMS` file is "signed": no
+  release and no signing key exist yet; it says that the fingerprints are
+  published with each version, in that file, on the releases page (CT-6
+  section 18; EX-14.9 and the minisign signature remain planned work).
+  In the approval console, "vote" reads "décision" in every text a person
+  reads, the phrases fixed by CT-3 included ("décision déjà enregistrée",
+  "aucune décision n'a été envoyée"); machine tokens, label keys, routes
+  and JSON fields are unchanged (CT-3 EX-12.16, table 13.14).
 - Build step 8, supplements of 2026-11-19: owner's decisions on the screens
   and the verifier (étape 8, compléments du 2026-11-19 : décisions du
   porteur). Unlike the earlier supplements, these change rules, each

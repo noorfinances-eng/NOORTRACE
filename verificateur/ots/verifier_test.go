@@ -90,9 +90,9 @@ func TestNominal(t *testing.T) {
 	}
 	ph := cryptographie.Hex32(sc.empreinte)
 	wfr := "le manifeste d'empreinte " + ph + " existait avant la création du bloc Bitcoin 1001 (" + f.BlockHash +
-		", réseau regtest), sous 20 blocs dont le travail se rattache au point de contrôle 1000 du réviseur ; heure inscrite par le mineur : 2026-11-05T13:50:00Z UTC, précision non garantie par le protocole ; borne sous hypothèse : 2026-11-05T14:50:00Z UTC (réseau d'essai, sans valeur probante)"
+		", réseau regtest), sous 20 blocs dont le travail se rattache au point de contrôle 1000 du réviseur ; heure inscrite par le mineur : 2026-11-05T13:50:00Z UTC, précision non garantie par le protocole ; borne sous hypothèse : 2026-11-05T14:50:00Z UTC (réseau d'essai, sans valeur de preuve hors des essais)"
 	wen := "the manifest with digest " + ph + " existed before Bitcoin block 1001 (" + f.BlockHash +
-		", regtest network) was created, under 20 blocks whose work connects to the reviewer's checkpoint 1000; time written by the miner: 2026-11-05T13:50:00Z UTC, accuracy not guaranteed by the protocol; bound under assumption: 2026-11-05T14:50:00Z UTC (test network, no evidential value)"
+		", regtest network) was created, under 20 blocks whose work connects to the reviewer's checkpoint 1000; time written by the miner: 2026-11-05T13:50:00Z UTC, accuracy not guaranteed by the protocol; bound under assumption: 2026-11-05T14:50:00Z UTC (test network, no evidential value outside tests)"
 	if r.Proposition.Fr != wfr || r.Proposition.En != wen {
 		t.Errorf("proposition\n%s\n%s", r.Proposition.Fr, r.Proposition.En)
 	}

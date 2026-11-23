@@ -11,7 +11,7 @@ Données de base : le journal `journal-sinistres` de CT-1, ses trois manifestes 
 ```bash
 node scripts/verify/dossier.mjs spec/vecteurs/ct-6/dossiers/valide-seq-7-complet \
   --ancres spec/vecteurs/ct-6/ancres/ancres-test.json \
-  --entetes-bitcoin spec/vecteurs/ct-6/ots/entetes/chaine.json            # code 0
+  --entetes-bitcoin spec/vecteurs/ct-6/ots/entetes/chaine.json            # code 3 : rien n'a échoué, mais le dossier repose sur des pièces d'essai (CT-6 EX-6.26)
 node scripts/verify/dossier.mjs spec/vecteurs/ct-6/dossiers/valide-seq-7-complet --json   # sans ancres : 4, 5, 8 non exécutés
 ```
 
@@ -31,16 +31,18 @@ Révision 0.5 (EX-A.25, EX-A.26 ; relecture adversariale de l'étape 5) : `rfc31
 
 ## dossiers/
 
-Complément du 2026-11-19 de CT-6, décision du porteur (pièces d'essai, section 6.10, EX-6.23 à EX-6.25) : aucun dossier, aucune ancre ni aucun jeton ne change ; les avertissements de pièce d'essai s'ajoutent aux attendus, posés par construction d'après les entrées (toutes les autorités des fichiers d'ancres sont des certificats d'essai, le registre est `noortrace-2124-dev`, les clés sont celles de CT-1 §13, les approbateurs des comptes Hardhat) : AV-T-5 (contrôle 4 réussi, ou K-7 réussie), AV-R-4 (contrôle 8 réussi), AV-N-1 (clé d'enregistreur de l'événement, du manifeste ou du point, clé de chaîne de N-4), AV-N-2 (un par approbateur d'essai). Aucun code de retour attendu ne change (les attendus sont pris sans `--exiger`, et `exit_code_exiger_4` ne porte que sur des dossiers dont le contrôle 4 ne réussit pas).
+Complément du 2026-11-19 de CT-6, décision du porteur (pièces d'essai, section 6.10, EX-6.23 à EX-6.25) : aucun dossier, aucune ancre ni aucun jeton ne change ; les avertissements de pièce d'essai s'ajoutent aux attendus, posés par construction d'après les entrées (toutes les autorités des fichiers d'ancres sont des certificats d'essai, le registre est `noortrace-2124-dev`, les clés sont celles de CT-1 §13, les approbateurs des comptes Hardhat) : AV-T-5 (contrôle 4 réussi, ou K-7 réussie), AV-R-4 (contrôle 8 réussi), AV-N-1 (clé d'enregistreur de l'événement, du manifeste ou du point, clé de chaîne de N-4), AV-N-2 (un par approbateur d'essai). Aucun code de retour attendu ne changeait alors (les attendus sont pris sans `--exiger`, et `exit_code_exiger_4` ne porte que sur des dossiers dont le contrôle 4 ne réussit pas).
+
+Complément du 2026-11-23 de CT-6, décision du porteur (dossiers d'essai, EX-6.26, EX-8.12) : un rapport qui porte au moins un avertissement de pièce d'essai n'a jamais le verdict `valide` ; si rien n'a échoué, il est `incomplet`, code 3, avec ou sans `--exiger`. Les 48 dossiers dont le code attendu était 0 passent au code 3 ; `valid` ne change pas : il dit qu'aucune vérification n'a échoué, ce que `failed_checks` et `control_statuses` disent aussi, non le code. Les noms `valide-*` ne changent pas pour la même raison : ils disent `valid`, non le code. Raison de la règle : chaque dossier de ce répertoire porte une clé de CT-1 §13, un compte Hardhat, une autorité d'horodatage de test ou le registre de développement, tous publiés avec leur clé ou leur graine ; n'importe qui peut produire un tel dossier, qui ne prouve rien hors des essais, et un verdict `valide` sur lui tromperait son lecteur. Le rapport JSON de chaque dossier `valid` porte `incomplete_reasons` égal à `["piece_essai"]` (le générateur l'exige) ; aucun dossier, aucune ancre, aucun jeton, aucun énoncé ni aucune borne ne change. Le code 0 est éprouvé par `test/verificateur.test.js` sur un dossier construit au moment de l'essai avec des clés tirées au hasard, jamais écrites ici.
 
 | Dossier | Ancres | En-têtes | Visée | En échec | Contrôles non exécutés | Avertissements | Code |
 |---|---|---|---|---|---|---|---|
-| `valide-seq-7-complet/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-seq-7-complet-sans-ancres/` | aucune | chaine.json | — | aucune | 4, 5, 8 | AV-N-1, AV-N-2, AV-N-2, AV-N-1 | 0 |
-| `valide-seq-7-complet-sans-entetes/` | ancres-test.json | aucun | — | aucune | 5 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-R-4, AV-N-1 | 0 |
-| `valide-t11-qualification-declaree/` | ancres-qualification-declaree.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-t7-deux-autorites/` | ancres-deux-autorites.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-unite-sans-cn/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `valide-seq-7-complet/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-seq-7-complet-sans-ancres/` | aucune | chaine.json | — | aucune | 4, 5, 8 | AV-N-1, AV-N-2, AV-N-2, AV-N-1 | 3 |
+| `valide-seq-7-complet-sans-entetes/` | ancres-test.json | aucun | — | aucune | 5 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-R-4, AV-N-1 | 3 |
+| `valide-t11-qualification-declaree/` | ancres-qualification-declaree.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-t7-deux-autorites/` | ancres-deux-autorites.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-unite-sans-cn/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-t1-octet-en-trop/` | ancres-test.json | chaine.json | T-1 | T-1 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-t1-default-explicite/` | ancres-test.json | chaine.json | T-1 | T-1 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-t1-cn-utf8-invalide/` | ancres-test.json | chaine.json | T-1 | T-1 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
@@ -59,22 +61,22 @@ Complément du 2026-11-19 de CT-6, décision du porteur (pièces d'essai, sectio
 | `invalide-t7-tsa-expiree/` | ancres-test.json | chaine.json | T-7 | T-7 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-t8-eku-non-critique/` | ancres-test.json | chaine.json | T-8 | T-8 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-t9-extension-critique/` | ancres-test.json | chaine.json | T-9 | T-9 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
-| `valide-integer-non-minimal/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `valide-integer-non-minimal/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-t10-tsa-revoquee/` | ancres-tsa-revoquee.json | chaine.json | T-10 | T-10 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
-| `non-execute-t10-crl-extension-critique-inconnue/` | ancres-crl-extension-critique-inconnue.json | chaine.json | — | aucune | 4 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-3, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `non-execute-t10-crl-entree-extension-critique-inconnue/` | ancres-crl-entree-extension-critique-inconnue.json | chaine.json | — | aucune | 4 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-3, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `non-execute-t10-crl-extension-critique-inconnue/` | ancres-crl-extension-critique-inconnue.json | chaine.json | — | aucune | 4 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-3, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `non-execute-t10-crl-entree-extension-critique-inconnue/` | ancres-crl-entree-extension-critique-inconnue.json | chaine.json | — | aucune | 4 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-3, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-t10-unite-epinglee-revoquee/` | ancres-unite-epinglee-revoquee.json | chaine.json | T-10 | T-10 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-o1-octet-en-trop/` | ancres-test.json | chaine.json | O-1 | O-1 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-R-4, AV-N-1 | 1 |
 | `invalide-o2-preuve-autre-manifeste/` | ancres-test.json | chaine.json | O-2 | O-2 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-o3-resultat-trop-long/` | ancres-test.json | chaine.json | O-3 | O-3 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-O-2, AV-R-4, AV-N-1 | 1 |
 | `invalide-o4-mauvaise-hauteur/` | ancres-test.json | chaine.json | O-4 | O-4 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-o5-chaine-sans-travail/` | ancres-test.json | chaine-sans-travail.json | O-5 | O-5 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 1 |
-| `non-execute-o5-point-de-controle-hors-entetes/` | ancres-test.json | chaine-depuis-1001.json | — | aucune | 5 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-R-4, AV-N-1 | 0 |
-| `non-execute-o6-profondeur/` | ancres-test.json | chaine-courte.json | — | aucune | 5 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `non-execute-o7-en-attente/` | ancres-test.json | chaine.json | — | aucune | 5 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-2, AV-R-4, AV-N-1 | 0 |
-| `valide-deux-attestations/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-1, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-attente-uri-vide/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-O-2, AV-R-4, AV-N-1 | 0 |
-| `valide-o3-branche-hors-profil/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-2, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `non-execute-o5-point-de-controle-hors-entetes/` | ancres-test.json | chaine-depuis-1001.json | — | aucune | 5 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-R-4, AV-N-1 | 3 |
+| `non-execute-o6-profondeur/` | ancres-test.json | chaine-courte.json | — | aucune | 5 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `non-execute-o7-en-attente/` | ancres-test.json | chaine.json | — | aucune | 5 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-2, AV-R-4, AV-N-1 | 3 |
+| `valide-deux-attestations/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-1, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-attente-uri-vide/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-O-2, AV-R-4, AV-N-1 | 3 |
+| `valide-o3-branche-hors-profil/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-2, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-r1-sans-ancre/` | ancres-test.json | chaine.json | R-1 | R-1 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3 | 1 |
 | `invalide-r2-jeu-substitue/` | ancres-test.json | chaine.json | R-2 | R-2 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3 | 1 |
 | `invalide-r3-validateurs-declares/` | ancres-test.json | chaine.json | R-3 | R-3 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-N-1 | 1 |
@@ -86,28 +88,28 @@ Complément du 2026-11-19 de CT-6, décision du porteur (pièces d'essai, sectio
 | `invalide-r9-cloture-autre-periode/` | ancres-test.json | chaine.json | R-9 | R-9 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-N-1 | 1 |
 | `invalide-r10-inscription-cle-inconnue/` | ancres-test.json | chaine.json | R-10 | R-10 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-N-1 | 1 |
 | `invalide-n3-cle-enregistreur/` | ancres-cle-enregistreur-autre.json | chaine.json | N-3 | N-3 | — | AV-N-2, AV-N-2, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 1 |
-| `non-execute-n3-cle-non-ancree/` | ancres-cle-non-ancree.json | chaine.json | — | aucune | 6 | AV-N-2, AV-N-2, AV-T-5, AV-O-3, AV-R-4 | 0 |
+| `non-execute-n3-cle-non-ancree/` | ancres-cle-non-ancree.json | chaine.json | — | aucune | 6 | AV-N-2, AV-N-2, AV-T-5, AV-O-3, AV-R-4 | 3 |
 | `invalide-r1-hauteur-0/` | ancres-test.json | chaine.json | R-1 | R-1 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3 | 1 |
 | `invalide-n4-cle-chaine/` | ancres-cle-chaine-autre.json | chaine.json | N-4 | N-4 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3 | 1 |
-| `valide-sans-inscription/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-1, AV-N-1 | 0 |
+| `valide-sans-inscription/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-1, AV-N-1 | 3 |
 | `invalide-p1-sans-inscription/` | ancres-test.json | chaine.json | P-1 | P-1, P-5 | 4, 5, 8 | AV-N-2, AV-N-2, AV-O-3 | 1 |
-| `valide-ligne-non-canonique/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-2, AV-N-1 | 0 |
-| `valide-provenance-registre/` | ancres-sans-enregistreurs.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4 | 0 |
-| `valide-provenance-mixte/` | ancres-enregistreur-01-seul.json | chaine.json | — | aucune | 6 | AV-N-2, AV-N-2, AV-T-5, AV-O-3, AV-R-4 | 0 |
-| `valide-deux-jeux-validateurs/` | ancres-deux-jeux.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `valide-ligne-non-canonique/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-2, AV-N-1 | 3 |
+| `valide-provenance-registre/` | ancres-sans-enregistreurs.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4 | 3 |
+| `valide-provenance-mixte/` | ancres-enregistreur-01-seul.json | chaine.json | — | aucune | 6 | AV-N-2, AV-N-2, AV-T-5, AV-O-3, AV-R-4 | 3 |
+| `valide-deux-jeux-validateurs/` | ancres-deux-jeux.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-p1-manifeste-membre-en-trop/` | ancres-test.json | chaine.json | P-1 | P-1, P-5 | 4, 5, 8 | AV-N-2, AV-N-2, AV-O-3 | 1 |
-| `valide-decision-refusee/` | aucune | aucun | — | aucune | 4, 5, 8 | AV-N-1, AV-N-2, AV-N-2 | 0 |
-| `valide-decision-expiree/` | aucune | aucun | — | aucune | 4, 5, 8 | AV-N-1 | 0 |
-| `valide-point-de-controle-complet/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-point-de-controle-jeton-seul/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-point-de-controle-sans-ancre/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-point-de-controle-declare-absent/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `valide-decision-refusee/` | aucune | aucun | — | aucune | 4, 5, 8 | AV-N-1, AV-N-2, AV-N-2 | 3 |
+| `valide-decision-expiree/` | aucune | aucun | — | aucune | 4, 5, 8 | AV-N-1 | 3 |
+| `valide-point-de-controle-complet/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-point-de-controle-jeton-seul/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-point-de-controle-sans-ancre/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-point-de-controle-declare-absent/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-r7-r11-non-executee/` | ancres-test.json | chaine-points.json | R-7 | R-7 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-T-5, AV-O-3, AV-N-1 | 1 |
-| `valide-point-de-controle-sans-ancres-reviseur/` | aucune | chaine-points.json | — | aucune | 4, 5, 8 | AV-N-1, AV-N-2, AV-N-2, AV-N-1 | 0 |
-| `valide-point-de-controle-reference-declarative/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-K-1, AV-O-3, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-point-de-controle-point-contresigne/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-point-de-controle-point-de-cloture/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-point-de-controle-ots-en-attente/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-2, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `valide-point-de-controle-sans-ancres-reviseur/` | aucune | chaine-points.json | — | aucune | 4, 5, 8 | AV-N-1, AV-N-2, AV-N-2, AV-N-1 | 3 |
+| `valide-point-de-controle-reference-declarative/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-K-1, AV-O-3, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-point-de-controle-point-contresigne/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-point-de-controle-point-de-cloture/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-point-de-controle-ots-en-attente/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-2, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-k1-partie-inexploitable/` | ancres-test.json | chaine-points.json | K-1 | K-1 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-k1-double-defaut/` | ancres-test.json | chaine-points.json | K-1 | K-1 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-k7-jeton-autre-empreinte/` | ancres-test.json | chaine-points.json | K-7 | K-7 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-O-3, AV-R-4, AV-N-1 | 1 |
@@ -116,40 +118,40 @@ Complément du 2026-11-19 de CT-6, décision du porteur (pièces d'essai, sectio
 | `invalide-k8-empreinte/` | ancres-test.json | chaine-points.json | K-8 | K-8 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-T-5, AV-O-3, AV-N-1 | 1 |
 | `invalide-k8-contrat/` | ancres-test.json | chaine-points.json | K-8 | K-8 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-T-5, AV-O-3, AV-N-1 | 1 |
 | `invalide-k9-preuve-autre-empreinte/` | ancres-test.json | chaine-points.json | K-9 | K-9 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 1 |
-| `valide-seq-7-complet-attestation/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-seq-7-complet-attestation-non-retenue/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-AT-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-point-de-controle-complet-attestation/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-seq-7-complet-attestation-cle-non-ancree/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `valide-seq-7-complet-attestation/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-seq-7-complet-attestation-non-retenue/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-AT-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-point-de-controle-complet-attestation/` | ancres-test.json | chaine-points.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-seq-7-complet-attestation-cle-non-ancree/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-t6-signature-attestation/` | ancres-test.json | chaine.json | T-6 | T-6 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-r11-ancre-de-periode/` | ancres-test.json | chaine-points.json | R-11 | R-11 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-T-5, AV-O-3, AV-N-1 | 1 |
 | `invalide-t4-sid-introuvable/` | ancres-test.json | chaine.json | T-4 | T-4 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-t4-sid-introuvable-sans-ancres/` | aucune | chaine.json | T-4 | T-4 | 5, 8 | AV-N-1, AV-N-2, AV-N-2, AV-N-1 | 1 |
 | `invalide-t4-jeton-sans-certificat/` | ancres-test.json | chaine.json | T-4 | T-4 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
-| `valide-t4-jeton-sans-certificat-sans-ancres/` | aucune | chaine.json | — | aucune | 4, 5, 8 | AV-N-1, AV-N-2, AV-N-2, AV-N-1 | 0 |
-| `valide-t4-unite-en-intermediaire/` | ancres-unite-intermediaire.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `valide-t4-jeton-sans-certificat-sans-ancres/` | aucune | chaine.json | — | aucune | 4, 5, 8 | AV-N-1, AV-N-2, AV-N-2, AV-N-1 | 3 |
+| `valide-t4-unite-en-intermediaire/` | ancres-unite-intermediaire.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-t5-rsa-8200/` | ancres-test.json | chaine.json | T-5 | T-5 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-t5-exposant/` | ancres-test.json | chaine.json | T-5 | T-5 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-t7-intermediaire-rsa-8200/` | ancres-test.json | chaine.json | T-7 | T-7 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
-| `valide-rsa-8192/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
-| `valide-precommit-type-tolere/` | ancres-jeu-substitue.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-2, AV-R-2, AV-N-1 | 0 |
+| `valide-rsa-8192/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
+| `valide-precommit-type-tolere/` | ancres-jeu-substitue.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-2, AV-R-2, AV-N-1 | 3 |
 | `invalide-t5-algorithme-inconnu/` | ancres-test.json | chaine.json | T-5 | T-5 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
-| `valide-t5-cle-ed25519/` | ancres-test.json | chaine.json | — | aucune | 4 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `valide-t5-cle-ed25519/` | ancres-test.json | chaine.json | — | aucune | 4 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-t5-cle-ed25519-non-rattachee/` | ancres-test.json | chaine.json | T-5 | T-5 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-O-3, AV-R-4, AV-N-1 | 1 |
-| `valide-serie-168-bits/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `valide-serie-168-bits/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-k8-empreinte-sans-registre/` | ancres-test.json | chaine-points.json | K-8 | K-8 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-T-5, AV-O-3 | 1 |
 | `invalide-precommit-type-chaine/` | ancres-jeu-substitue.json | chaine.json | R-5 | R-5 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-2, AV-N-1 | 1 |
-| `valide-o3-hors-profil-seul/` | ancres-test.json | chaine.json | — | aucune | 5 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-2, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `valide-o3-hors-profil-seul/` | ancres-test.json | chaine.json | — | aucune | 5 | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-2, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-proposition-membre-mal-type/` | ancres-jeu-substitue.json | chaine.json | R-5 | R-5 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-N-1 | 1 |
 | `invalide-evenement-nul-complet/` | ancres-test.json | chaine.json | E-1 | E-1 | 2, 3, 4, 5, 6, 7, 8 | AV-O-3 | 1 |
 | `invalide-evenement-retire-complet/` | ancres-test.json | chaine.json | D-2 | D-2 | 1, 2, 3, 4, 5, 6, 7, 8 | AV-O-3 | 1 |
-| `valide-raison-sequences/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 0 |
+| `valide-raison-sequences/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 3 |
 | `invalide-e2-nombre-long/` | ancres-test.json | chaine.json | E-2 | E-2 | 2, 3, 4, 5, 6, 7, 8 | AV-O-3 | 1 |
 | `invalide-e2-index-nombre-long/` | ancres-test.json | chaine.json | E-2 | E-2 | 2, 3, 4, 5, 6, 7, 8 | — | 1 |
-| `valide-ligne-membre-inconnu-nombre-long/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-2, AV-N-1 | 0 |
-| `valide-ligne-espaces/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-2, AV-N-1 | 0 |
-| `valide-ligne-membre-inconnu/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-2, AV-N-1 | 0 |
+| `valide-ligne-membre-inconnu-nombre-long/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-2, AV-N-1 | 3 |
+| `valide-ligne-espaces/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-2, AV-N-1 | 3 |
+| `valide-ligne-membre-inconnu/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-2, AV-N-1 | 3 |
 | `invalide-r1-ligne-4mio-octets/` | ancres-test.json | chaine.json | R-1 | R-1 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3 | 1 |
-| `valide-ligne-4mio-ascii/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-2, AV-N-1 | 0 |
+| `valide-ligne-4mio-ascii/` | ancres-test.json | chaine.json | — | aucune | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-R-2, AV-N-1 | 3 |
 | `invalide-r1-cle-en-double-ancre-point/` | ancres-test.json | chaine.json | R-1 | R-1 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3 | 1 |
 | `invalide-membre-tostring-complet/` | ancres-test.json | chaine.json | E-7 | D-1, E-1, E-7 | — | AV-N-1, AV-N-2, AV-N-2, AV-N-1, AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 1 |
 | `invalide-a1-events-nombreux/` | ancres-test.json | chaine.json | A-2 | E-1, A-1, A-2 | 6 | AV-T-5, AV-O-3, AV-R-4, AV-N-1 | 1 |

@@ -264,7 +264,7 @@ function parcours(spec) {
     for (const x of s.contexte.exports) s.dossiers[x.nom] = c.extraire("exports", x.destination, path.join(s.travail, "dossiers", x.nom));
   });
 
-  it(`${te}, pas 3 (oracle) : chaque dossier exporté, vérifié hors ligne sur l'hôte dans un espace de noms réseau vide par le vérificateur JavaScript de référence et par le binaire Go : code 0, verdict valide, contrôles 1, 2, 3, 4, 6 et 8 réussis, 7 réussi quand l'événement porte une approbation, 5 non exécuté (preuve OpenTimestamps absente : aucun calendrier), aucune vérification en échec ; A-1 à A-4 réussies sur le dossier de la décision, A-4 non exécutée (piece_hors_dossier, CT-6 EX-5.18) sur celui de l'appel ; point couvrant ancré (K-1 réussie, entrée ancre_point_de_controle du registre) ; mêmes statuts et même énoncé entre les deux vérificateurs ; la décision, ses auteurs et son instant sont dans le journal (CT-1 §5)`, function () {
+  it(`${te}, pas 3 (oracle) : chaque dossier exporté, vérifié hors ligne sur l'hôte dans un espace de noms réseau vide par le vérificateur JavaScript de référence et par le binaire Go : aucune vérification en échec, contrôles 1, 2, 3, 4, 6 et 8 réussis, 7 réussi quand l'événement porte une approbation, 5 non exécuté (preuve OpenTimestamps absente : aucun calendrier) ; pièces d'essai (clé rec-test-01, comptes Hardhat) : verdict incomplet, code 3, raison piece_essai seule ; A-1 à A-4 réussies sur le dossier de la décision, A-4 non exécutée (piece_hors_dossier, CT-6 EX-5.18) sur celui de l'appel ; point couvrant ancré (K-1 réussie, entrée ancre_point_de_controle du registre) ; mêmes statuts et même énoncé entre les deux vérificateurs ; la décision, ses auteurs et son instant sont dans le journal (CT-1 §5)`, function () {
     if (!pret(this)) return;
     const bin = binaireGo();
     s.rapports = {};
@@ -274,10 +274,13 @@ function parcours(spec) {
       s.evenementsDossiers[nom] = evenement;
       const r = verifierDeuxSansReseau(dossier, { ancres: s.ancres });
       const juger = (v, quoi) => {
-        expect(v.lisible.code, `${quoi} ${nom} : ${v.lisible.stderr}\n${v.lisible.stdout}`).to.equal(0);
-        expect(v.json.code, `${quoi} ${nom}`).to.equal(0);
+        // Complément du 2026-11-23 de CT-6 (EX-6.26) : les cas de démonstration reposent sur des pièces d'essai (clé
+        // rec-test-01, comptes Hardhat, registre de développement) : rien n'échoue, mais code 3, non 0 (EX-8.12).
+        expect(v.lisible.code, `${quoi} ${nom} : ${v.lisible.stderr}\n${v.lisible.stdout}`).to.equal(3);
+        expect(v.json.code, `${quoi} ${nom}`).to.equal(3);
         const rap = v.rapport;
-        expect(rap.verdict, `${quoi} ${nom}`).to.equal("valide");
+        expect(rap.verdict, `${quoi} ${nom}`).to.equal("incomplet");
+        expect(rap.incomplete_reasons, `${quoi} ${nom}`).to.deep.equal(["piece_essai"]);
         expect(rap.failed_checks, `${quoi} ${nom}`).to.deep.equal([]);
         const ct = controles(rap);
         expect([ct[1], ct[2], ct[3], ct[4], ct[6], ct[8]], `${quoi} ${nom} : ${JSON.stringify(ct)}`).to.deep.equal(Array(6).fill("reussi"));
@@ -325,7 +328,7 @@ function parcours(spec) {
     if (!bin) enAttente(this, "binaire du vérificateur Go de CT-6 absent (NOORTRACE_VERIFIER_BIN) : vérificateur JavaScript jugé seul");
   });
 
-  it(`${te}, pas 3 (paquet réviseur, CT-8 §13) : attestation de périmètre du cas signée par les deux comptes de test (AT-1 à AT-4 retenues avec le jeu) ; paquet construit avec les dossiers du cas, le fichier d'ancres, le manifeste d'instance du registre en pièce et le vérificateur joint ; vérifié en une commande sans réseau avec son empreinte et les ancres du réviseur : code 0, PR-1 à PR-12 réussies, chaque dossier valide avec l'énoncé de CT-6 ; même paquet reconstruit octet pour octet`, function () {
+  it(`${te}, pas 3 (paquet réviseur, CT-8 §13) : attestation de périmètre du cas signée par les deux comptes de test (AT-1 à AT-4 retenues avec le jeu) ; paquet construit avec les dossiers du cas, le fichier d'ancres, le manifeste d'instance du registre en pièce et le vérificateur joint ; vérifié en une commande sans réseau avec son empreinte et les ancres du réviseur : PR-1 à PR-12 réussies, paquet intact, chaque dossier incomplet (code 3, pièces d'essai) avec l'énoncé de CT-6, donc code 3 du paquet ; même paquet reconstruit octet pour octet`, function () {
     if (!pret(this)) return;
     const jeu = { threshold: CONFIG.policy.approval.rules.approver_set.threshold, members: CONFIG.policy.approval.rules.approver_set.members, source: "jeu statique de la politique du cas : comptes Hardhat 1 à 3 (clés de test publiques)" };
     const att = signerAttestation({ attestation: path.join(CAS_DIR, cas, "attestation-perimetre-cas.json"), cles: [compte(1).cle, compte(2).cle], jeu, dir: path.join(s.travail, "attestation") });
@@ -349,13 +352,14 @@ function parcours(spec) {
     expect(p2.code, p2.stderr).to.equal(0);
     expect(p2.sha256).to.equal(p1.sha256);
     const v = verifierPaquetSansReseau(p1.paquet, { ancres: s.ancres, empreinte: p1.sha256, conserver: path.join(dir, "extrait") });
-    expect(v.lisible.code, v.lisible.stdout + v.lisible.stderr).to.equal(0);
-    expect(v.json.code, v.json.stdout + v.json.stderr).to.equal(0);
+    // Paquet intact ; chaque dossier joint rend 3 (pièces d'essai, CT-6 EX-6.26), donc le paquet aussi (CT-8 EX-13.26).
+    expect(v.lisible.code, v.lisible.stdout + v.lisible.stderr).to.equal(3);
+    expect(v.json.code, v.json.stdout + v.json.stderr).to.equal(3);
     const rap = v.rapport;
     expect(rap.checks.map((c) => [c.id, c.status])).to.deep.equal(Array.from({ length: 12 }, (_, i) => [`PR-${i + 1}`, "reussi"]));
-    expect(rap.dossiers.map((d) => [d.verdict, d.exit_code, d.anchors?.source, d.observation_mode])).to.deep.equal(Object.keys(s.dossiers).map(() => ["valide", 0, "ligne_de_commande", false]));
+    expect(rap.dossiers.map((d) => [d.verdict, d.exit_code, d.anchors?.source, d.observation_mode])).to.deep.equal(Object.keys(s.dossiers).map(() => ["incomplet", 3, "ligne_de_commande", false]));
     expect(rap.package_status).to.equal("intact");
-    expect(v.lisible.stdout).to.include("[VALIDE]");
+    expect(v.lisible.stdout).to.include("[INCOMPLET]");
     expect(fs.existsSync(path.join(dir, "extrait", "paquet-reviseur", "MANIFESTE.json"))).to.equal(true);
     s.paquet = { sha256: p1.sha256, rapport: rap };
     if (!sansReseauDisponible()) enAttente(this, "unshare -n indisponible : vérification du paquet faite sans espace de noms réseau vide");

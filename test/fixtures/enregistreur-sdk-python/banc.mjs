@@ -415,7 +415,7 @@ async function principal() {
       } catch {
         rapport = null;
       }
-      go = { status: r.status, verdict: rapport?.verdict ?? null, failed_checks: rapport?.failed_checks ?? null, controls: rapport?.controls?.map((x) => [x.number, x.status, x.reason ?? null]) ?? null, stderr: r.stderr.slice(0, 2000) };
+      go = { status: r.status, verdict: rapport?.verdict ?? null, incomplete_reasons: rapport?.incomplete_reasons ?? null, failed_checks: rapport?.failed_checks ?? null, controls: rapport?.controls?.map((x) => [x.number, x.status, x.reason ?? null]) ?? null, stderr: r.stderr.slice(0, 2000) };
     }
     return { journal: { valide: journal.valide, diagnostics: journal.diagnostics?.slice(0, 20) ?? null, evenements: evts.length }, dossier: { verdict: dossier.verdict, controles_en_echec: dossier.controles_en_echec }, go };
   }

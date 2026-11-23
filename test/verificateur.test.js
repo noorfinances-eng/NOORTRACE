@@ -7,6 +7,7 @@ import { PROJECT_ROOT } from "../scripts/lib/noortrace.mjs";
 import * as J from "../scripts/lib/journal.mjs";
 import * as V from "../scripts/lib/verificateur.mjs";
 import { genererCt6, verifierRepertoire } from "../scripts/vecteurs/generer-ct6.mjs";
+import { dossierAleatoire, ecrireDossier } from "./fixtures/verificateur/dossier-aleatoire.mjs";
 
 // LE VÉRIFICATEUR DE RÉFÉRENCE DE CT-6 (spec/CT-6-verificateur.md) :
 // scripts/verify/dossier.mjs et scripts/lib/verificateur.mjs, qui réunissent
@@ -84,7 +85,10 @@ describe("CT-6 : dossiers complets de spec/vecteurs/ct-6 par la ligne de command
       const { a, args } = argumentsDossier(nom);
       const { code, doc } = rapportJSON(args);
       expect(code, nom).to.equal(a.exit_code);
-      expect(doc.verdict, nom).to.equal(a.valid ? "valide" : "invalide");
+      // Complément du 2026-11-23 (EX-6.26) : `valid` dit qu'aucune vérification n'échoue ; le verdict d'un tel dossier
+      // des vecteurs est `incomplet` (pièces d'essai), et le rapport dit pourquoi (EX-8.12).
+      expect(doc.verdict, nom).to.equal(a.valid ? "incomplet" : "invalide");
+      expect(doc.incomplete_reasons, nom).to.deep.equal(a.valid ? ["piece_essai"] : []);
       // La borne posée par la conception (EX-6.12) suit les contrôles non exécutés et leur raison.
       const non = doc.controls.filter((c) => c.status === "non_execute");
       expect(a.bound, nom).to.deep.equal(non.length ? { fr: `verdict borné : ${non.map((c) => `contrôle ${c.number} non exécuté (${c.reason})`).join(", ")}`, en: `bounded verdict: ${non.map((c) => `control ${c.number} not run (${c.reason})`).join(", ")}` } : null);
@@ -131,7 +135,8 @@ describe("CT-6 : dossiers complets de spec/vecteurs/ct-6 par la ligne de command
 
   it("rapport lisible du dossier complet, en français et en anglais (section 8.5)", function () {
     const fr = lancer([COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]);
-    expect(fr.code, fr.stderr).to.equal(0);
+    // Complément du 2026-11-23 (CT-6 EX-6.26) : le dossier complet est fait de pièces d'essai, code 3.
+    expect(fr.code, fr.stderr).to.equal(3);
     const a = lireJSON(COMPLET, "attendu.json");
     const lignes = fr.stdout.trimEnd().split("\n");
     expect(lignes[0]).to.equal("Vérification hors ligne d'un dossier de preuve NOORTRACE (format v0, CT-1 et CT-6)");
@@ -139,18 +144,18 @@ describe("CT-6 : dossiers complets de spec/vecteurs/ct-6 par la ligne de command
     expect(lignes).to.include("  [réussi]      5  preuve OpenTimestamps et en-têtes Bitcoin — bloc Bitcoin 1001 du réseau regtest, 20 confirmations (réseau d'essai)");
     expect(lignes).to.include("  [réussi]      6  signatures de l'enregistreur — rec-test-01 (événement), rec-test-02 (manifeste), clés fournies par le fichier d'ancres");
     expect(lignes).to.include("  [non exécuté] T-11 [4] statut qualifié déclaré par l'ancre");
-    expect(lignes).to.include("  AV-O-3 (O-5) réseau regtest : réseau d'essai, sans valeur probante hors des tests");
-    expect(lignes).to.include("Résultat      : VALIDE — aucune vérification en échec, aucune vérification non exécutée sans raison admise");
+    expect(lignes).to.include("  AV-O-3 (O-5) réseau regtest : réseau d'essai, sans valeur de preuve hors des essais");
+    expect(lignes).to.include("Résultat      : INCOMPLET — repose sur des pièces d'essai : AV-N-1 (E-8), AV-N-2 (E-9), AV-N-1 (P-5), AV-T-5 (T-7), AV-O-3 (O-5), AV-R-4 (R-4), AV-N-1 (N-4)");
     expect(lignes[lignes.length - 1]).to.equal(`Énoncé        : ${a.statement.fr}`);
     const en = lancer([COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE, "--langue", "en", "--detail"]);
-    expect(en.code).to.equal(0);
+    expect(en.code).to.equal(3);
     const le = en.stdout.trimEnd().split("\n");
     expect(le[0]).to.equal("Offline verification of a NOORTRACE evidence dossier (format v0, CT-1 and CT-6)");
     expect(le).to.include("Checks:");
     const { doc } = rapportJSON([COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]);
     expect(doc.checks).to.have.length(28 + 11 + 7 + 10 + 2);
     expect(le.filter((l) => /^ {2}\[(passed|FAILED|not run)\] +[A-Z]-\d+ /.test(l))).to.have.length(doc.checks.length);
-    expect(le).to.include("Result        : VALID — no failed check, no check left unrun without an admitted reason");
+    expect(le).to.include("Result        : INCOMPLETE — rests on test pieces: AV-N-1 (E-8), AV-N-2 (E-9), AV-N-1 (P-5), AV-T-5 (T-7), AV-O-3 (O-5), AV-R-4 (R-4), AV-N-1 (N-4)");
     expect(le[le.length - 1]).to.equal(`Statement     : ${a.statement.en}`);
   });
 
@@ -164,6 +169,17 @@ describe("CT-6 : dossiers complets de spec/vecteurs/ct-6 par la ligne de command
 });
 
 // ---------------------------------------------------------------------------
+/** Mention qui suit chaque pièce d'essai nommée par l'énoncé (CT-6 EX-6.8, complément du 2026-11-23). */
+const MENTION_FR = " (pièce d'essai, sans valeur de preuve hors des essais)";
+const MENTION_EN = " (test piece, no evidential value outside tests)";
+/** Pièces d'essai d'un rapport, lues dans les détails d'EX-6.24, sous la forme que construireEnonce et fragmentPerimetre attendent. */
+const essaiDe = (doc) => ({
+  cles: new Set(doc.warnings.filter((w) => w.id === "AV-N-1" && ["E-8", "P-5", "K-3"].includes(w.check)).map((w) => /^clé d'enregistreur (\S+) \(/.exec(w.detail)[1])),
+  approbateurs: new Set(doc.warnings.filter((w) => w.id === "AV-N-2").map((w) => /^approbateur (0x[0-9a-f]+) :/.exec(w.detail)[1])),
+  autorites: new Set(doc.warnings.filter((w) => w.id === "AV-T-5").map((w) => /^autorité (.*) : certificat d'essai/.exec(w.detail)[1])),
+  registres: new Set(doc.warnings.filter((w) => w.id === "AV-R-4").map((w) => /^registre (\S+) :/.exec(w.detail)[1])),
+});
+
 describe("CT-6 : énoncé du dossier complet reconstruit fragment par fragment (EX-6.8, V-5)", function () {
   it("F0 à F8 à partir de evenement.json, du manifeste et des faits des familles rfc3161, ots et registre", function () {
     const ev = lireJSON(COMPLET, "evenement.json");
@@ -182,20 +198,20 @@ describe("CT-6 : énoncé du dossier complet reconstruit fragment par fragment (
     const fr =
       `L'événement seq ${ev.seq} (hachage ${ev.hash}) du journal ${ev.journal_id} de l'organisation ${ev.org_id}` +
       ` est bien formé, chaîné à ses voisins seq 6 et 8 et inclus dans la période du ${instant(m.period_start)} au ${instant(m.period_end)} close par le manifeste ${ph}` +
-      ` ; l'événement est signé par la clé d'enregistreur rec-test-01 et le manifeste par la clé rec-test-02, clés fournies par le fichier d'ancres` +
-      ` ; l'événement porte l'approbation de la demande ${ev.approval.request_hash} (ticket ${ev.approval.ticket}), signée par ${ev.approval.approvers[0]} et ${ev.approval.approvers[1]} (2 signatures, seuil de ${ev.approval.threshold.required} sur ${ev.approval.threshold.size} du jeu déclaré par le dossier)` +
-      ` ; selon ${ts.authority} (unité ${ts.tsu_subject_cn}), le manifeste d'empreinte ${ph} existait au plus tard le ${ts.upper_bound} UTC` +
-      ` ; le manifeste d'empreinte ${ph} existait avant la création du bloc Bitcoin ${btc.retained_height} (${btc.block_hash}, réseau ${btc.network}), sous ${btc.confirmations} blocs dont le travail se rattache au point de contrôle ${btc.checkpoint.height} du réviseur ; heure inscrite par le mineur : ${btc.block_time} UTC, précision non garantie par le protocole ; borne sous hypothèse : ${btc.median_bound} UTC (réseau d'essai, sans valeur probante)` +
-      ` ; sur le registre ${reg.chain_id}, la clôture de cette période (organisation ${m.org_id}, journal ${m.journal_id}) figure au bloc ${clo.block_number} (heure déclarée par le bloc : ${clo.block_time} UTC), émise par le contrat PeriodRegistry ${clo.emitter}, et son ancre ${anc.event.fingerprint} au bloc ${anc.block_number} (heure déclarée ${anc.block_time} UTC), émise par AttestationRegistry ${anc.emitter} pour l'émetteur ${anc.event.issuer}, clé de chaîne inscrite au bloc ${insc.block_number} pour la clé d'enregistreur rec-test-02, que le réviseur tient pour la clé de chaîne de rec-test-02 ; chacun de ces blocs est signé par ${n} des ${cert.set_size} validateurs du jeu ${cert.valset_hash} que le réviseur déclare (${cert.set_source})` +
+      ` ; l'événement est signé par la clé d'enregistreur rec-test-01${MENTION_FR} et le manifeste par la clé rec-test-02${MENTION_FR}, clés fournies par le fichier d'ancres` +
+      ` ; l'événement porte l'approbation de la demande ${ev.approval.request_hash} (ticket ${ev.approval.ticket}), signée par ${ev.approval.approvers[0]}${MENTION_FR} et ${ev.approval.approvers[1]}${MENTION_FR} (2 signatures, seuil de ${ev.approval.threshold.required} sur ${ev.approval.threshold.size} du jeu déclaré par le dossier)` +
+      ` ; selon ${ts.authority}${MENTION_FR} (unité ${ts.tsu_subject_cn}), le manifeste d'empreinte ${ph} existait au plus tard le ${ts.upper_bound} UTC` +
+      ` ; le manifeste d'empreinte ${ph} existait avant la création du bloc Bitcoin ${btc.retained_height} (${btc.block_hash}, réseau ${btc.network}), sous ${btc.confirmations} blocs dont le travail se rattache au point de contrôle ${btc.checkpoint.height} du réviseur ; heure inscrite par le mineur : ${btc.block_time} UTC, précision non garantie par le protocole ; borne sous hypothèse : ${btc.median_bound} UTC (réseau d'essai, sans valeur de preuve hors des essais)` +
+      ` ; sur le registre ${reg.chain_id}${MENTION_FR}, la clôture de cette période (organisation ${m.org_id}, journal ${m.journal_id}) figure au bloc ${clo.block_number} (heure déclarée par le bloc : ${clo.block_time} UTC), émise par le contrat PeriodRegistry ${clo.emitter}, et son ancre ${anc.event.fingerprint} au bloc ${anc.block_number} (heure déclarée ${anc.block_time} UTC), émise par AttestationRegistry ${anc.emitter} pour l'émetteur ${anc.event.issuer}, clé de chaîne inscrite au bloc ${insc.block_number} pour la clé d'enregistreur rec-test-02${MENTION_FR}, que le réviseur tient pour la clé de chaîne de rec-test-02${MENTION_FR} ; chacun de ces blocs est signé par ${n} des ${cert.set_size} validateurs du jeu ${cert.valset_hash} que le réviseur déclare (${cert.set_source})` +
       ".";
     const en =
       `Event seq ${ev.seq} (hash ${ev.hash}) of journal ${ev.journal_id} of organisation ${ev.org_id}` +
       ` is well-formed, chained to its neighbours seq 6 and 8 and included in the period from ${instant(m.period_start)} to ${instant(m.period_end)} closed by manifest ${ph}` +
-      `; the event is signed by recorder key rec-test-01 and the manifest by key rec-test-02, keys given by the anchors file` +
-      `; the event carries the approval of request ${ev.approval.request_hash} (ticket ${ev.approval.ticket}), signed by ${ev.approval.approvers[0]} and ${ev.approval.approvers[1]} (2 signatures, threshold ${ev.approval.threshold.required} of ${ev.approval.threshold.size} of the set declared by the dossier)` +
-      `; according to ${ts.authority} (unit ${ts.tsu_subject_cn}), the manifest with digest ${ph} existed no later than ${ts.upper_bound} UTC` +
-      `; the manifest with digest ${ph} existed before Bitcoin block ${btc.retained_height} (${btc.block_hash}, ${btc.network} network) was created, under ${btc.confirmations} blocks whose work connects to the reviewer's checkpoint ${btc.checkpoint.height}; time written by the miner: ${btc.block_time} UTC, accuracy not guaranteed by the protocol; bound under assumption: ${btc.median_bound} UTC (test network, no evidential value)` +
-      `; on registry ${reg.chain_id}, the closing of this period (organisation ${m.org_id}, journal ${m.journal_id}) is in block ${clo.block_number} (time declared by the block: ${clo.block_time} UTC), emitted by contract PeriodRegistry ${clo.emitter}, and its anchor ${anc.event.fingerprint} in block ${anc.block_number} (declared time ${anc.block_time} UTC), emitted by AttestationRegistry ${anc.emitter} for issuer ${anc.event.issuer}, chain key registered in block ${insc.block_number} for recorder key rec-test-02, which the reviewer holds as the chain key of rec-test-02; each of these blocks is signed by ${n} of the ${cert.set_size} validators of set ${cert.valset_hash} declared by the reviewer (${cert.set_source})` +
+      `; the event is signed by recorder key rec-test-01${MENTION_EN} and the manifest by key rec-test-02${MENTION_EN}, keys given by the anchors file` +
+      `; the event carries the approval of request ${ev.approval.request_hash} (ticket ${ev.approval.ticket}), signed by ${ev.approval.approvers[0]}${MENTION_EN} and ${ev.approval.approvers[1]}${MENTION_EN} (2 signatures, threshold ${ev.approval.threshold.required} of ${ev.approval.threshold.size} of the set declared by the dossier)` +
+      `; according to ${ts.authority}${MENTION_EN} (unit ${ts.tsu_subject_cn}), the manifest with digest ${ph} existed no later than ${ts.upper_bound} UTC` +
+      `; the manifest with digest ${ph} existed before Bitcoin block ${btc.retained_height} (${btc.block_hash}, ${btc.network} network) was created, under ${btc.confirmations} blocks whose work connects to the reviewer's checkpoint ${btc.checkpoint.height}; time written by the miner: ${btc.block_time} UTC, accuracy not guaranteed by the protocol; bound under assumption: ${btc.median_bound} UTC (test network, no evidential value outside tests)` +
+      `; on registry ${reg.chain_id}${MENTION_EN}, the closing of this period (organisation ${m.org_id}, journal ${m.journal_id}) is in block ${clo.block_number} (time declared by the block: ${clo.block_time} UTC), emitted by contract PeriodRegistry ${clo.emitter}, and its anchor ${anc.event.fingerprint} in block ${anc.block_number} (declared time ${anc.block_time} UTC), emitted by AttestationRegistry ${anc.emitter} for issuer ${anc.event.issuer}, chain key registered in block ${insc.block_number} for recorder key rec-test-02${MENTION_EN}, which the reviewer holds as the chain key of rec-test-02${MENTION_EN}; each of these blocks is signed by ${n} of the ${cert.set_size} validators of set ${cert.valset_hash} declared by the reviewer (${cert.set_source})` +
       ".";
     const a = lireJSON(COMPLET, "attendu.json");
     expect(a.statement.fr).to.equal(fr);
@@ -281,7 +297,13 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
         for (const avec of [null, ancres]) {
           const corps = V.verifierDossierComplet({ fichiers: lireDossier(path.join(racine, nom)), schemas: SCHEMAS, ancres: avec });
           const etiquette = `${nom}${avec ? " (ancres-test.json)" : ""}`;
-          expect(corps.exit_code, etiquette).to.equal(a.valide ? 0 : 1);
+          // Complément du 2026-11-23 (CT-6 EX-6.26) : chaque dossier de CT-1 est signé par rec-test-01 ou rec-test-02,
+          // clés d'essai ; `valide` (CT-1 §11.5) dit qu'aucune vérification n'échoue, et le code est alors 3, non 0,
+          // le rapport disant pourquoi (EX-8.12).
+          expect(corps.exit_code, etiquette).to.equal(a.valide ? 3 : 1);
+          expect(corps.verdict, etiquette).to.equal(a.valide ? "incomplet" : "invalide");
+          expect(corps.incomplete_reasons, etiquette).to.deep.equal(a.valide ? ["piece_essai"] : []);
+          if (a.valide) expect(corps.warnings.some((w) => V.estAvertissementEssai(w.id)), etiquette).to.equal(true);
           expect(corps.failed_checks, etiquette).to.deep.equal(a.controles_en_echec);
           // invalide-raison-blancs (révision 0.5 de CT-1) déclare jeton-rfc3161.der absent sous une raison de blancs, autre que
           // « hors périmètre CT-1 » : le contrôle 4 est non exécuté, partie_absente (EX-4.3) ; D-2 rend le dossier invalide.
@@ -360,12 +382,15 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
     const md = fs.readFileSync(path.join(SPEC, "CT-6-verificateur.md"), "utf8");
     const bloc = md.split("$ node scripts/verify/dossier.mjs spec/vecteurs/ct-1/dossiers/valide-seq-7\n")[1].split("\n$ echo $?")[0];
     const r = lancer([path.join(racine, "valide-seq-7")]);
-    expect(r.code).to.equal(0);
+    // Complément du 2026-11-23 (CT-6 EX-6.26) : clés et approbateurs d'essai, code 3 ; la ligne « Résultat » le dit.
+    expect(r.code).to.equal(3);
+    expect(r.stdout).to.include("\nRésultat      : INCOMPLET — repose sur des pièces d'essai : AV-N-1 (E-8), AV-N-2 (E-9), AV-N-1 (P-5)\n");
     const normaliser = (t) => t.trimEnd().split("\n").map((l) => l.replace(/^(Vérificateur {2}: scripts\/verify\/dossier\.mjs 0\.1\.0) \(node v[0-9.]+\)$/, "$1 (node)").replace(/^(Répertoire {4}: ).*$/, "$1…"));
     expect(normaliser(r.stdout)).to.deep.equal(normaliser(bloc));
     const exige = lancer([path.join(racine, "valide-seq-7"), "--exiger", "4,5,8"]);
     expect(exige.code).to.equal(3);
-    expect(exige.stdout).to.include("Résultat      : INCOMPLET — contrôle(s) exigé(s) non réussi(s) : 4, 5, 8");
+    // EX-8.6, point 11 : l'exigence non remplie d'abord, les pièces d'essai ensuite.
+    expect(exige.stdout).to.include("Résultat      : INCOMPLET — contrôle(s) exigé(s) non réussi(s) : 4, 5, 8 ; repose sur des pièces d'essai : AV-N-1 (E-8), AV-N-2 (E-9), AV-N-1 (P-5)\n");
     expect(exige.stdout.split("\n").find((l) => l.startsWith("Énoncé"))).to.equal(r.stdout.split("\n").find((l) => l.startsWith("Énoncé")));
   });
 
@@ -377,11 +402,12 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
     const rep = tmp("noortrace-ct6-sans-approbation-");
     for (const [f, contenu] of Object.entries(fichiers)) fs.writeFileSync(path.join(rep, f), contenu);
     const { code, doc } = rapportJSON([rep]);
-    expect(code).to.equal(0);
+    // Code 3 : signé par rec-test-01, clé d'essai (EX-6.26) ; rien n'échoue, aucune exigence.
+    expect([code, doc.verdict, doc.incomplete_reasons, doc.failed_checks]).to.deep.equal([3, "incomplet", ["piece_essai"], []]);
     expect([doc.controls[6].status, doc.controls[6].reason, doc.controls[6].summary]).to.deep.equal(["non_execute", "partie_absente", "approbations.json absent (aucune approbation liée)"]);
     expect(doc.checks.filter((c) => ["A-2", "A-3", "A-4"].includes(c.id)).map((c) => c.reason)).to.deep.equal(["partie_absente", "partie_absente", "partie_absente"]);
     expect(doc.statement.fr).to.equal(
-      `L'événement seq 3 (hachage ${evs[2].hash}) du journal ${evs[2].journal_id} de l'organisation ${evs[2].org_id} est bien formé, chaîné à ses voisins seq 2 et 4 et inclus dans la période du 2026-11-05T09:00:00Z au 2026-11-05T10:00:00Z close par le manifeste ${J.hachageManifeste(m)} ; l'événement est signé par la clé d'enregistreur rec-test-01 et le manifeste par la clé rec-test-02, clés déclarées par le dossier ; ce dossier ne prouve rien sur sa date (contrôles 4 et 5), sur une approbation (contrôle 7) ni sur son inscription au registre (contrôle 8).`,
+      `L'événement seq 3 (hachage ${evs[2].hash}) du journal ${evs[2].journal_id} de l'organisation ${evs[2].org_id} est bien formé, chaîné à ses voisins seq 2 et 4 et inclus dans la période du 2026-11-05T09:00:00Z au 2026-11-05T10:00:00Z close par le manifeste ${J.hachageManifeste(m)} ; l'événement est signé par la clé d'enregistreur rec-test-01${MENTION_FR} et le manifeste par la clé rec-test-02${MENTION_FR}, clés déclarées par le dossier ; ce dossier ne prouve rien sur sa date (contrôles 4 et 5), sur une approbation (contrôle 7) ni sur son inscription au registre (contrôle 8).`,
     );
     expect(doc.statement.en).to.match(/; this dossier proves nothing about its date \(controls 4 and 5\), an approval \(control 7\) or its registration in the registry \(control 8\)\.$/);
     expect(doc.bound).to.equal("verdict borné : contrôle 4 non exécuté (hors_perimetre_version), contrôle 5 non exécuté (hors_perimetre_version), contrôle 7 non exécuté (partie_absente), contrôle 8 non exécuté (hors_perimetre_version)");
@@ -391,8 +417,10 @@ describe("CT-6 : compatibilité avec les dossiers de CT-1 (EX-6.14, V-7)", funct
     // Complément du 2026-11-19 (CT-6 EX-6.25) : les huit contrôles réussissent, mais 4 à 8 reposent sur des pièces d'essai.
     expect([tous.code, tous.doc.verdict, tous.doc.controls.every((c) => c.status === "reussi")]).to.deep.equal([3, "incomplet", true]);
     expect(tous.doc.inputs.required_controls).to.deep.equal([1, 2, 3, 4, 5, 6, 7, 8]);
+    // EX-8.12 : les deux raisons, dans cet ordre.
+    expect(tous.doc.incomplete_reasons).to.deep.equal(["exigence_non_remplie", "piece_essai"]);
     const sansEntetes = rapportJSON([COMPLET, "--ancres", ANCRES_TEST, "--exiger", "5"]);
-    expect([sansEntetes.code, sansEntetes.doc.verdict]).to.deep.equal([3, "incomplet"]);
+    expect([sansEntetes.code, sansEntetes.doc.verdict, sansEntetes.doc.incomplete_reasons]).to.deep.equal([3, "incomplet", ["exigence_non_remplie", "piece_essai"]]);
   });
 });
 
@@ -575,7 +603,8 @@ describe("CT-6 : pièces fournies à part et second manifeste (EX-4.6, EX-4.7)",
     const rep = tmp("noortrace-ct6-pieces-");
     for (const p of pieces) fs.writeFileSync(path.join(rep, p.sha256.slice(2)), Buffer.from(p.bytes, "utf8"));
     const ok = rapportJSON([dossier, "--pieces", rep]);
-    expect(ok.code).to.equal(0);
+    // Code 3 : le dossier de démonstration de CT-2 est signé par une clé d'essai (CT-6 EX-6.26) ; rien n'échoue.
+    expect([ok.code, ok.doc.failed_checks, ok.doc.incomplete_reasons]).to.deep.equal([3, [], ["piece_essai"]]);
     expect(ok.doc.inputs.pieces).to.deep.equal({ path: rep, files: 7 });
     expect(ok.doc.checks.find((c) => c.id === "E-6").detail).to.equal("7 pièce(s) fournie(s) à part vérifiée(s)");
     const cible = J.analyserJSONStrict(fs.readFileSync(path.join(dossier, "evenement.json"))).execution.result.sha256.slice(2);
@@ -590,7 +619,8 @@ describe("CT-6 : pièces fournies à part et second manifeste (EX-4.6, EX-4.7)",
   it("--second-manifeste : la période suivante se chaîne (P-5 réussie) ; une période non contiguë fait échouer P-5", function () {
     const dossier = path.join(CT1, "dossiers", "valide-seq-7");
     const suivant = rapportJSON([dossier, "--second-manifeste", path.join(CT1, "manifestes", "periode-2.json")]);
-    expect(suivant.code).to.equal(0);
+    // Code 3 : clés d'essai de CT-1 (CT-6 EX-6.26) ; P-5 réussie, rien n'échoue.
+    expect([suivant.code, suivant.doc.failed_checks]).to.deep.equal([3, []]);
     expect(suivant.doc.checks.find((c) => c.id === "P-5").detail).to.equal("periodHash 0xae22426f25529379efab196ba8b5f73c4729b27d8fca4409a26d803848860914 signé par rec-test-02 ; continuité avec le manifeste suivant (periodHash 0xe867be7f64b77e49a9c3066d33aa39cffc5b5a588edec54f99cb2d07ff33bf19) vérifiée");
     expect(suivant.doc.inputs.second_manifest.path).to.equal(path.join(CT1, "manifestes", "periode-2.json"));
     const discontinu = rapportJSON([dossier, "--second-manifeste", path.join(CT1, "manifestes", "periode-3.json")]);
@@ -654,14 +684,15 @@ describe("CT-6 : règles précisées par la revue", function () {
 
   it("F3 selon approval.decision : refus signé, demande expirée sans signature ; facts.approval.decision (EX-6.8, EX-6.11)", function () {
     const refus = rapportJSON(argumentsDossier("valide-decision-refusee").args);
-    expect(refus.code).to.equal(0);
-    expect(refus.doc.statement.fr).to.include(" ; l'événement porte le refus de la demande 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d (ticket apr-2201), signé par 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 et 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, seuil de 2 sur 3 du jeu déclaré par le dossier) ; ");
-    expect(refus.doc.statement.en).to.include("; the event carries the refusal of request 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d (ticket apr-2201), signed by 0x70997970c51812dc3a010c7d01b50e0d17dc79c8 and 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc (2 signatures, threshold 2 of 3 of the set declared by the dossier); ");
+    // Code 3 depuis le complément du 2026-11-23 (CT-6 EX-6.26) : clés et approbateurs d'essai ; rien n'échoue.
+    expect([refus.code, refus.doc.failed_checks]).to.deep.equal([3, []]);
+    expect(refus.doc.statement.fr).to.include(` ; l'événement porte le refus de la demande 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d (ticket apr-2201), signé par 0x70997970c51812dc3a010c7d01b50e0d17dc79c8${MENTION_FR} et 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc${MENTION_FR} (2 signatures, seuil de 2 sur 3 du jeu déclaré par le dossier) ; `);
+    expect(refus.doc.statement.en).to.include(`; the event carries the refusal of request 0x22a54600beeb4674976033c5a21740dfe45a1886ff1f69082b5c18141efd122d (ticket apr-2201), signed by 0x70997970c51812dc3a010c7d01b50e0d17dc79c8${MENTION_EN} and 0x3c44cdddb6a900fa2b585dd299e03d12fa4293bc${MENTION_EN} (2 signatures, threshold 2 of 3 of the set declared by the dossier); `);
     expect(refus.doc.statement.fr).to.not.include("approuvé");
     expect(refus.doc.facts.approval.decision).to.equal("refuse");
     expect(refus.doc.controls[6].summary).to.equal("apr-2201 (refus) : 2 signatures, seuil 2 sur 3");
     const expire = rapportJSON(argumentsDossier("valide-decision-expiree").args);
-    expect(expire.code).to.equal(0);
+    expect([expire.code, expire.doc.failed_checks]).to.deep.equal([3, []]);
     expect(expire.doc.statement.fr).to.include(" ; l'événement porte une demande d'approbation expirée sans signature (seuil de 2 sur 3 du jeu déclaré par le dossier) ; ");
     expect(expire.doc.statement.en).to.include("; the event carries an approval request that expired without signature (threshold 2 of 3 of the set declared by the dossier); ");
     expect(expire.doc.facts.approval).to.deep.equal({ decision: "expire", ticket: "apr-2201", approvers: [], required: 2, size: 3, set_source: "dossier" });
@@ -672,7 +703,11 @@ describe("CT-6 : règles précisées par la revue", function () {
 
   it("F3 nomme la demande (request_hash) et le ticket que les approbateurs ont signés, non l'appel prouvé : énoncé du vérificateur et attendu.json de chaque dossier à approbation ou refus (EX-6.8, EX-6.11, §7.2 ; décision du porteur du 2026-11-16)", function () {
     const f3 = (ap) => {
-      const liste = (et) => (ap.approvers.length === 1 ? ap.approvers[0] : `${ap.approvers.slice(0, -1).join(", ")} ${et} ${ap.approvers.at(-1)}`);
+      // Complément du 2026-11-23 (EX-6.8) : un approbateur d'essai est suivi de la mention.
+      const liste = (et) => {
+        const xs = ap.approvers.map((a) => (V.estApprobateurEssai(a) ? a + (et === "et" ? MENTION_FR : MENTION_EN) : a));
+        return xs.length === 1 ? xs[0] : `${xs.slice(0, -1).join(", ")} ${et} ${xs.at(-1)}`;
+      };
       const sig = ap.approvers.length === 1 ? "1 signature" : `${ap.approvers.length} signatures`;
       const { required, size } = ap.threshold;
       return ap.decision === "approuve"
@@ -741,9 +776,10 @@ describe("CT-6 : règles précisées par la revue", function () {
     const lireDossier = () => Object.fromEntries(fs.readdirSync(rep).filter((f) => V.FICHIERS_DOSSIER.includes(f)).map((f) => [f, fs.readFileSync(path.join(rep, f))]));
     const ancres = V.controlerAncres(fs.readFileSync(ANCRES_TEST), SCHEMAS);
     const avant = V.verifierDossierComplet({ fichiers: lireDossier(), schemas: SCHEMAS, ancres });
-    // Les avertissements de pièce d'essai (CT-6 EX-6.24, complément du 2026-11-19) sont laissés de côté.
+    // Les avertissements de pièce d'essai (CT-6 EX-6.24, complément du 2026-11-19) sont laissés de côté ; ils rendent le
+    // code 3 depuis le complément du 2026-11-23 (EX-6.26), sans qu'aucune vérification échoue.
     const horsEssai = (ws) => ws.map((w) => w.id).filter((id) => !["AV-T-5", "AV-R-4", "AV-N-1", "AV-N-2"].includes(id));
-    expect([avant.exit_code, horsEssai(avant.warnings)]).to.deep.equal([0, []]);
+    expect([avant.exit_code, avant.failed_checks, horsEssai(avant.warnings)]).to.deep.equal([3, [], []]);
     expect(V.SEUIL_AV_K4_S).to.equal(3600);
     const fichiers = lireDossier();
     const partie = J.analyserJSONStrict(fichiers["points-de-controle.json"]);
@@ -755,9 +791,9 @@ describe("CT-6 : règles précisées par la revue", function () {
     };
     // 09:35:00.000Z + 3599 s + 1 s de précision : borne à 3600 s exactement, pas d'avertissement.
     const limite = verifier("20261105103459Z");
-    expect([limite.exit_code, horsEssai(limite.warnings)]).to.deep.equal([0, []]);
+    expect([limite.exit_code, limite.failed_checks, horsEssai(limite.warnings)]).to.deep.equal([3, [], []]);
     const tardif = verifier("20261105113500Z");
-    expect(tardif.exit_code).to.equal(0);
+    expect(tardif.exit_code).to.equal(3);
     expect(tardif.failed_checks).to.deep.equal([]);
     const w = tardif.warnings.find((x) => x.id === "AV-K-4");
     expect(w, "AV-K-4").to.not.equal(undefined);
@@ -870,7 +906,7 @@ describe("CT-6 révision 0.3 : attestation de périmètre (section 5.5, EX-6.19 
       if (r1.failed_checks.includes("D-2")) expect(r1.verdict, d.nom).to.equal("invalide");
       else if (r1.verdict === "invalide") expect(r1.statement, d.nom).to.deep.equal(r2.statement);
       else {
-        const fp = V.fragmentPerimetre({ retenue: r1.facts.perimeter !== null, faits: r1.facts.perimeter, checks: r1.checks.filter((c) => c.id.startsWith("AT-")), nonRetenue: r1.checks.filter((c) => c.id.startsWith("AT-") && c.status === "echoue").map((c) => c.id) });
+        const fp = V.fragmentPerimetre({ retenue: r1.facts.perimeter !== null, faits: r1.facts.perimeter, checks: r1.checks.filter((c) => c.id.startsWith("AT-")), nonRetenue: r1.checks.filter((c) => c.id.startsWith("AT-") && c.status === "echoue").map((c) => c.id) }, r1.facts.recorder_keys?.event_key_source ?? "dossier", essaiDe(r1));
         for (const l of ["fr", "en"]) {
           const sansFp = r1.statement[l].replace(fp[l], "");
           expect(sansFp, `${d.nom} ${l}`).to.equal(r2.statement[l]);
@@ -938,7 +974,8 @@ describe("CT-6 révision 0.3 : attestation de périmètre (section 5.5, EX-6.19 
     const en = lancer([path.join(CT1, "dossiers", "valide-seq-12-attestation-inscrite"), "--langue", "en"]).stdout.split("\n");
     expect(en).to.include("Perimeter     : declared, not proven: attestation 0x4481a2e47712539c4ca50f2eea3d6062ec11a70d497c153c1a6f707606657cfd, from 2026-11-01T00:00:00Z to 2027-01-31T23:59:59.999Z, 2 signatures, threshold 2 of 3; recorded at seq 12");
     const sub = lancer([path.join(CT1, "dossiers", "valide-at3-signature-substituee")]);
-    expect(sub.code).to.equal(0);
+    // Code 3 : clés d'essai de CT-1 (EX-6.26) ; AT-3 en échec reste sans effet sur le verdict (jamais 1).
+    expect(sub.code).to.equal(3);
     const ls = sub.stdout.split("\n");
     expect(ls).to.include("Périmètre     : attestation non retenue (AT-3 en échec)");
     expect(ls).to.include("  [ÉCHEC] (sans effet sur le verdict) AT-3 [7] signatures de l'attestation");
@@ -947,9 +984,11 @@ describe("CT-6 révision 0.3 : attestation de périmètre (section 5.5, EX-6.19 
     expect(lancer([path.join(CT1, "dossiers", "valide-seq-7-attestation-declaree-absente")]).stdout).to.not.match(/^Périmètre/m);
   });
 
-  it("partie de 4 Mio plus un octet : non lue au-delà de la limite (EX-4.13, EX-4.15), SHA-256 calculé en flux pour D-2 ; AT-1 échoue et rien d'autre, code 0", function () {
+  it("partie de 4 Mio plus un octet : non lue au-delà de la limite (EX-4.13, EX-4.15), SHA-256 calculé en flux pour D-2 ; AT-1 échoue et rien d'autre : code 3 (pièces d'essai), jamais 1", function () {
     const { code, doc } = rapportJSON([path.join(CT1, "dossiers", "valide-at1-taille")]);
-    expect(code).to.equal(0);
+    // Code 3, non 1 : AT-1 est sans effet sur le verdict ; 3 et non 0 parce que le dossier de CT-1 est signé par une
+    // clé d'essai (complément du 2026-11-23, EX-6.26).
+    expect([code, doc.verdict, doc.incomplete_reasons]).to.deep.equal([3, "incomplet", ["piece_essai"]]);
     expect(doc.failed_checks).to.deep.equal([]);
     const at1 = doc.checks.find((c) => c.id === "AT-1");
     expect(at1.status).to.equal("echoue");
@@ -973,8 +1012,10 @@ describe("CT-6 révision 0.3 : attestation de périmètre (section 5.5, EX-6.19 
     // Complément du 2026-11-19 (CT-6 EX-6.25) : code 3, mais seulement parce que les contrôles 6 et 7 reposent sur les clés et
     // les approbateurs d'essai de CT-1 §13 ; l'attestation non retenue n'y est pour rien (contrôles 6 et 7 réussis).
     expect(r.code).to.equal(3);
-    expect(r.stdout).to.include("INCOMPLET — contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : 6, 7\n");
-    expect(lancer([path.join(CT1, "dossiers", "valide-at3-signature-substituee"), "--exiger", "1,2,3"]).code).to.equal(0);
+    expect(r.stdout).to.include("INCOMPLET — contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : 6, 7 ; repose sur des pièces d'essai : AV-N-1 (E-8), AV-N-2 (E-9), AV-N-1 (P-5)\n");
+    // Exigence remplie (1, 2, 3), mais pièces d'essai : code 3 pour elles seules (EX-6.26).
+    const trois = rapportJSON([path.join(CT1, "dossiers", "valide-at3-signature-substituee"), "--exiger", "1,2,3"]);
+    expect([trois.code, trois.doc.incomplete_reasons]).to.deep.equal([3, ["piece_essai"]]);
     // Les rapports des dossiers antérieurs portent facts.perimeter à null, en dernière clé de facts.
     for (const n of ["valide-seq-7-complet", "valide-point-de-controle-complet", "invalide-t6-signature"]) {
       const { doc } = rapportJSON(argumentsDossier(n).args);
@@ -1055,14 +1096,180 @@ describe("CT-6 complément du 2026-11-19 : pièces d'essai (section 6.10, EX-6.2
   it("--exiger : un contrôle exigé fait avec des pièces d'essai rend le code 3, nommé à part sur la ligne « Résultat » (EX-6.25, EX-8.6)", function () {
     const base = [COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE];
     const sans = rapportJSON(base);
-    expect([sans.code, sans.doc.verdict]).to.deep.equal([0, "valide"]);
+    // Complément du 2026-11-23 (EX-6.26) : sans exigence, le dossier complet, fait de pièces d'essai, rend déjà 3.
+    expect([sans.code, sans.doc.verdict, sans.doc.incomplete_reasons]).to.deep.equal([3, "incomplet", ["piece_essai"]]);
     expect(sans.doc.warnings.map((x) => [x.id, x.check])).to.deep.equal([["AV-N-1", "E-8"], ["AV-N-2", "E-9"], ["AV-N-2", "E-9"], ["AV-N-1", "P-5"], ["AV-T-5", "T-7"], ["AV-O-3", "O-5"], ["AV-R-4", "R-4"], ["AV-N-1", "N-4"]]);
-    expect(rapportJSON([...base, "--exiger", "1,2,3"]).code).to.equal(0);
+    const pieces = "AV-N-1 (E-8), AV-N-2 (E-9), AV-N-1 (P-5), AV-T-5 (T-7), AV-O-3 (O-5), AV-R-4 (R-4), AV-N-1 (N-4)";
+    expect(lancer(base).stdout).to.include(`\nRésultat      : INCOMPLET — repose sur des pièces d'essai : ${pieces}\n`);
+    // Exigence remplie sans pièce d'essai (contrôles 1, 2, 3) : le code reste 3, pour les pièces seules.
+    const trois = rapportJSON([...base, "--exiger", "1,2,3"]);
+    expect([trois.code, trois.doc.incomplete_reasons]).to.deep.equal([3, ["piece_essai"]]);
     const exige = rapportJSON([...base, "--exiger", "4,5"]);
-    expect([exige.code, exige.doc.verdict, exige.doc.controls.every((c) => c.status === "reussi"), exige.doc.statement]).to.deep.equal([3, "incomplet", true, sans.doc.statement]);
-    expect(lancer([...base, "--exiger", "4,5"]).stdout).to.include("\nRésultat      : INCOMPLET — contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : 4, 5\n");
-    expect(lancer([...base, "--exiger", "5,8", "--langue", "en"]).stdout).to.include("\nResult        : INCOMPLETE — required control(s) without evidential value (test piece): 5, 8\n");
+    expect([exige.code, exige.doc.verdict, exige.doc.controls.every((c) => c.status === "reussi"), exige.doc.statement, exige.doc.incomplete_reasons]).to.deep.equal([3, "incomplet", true, sans.doc.statement, ["exigence_non_remplie", "piece_essai"]]);
+    expect(lancer([...base, "--exiger", "4,5"]).stdout).to.include(`\nRésultat      : INCOMPLET — contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : 4, 5 ; repose sur des pièces d'essai : ${pieces}\n`);
+    expect(lancer([...base, "--exiger", "5,8", "--langue", "en"]).stdout).to.include(`\nResult        : INCOMPLETE — required control(s) without evidential value (test piece): 5, 8; rests on test pieces: ${pieces}\n`);
     // Sans en-têtes, le contrôle 5 n'est pas fait : il est nommé parmi les non réussis, le 4 parmi les sans valeur.
-    expect(lancer([COMPLET, "--ancres", ANCRES_TEST, "--exiger", "4,5"]).stdout).to.include("\nRésultat      : INCOMPLET — contrôle(s) exigé(s) non réussi(s) : 5 ; contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : 4\n");
+    expect(lancer([COMPLET, "--ancres", ANCRES_TEST, "--exiger", "4,5"]).stdout).to.include("\nRésultat      : INCOMPLET — contrôle(s) exigé(s) non réussi(s) : 5 ; contrôle(s) exigé(s) sans valeur de preuve (pièce d'essai) : 4 ; repose sur des pièces d'essai : AV-N-1 (E-8), AV-N-2 (E-9), AV-N-1 (P-5), AV-T-5 (T-7), AV-R-4 (R-4), AV-N-1 (N-4)\n");
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("CT-6 complément du 2026-11-23 : dossiers d'essai (EX-6.26, EX-8.12, EX-A.11)", function () {
+  this.timeout(600000);
+  const BIN = process.env.NOORTRACE_VERIFIER_BIN && fs.existsSync(process.env.NOORTRACE_VERIFIER_BIN) ? process.env.NOORTRACE_VERIFIER_BIN : null;
+  const enAttenteSansBinaire = (ctx) => {
+    (ctx.currentTest ?? ctx.test).title += " — en attente : binaire Go de CT-6 absent (NOORTRACE_VERIFIER_BIN) ; vérificateur JavaScript jugé";
+    ctx.skip();
+  };
+  /** Rapport JSON et code des deux implémentations ; `go` nul sans binaire. */
+  const deux = (args) => {
+    const js = rapportJSON(args);
+    let go = null;
+    if (BIN) {
+      const r = spawnSync(BIN, [...args, "--json"], { encoding: "utf8", cwd: PROJECT_ROOT, maxBuffer: 64 * 1024 * 1024 });
+      const doc = JSON.parse(r.stdout);
+      expect(J.validerSchema(doc, SCHEMAS[V.ID_SCHEMA_RAPPORT], { registre: SCHEMAS }), "binaire Go : rapport non conforme").to.deep.equal([]);
+      expect(doc.exit_code, "binaire Go : exit_code").to.equal(r.status);
+      go = { code: r.status, doc, lisible: spawnSync(BIN, args, { encoding: "utf8", cwd: PROJECT_ROOT, maxBuffer: 64 * 1024 * 1024 }).stdout };
+    }
+    return { js: { ...js, lisible: lancer(args).stdout }, go };
+  };
+  const ESSAI = ["AV-O-3", "AV-T-5", "AV-R-4", "AV-N-1", "AV-N-2"];
+
+  it("EX-6.26 : valide-seq-7-complet sans --exiger rend le code 3, verdict incomplet, incomplete_reasons [piece_essai], aucune vérification en échec, dans les deux implémentations ; la ligne « Résultat » nomme chaque avertissement d'essai avec sa vérification (EX-8.6, point 11)", function () {
+    const args = [COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE];
+    const { js, go } = deux(args);
+    const pieces = "AV-N-1 (E-8), AV-N-2 (E-9), AV-N-1 (P-5), AV-T-5 (T-7), AV-O-3 (O-5), AV-R-4 (R-4), AV-N-1 (N-4)";
+    for (const [nom, v] of [["JavaScript", js], ["Go", go]]) {
+      if (!v) continue;
+      expect([v.code, v.doc.verdict, v.doc.exit_code, v.doc.incomplete_reasons], nom).to.deep.equal([3, "incomplet", 3, ["piece_essai"]]);
+      expect(v.doc.failed_checks, nom).to.deep.equal([]);
+      expect(v.doc.blocking_unexecuted, nom).to.deep.equal([]);
+      expect(v.doc.controls.every((c) => c.status === "reussi"), nom).to.equal(true);
+      expect(v.doc.inputs.required_controls, nom).to.deep.equal([]);
+      expect(v.lisible, nom).to.include(`\nRésultat      : INCOMPLET — repose sur des pièces d'essai : ${pieces}\n`);
+    }
+    // Les attendus des vecteurs disent la même chose, pour chacun des dossiers où rien n'échoue.
+    const attendus = fs.readdirSync(DOSSIERS).map((nom) => [nom, lireJSON(DOSSIERS, nom, "attendu.json")]);
+    const valides = attendus.filter(([, a]) => a.valid === true);
+    expect(valides.length).to.equal(48);
+    for (const [nom, a] of valides) {
+      expect(a.exit_code, nom).to.equal(3);
+      expect(a.warnings.some((id) => ESSAI.includes(id)), `${nom} : aucun avertissement de pièce d'essai`).to.equal(true);
+    }
+    for (const [nom, a] of attendus.filter(([, a]) => a.valid === false)) expect(a.exit_code, nom).to.equal(1);
+    expect(attendus.some(([, a]) => a.exit_code === 0)).to.equal(false);
+    if (!go) enAttenteSansBinaire(this);
+  });
+
+  it("EX-8.12 : incomplete_reasons dit pourquoi, dans l'ordre fixé, et seulement sous le verdict incomplet : pièce d'essai seule, exigence seule (jamais sur un dossier publié), les deux, liste vide pour un dossier invalide ; les deux implémentations concordent", function () {
+    const cas = [
+      [[COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE], 3, ["piece_essai"]],
+      [[COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE, "--exiger", "4"], 3, ["exigence_non_remplie", "piece_essai"]],
+      [[COMPLET, "--ancres", ANCRES_TEST, "--exiger", "5"], 3, ["exigence_non_remplie", "piece_essai"]],
+      [[path.join(CT1, "dossiers", "valide-seq-7"), "--exiger", "4,5,8"], 3, ["exigence_non_remplie", "piece_essai"]],
+      [[path.join(CT1, "dossiers", "valide-seq-7")], 3, ["piece_essai"]],
+      [[path.join(CT1, "dossiers", "invalide-hash-faux")], 1, []],
+      [[path.join(DOSSIERS, "invalide-t2-jeton-autre-manifeste"), "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE, "--exiger", "4"], 1, []],
+    ];
+    let go = null;
+    for (const [args, code, raisons] of cas) {
+      const r = deux(args);
+      go = r.go;
+      for (const [nom, v] of [["JavaScript", r.js], ["Go", r.go]]) {
+        if (!v) continue;
+        expect([v.code, v.doc.incomplete_reasons], `${nom} : ${args.slice(1).join(" ")}`).to.deep.equal([code, raisons]);
+        expect(v.doc.incomplete_reasons.length > 0, nom).to.equal(v.doc.verdict === "incomplet");
+      }
+      if (r.go) expect(r.go.doc.incomplete_reasons).to.deep.equal(r.js.doc.incomplete_reasons);
+    }
+    // Un rapport antérieur au complément n'a pas le membre : le schéma l'admet encore (EX-8.12, compatibilité).
+    const ancien = rapportJSON([COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]).doc;
+    delete ancien.incomplete_reasons;
+    expect(J.validerSchema(ancien, SCHEMAS[V.ID_SCHEMA_RAPPORT], { registre: SCHEMAS })).to.deep.equal([]);
+    // Mais un membre qui contredit le verdict est refusé.
+    const faux = rapportJSON([path.join(CT1, "dossiers", "invalide-hash-faux")]).doc;
+    faux.incomplete_reasons = ["piece_essai"];
+    expect(J.validerSchema(faux, SCHEMAS[V.ID_SCHEMA_RAPPORT], { registre: SCHEMAS }).length).to.be.greaterThan(0);
+    const vide = structuredClone(ancien);
+    vide.incomplete_reasons = [];
+    expect(J.validerSchema(vide, SCHEMAS[V.ID_SCHEMA_RAPPORT], { registre: SCHEMAS }).length).to.be.greaterThan(0);
+    if (!go) enAttenteSansBinaire(this);
+  });
+
+  it("EX-A.11 : un dossier construit au moment de l'essai avec une clé d'enregistreur, des approbateurs et une autorité d'horodatage tirés au hasard rend le code 0, verdict valide, sans avertissement de pièce d'essai, dans les deux implémentations ; le même dossier dont une seule pièce est une pièce d'essai (clé d'enregistreur rec-test-01 ; approbateur Hardhat ajouté au-dessus du seuil ; autorité de test dans les ancres) rend le code 3 à chaque fois (EX-6.26 : une seule pièce suffit)", function () {
+    const rep = tmp("noortrace-ct6-aleatoire-");
+    try {
+      const reel = dossierAleatoire();
+      const juger = (nom, d, attendu) => {
+        const { dossier, ancres } = ecrireDossier(d, path.join(rep, nom));
+        const r = deux([dossier, "--ancres", ancres]);
+        for (const [impl, v] of [["JavaScript", r.js], ["Go", r.go]]) {
+          if (!v) continue;
+          const quoi = `${nom}, ${impl}`;
+          expect([v.code, v.doc.verdict, v.doc.incomplete_reasons], quoi).to.deep.equal(attendu.code === 0 ? [0, "valide", []] : [3, "incomplet", ["piece_essai"]]);
+          expect(v.doc.failed_checks, quoi).to.deep.equal([]);
+          expect(v.doc.blocking_unexecuted, quoi).to.deep.equal([]);
+          expect(v.doc.controls.map((c) => c.status), quoi).to.deep.equal(["reussi", "reussi", "reussi", "reussi", "non_execute", "reussi", "reussi", "non_execute"]);
+          expect(v.doc.controls.filter((c) => c.status === "non_execute").map((c) => c.reason), quoi).to.deep.equal(["hors_perimetre_version", "hors_perimetre_version"]);
+          expect(v.doc.warnings.filter((w) => ESSAI.includes(w.id)).map((w) => [w.id, w.check]), quoi).to.deep.equal(attendu.essai);
+          expect(v.doc.facts.recorder_keys.source, quoi).to.equal("ancres");
+          // Complément du 2026-11-23 (EX-6.8) : l'énoncé marque chaque pièce d'essai qu'il nomme, et elle seule.
+          for (const [langue, M] of [["fr", MENTION_FR], ["en", MENTION_EN]]) {
+            const e = v.doc.statement[langue];
+            expect(e.split(M).length - 1, `${quoi} : mentions (${langue})`).to.equal(attendu.marques ? attendu.marques[langue].length : 0);
+            for (const m of attendu.marques?.[langue] ?? []) expect(e, `${quoi} (${langue})`).to.include(m + M);
+          }
+          if (attendu.code === 0) expect(v.lisible, quoi).to.include("\nRésultat      : VALIDE — aucune vérification en échec, aucune vérification non exécutée sans raison admise\n");
+          else expect(v.lisible, quoi).to.include(`\nRésultat      : INCOMPLET — repose sur des pièces d'essai : ${attendu.essai.map(([id, check]) => `${id} (${check})`).join(", ")}\n`);
+        }
+        if (r.go) {
+          expect(r.go.doc.controls.map((c) => [c.number, c.status, c.reason])).to.deep.equal(r.js.doc.controls.map((c) => [c.number, c.status, c.reason]));
+          expect(r.go.doc.warnings.map((w) => [w.id, w.check])).to.deep.equal(r.js.doc.warnings.map((w) => [w.id, w.check]));
+          expect(r.go.doc.statement).to.deep.equal(r.js.doc.statement);
+        }
+        return r;
+      };
+      const r0 = juger("reel", reel, { code: 0, essai: [] });
+      // Aucune valeur de la table d'EX-6.23 dans le dossier réel : clé, approbateurs, autorité tirés au hasard.
+      expect(V.estCleEnregistreurEssai(reel.cles.keys[0].public_key)).to.equal(false);
+      for (const a of reel.approbateurs) expect(V.estApprobateurEssai(a)).to.equal(false);
+      expect(r0.js.doc.facts.approval.approvers).to.deep.equal(reel.approbateurs);
+      // Une seule pièce remplacée, à chaque fois : la clé de l'événement (et du manifeste, la même), un approbateur
+      // de trop (deux approbateurs hors liste suffisent au seuil : le contrôle 7 garde sa valeur de preuve, EX-6.25,
+      // et le verdict est pourtant incomplet, EX-6.26), l'autorité d'horodatage.
+      juger("cle-essai", reel.variantes.cleEnregistreurEssai(), { code: 3, essai: [["AV-N-1", "E-8"]], marques: { fr: ["clé d'enregistreur rec-reel-01"], en: ["recorder key rec-reel-01"] } });
+      const hardhat1 = "0x70997970c51812dc3a010c7d01b50e0d17dc79c8";
+      const trop = juger("approbateur-essai", reel.variantes.approbateurEssaiEnTrop(), { code: 3, essai: [["AV-N-2", "E-9"]], marques: { fr: [hardhat1], en: [hardhat1] } });
+      expect(V.controlesSansValeur(trop.js.doc)).to.deep.equal([]);
+      expect(trop.js.doc.facts.approval.approvers).to.have.length(3);
+      juger("autorite-essai", reel.variantes.autoriteEssai(), { code: 3, essai: [["AV-T-5", "T-7"]], marques: { fr: ["selon AC de test CT-6"], en: ["according to AC de test CT-6"] } });
+      if (!r0.go) enAttenteSansBinaire(this);
+    } finally {
+      fs.rmSync(rep, { recursive: true, force: true });
+    }
+  });
+
+  it("EX-6.8 (complément du 2026-11-23) : l'énoncé de valide-seq-7-complet fait suivre chaque pièce d'essai qu'il nomme de « (pièce d'essai, sans valeur de preuve hors des essais) » (clés rec-test-01 et rec-test-02, les deux approbateurs, l'autorité AC de test CT-6, le registre noortrace-2124-dev), le réseau regtest avec les mêmes mots, dans les deux langues et les deux implémentations ; les détails d'EX-6.24 disent « sans valeur de preuve hors des essais »", function () {
+    const r = deux([COMPLET, "--ancres", ANCRES_TEST, "--entetes-bitcoin", CHAINE]);
+    const a = lireJSON(COMPLET, "attendu.json");
+    const ev = lireJSON(COMPLET, "evenement.json");
+    for (const [impl, v] of [["JavaScript", r.js], ["Go", r.go]]) {
+      if (!v) continue;
+      const fr = v.doc.statement.fr;
+      const en = v.doc.statement.en;
+      expect(v.doc.statement, impl).to.deep.equal(a.statement);
+      for (const m of [`clé d'enregistreur rec-test-01${MENTION_FR} et le manifeste par la clé rec-test-02${MENTION_FR}, clés fournies`, `${ev.approval.approvers[0]}${MENTION_FR} et ${ev.approval.approvers[1]}${MENTION_FR} (2 signatures`, `selon AC de test CT-6${MENTION_FR} (unité TSA de test CT-6)`, ` ; sur le registre noortrace-2124-dev${MENTION_FR}, la clôture`, `pour la clé d'enregistreur rec-test-02${MENTION_FR}, que le réviseur tient pour la clé de chaîne de rec-test-02${MENTION_FR} ;`, "réseau regtest), sous 20 blocs", " UTC (réseau d'essai, sans valeur de preuve hors des essais) ; sur le registre"]) expect(fr, impl).to.include(m);
+      for (const m of [`recorder key rec-test-01${MENTION_EN} and the manifest by key rec-test-02${MENTION_EN}, keys given`, `${ev.approval.approvers[0]}${MENTION_EN} and ${ev.approval.approvers[1]}${MENTION_EN} (2 signatures`, `according to AC de test CT-6${MENTION_EN} (unit TSA de test CT-6)`, `; on registry noortrace-2124-dev${MENTION_EN}, the closing`, `for recorder key rec-test-02${MENTION_EN}, which the reviewer holds as the chain key of rec-test-02${MENTION_EN};`, " UTC (test network, no evidential value outside tests); on registry"]) expect(en, impl).to.include(m);
+      expect(fr.split(MENTION_FR).length - 1, impl).to.equal(8);
+      expect(en.split(MENTION_EN).length - 1, impl).to.equal(8);
+      expect(fr, impl).to.not.include("valeur probante");
+      for (const w of v.doc.warnings.filter((x) => ESSAI.includes(x.id))) {
+        expect(w.detail, `${impl} ${w.id}`).to.match(/sans valeur de preuve hors des essais$/);
+        expect(w.detail, `${impl} ${w.id}`).to.not.include("probante");
+      }
+    }
+    if (r.go) expect(r.go.doc.statement).to.deep.equal(r.js.doc.statement);
+    else enAttenteSansBinaire(this);
   });
 });

@@ -233,8 +233,12 @@ type Rapport struct {
 	Facts              Faits           `json:"facts"`
 	Verdict            string          `json:"verdict"`
 	ExitCode           int             `json:"exit_code"`
-	Statement          Enonce          `json:"statement"`
-	Bound              *string         `json:"bound"`
+	// IncompleteReasons : pourquoi le verdict est incomplet (EX-8.12,
+	// complément du 2026-11-23) : exigence_non_remplie, piece_essai, dans
+	// cet ordre ; vide pour valide et invalide.
+	IncompleteReasons []string `json:"incomplete_reasons"`
+	Statement         Enonce   `json:"statement"`
+	Bound             *string  `json:"bound"`
 
 	// Données du rapport lisible, absentes du JSON.
 	Lisible DonneesLisibles `json:"-"`

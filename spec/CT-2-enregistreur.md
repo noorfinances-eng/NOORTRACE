@@ -335,6 +335,16 @@ changés et motif court :
     suivie de `-1` et un numéro de téléphone suivi d'une date restaient en
     clair, la pièce marquée `redacted: false`, sans trace au journal
     d'exploitation.
+15. **Complément du 2026-11-23, décision du porteur** (dossiers d'essai,
+    CT-6 EX-6.26, EX-8.12). 19.4 : le dossier de la démonstration de
+    référence est signé par la clé publiée `rec-test-01`, approuvé par des
+    comptes Hardhat et inscrit au registre de développement ; le
+    vérificateur le dit `incomplet`, code 3, pour ces seules pièces d'essai,
+    jamais `valide` ; le bloc fixe de la sortie du service dit `INCOMPLET`
+    et que le dossier ne vaut pas comme preuve hors de la démonstration ; le
+    service rend `0` quand le rapport a cette forme exacte, `1` sinon.
+    Motif : une pièce d'essai est publiée avec sa clé ; un verdict « valide »
+    sur un tel dossier tromperait son lecteur. Aucune autre règle ne change.
 
 - Règles nouvelles : EX-18.10.
 - Règles modifiées : EX-3.6, EX-4.11, EX-4.35, EX-4.39, EX-4.46, EX-4.47,
@@ -13354,17 +13364,31 @@ noortrace — démonstration de référence
   registre-dev    : clé inscrite (RecorderRegistry), période enregistrée (PeriodRegistry), racine ancrée (AttestationRegistry), bloc certifié par 4 validateurs
   dossier         : dossiers/seq-7/ (demo__payments.create, approuvé par 0x7099…79c8 et 0x3c44…93bc, seuil 2 sur 3)
   vérificateur    : 27 contrôles [ok], 2 non exécutés avec raison admise (T-*, O-* : démonstration hors ligne)
-  Résultat : VALIDE — cet événement est bien formé, chaîné à ses voisins, inclus dans la période close par ce manifeste
+  Résultat : INCOMPLET — cet événement est bien formé, chaîné à ses voisins, inclus dans la période close par ce manifeste
              signé par cette clé, approuvé par ces adresses, et son ancre est dans un bloc que les validateurs nommés ont signé.
              Il ne prouve pas la date (ancres RFC 3161 et OpenTimestamps absentes : démonstration hors ligne).
+             Il repose sur des pièces d'essai (clé rec-test-01, comptes d'approbation et registre de développement, tous publiés) :
+             il ne vaut pas comme preuve hors de la démonstration (CT-6, décision du 2026-11-23).
   Ce que l'agent n'a pas pu faire : joindre outils-demo ou modele-demo directement (réseaux séparés) ; obtenir
   le résultat de payments.create avant qu'un événement durable existe ; effacer seq 5 (sa demande retenue).
   Durée totale : 41 s
 ```
 
-Le texte exact, les codes de retour (`0` si valide, `1` sinon) et les
+Le texte exact, les codes de retour (`0` pour le dossier que la démonstration
+attend, `1` sinon) et les
 captures (image ou enregistrement de terminal du README) sont fixés en phase
 2 ; la phrase « ce que le projet ne prouve pas » DOIT y figurer toujours.
+Complément du 2026-11-23, décision du porteur (dossiers d'essai, CT-6
+EX-6.26) : le dossier de la démonstration est signé par la clé publiée
+`rec-test-01`, approuvé par des comptes Hardhat et inscrit au registre de
+développement ; le vérificateur de CT-6 le dit « incomplet », code 3, pour
+ces seules pièces d'essai (`incomplete_reasons` = `["piece_essai"]`,
+CT-6 EX-8.12), jamais « valide ». La ligne `Résultat` dit `INCOMPLET` et
+ajoute que le dossier ne vaut pas comme preuve hors de la démonstration ;
+le service rend `0` quand le rapport a cette forme exacte (rien n'a échoué,
+contrôles 1, 2, 3, 6, 7 et 8 réussis, 4 et 5 non exécutés hors ligne), `1`
+sinon ; un verdict `valide` du vérificateur ne peut plus venir que d'un
+dossier sans pièce d'essai, qui n'est pas celui de la démonstration.
 
 **EX-19.4** La clôture anticipée (`noortrace-ctl close-period --now`, admise
 seulement en développement) **termine** le journal de démonstration : la

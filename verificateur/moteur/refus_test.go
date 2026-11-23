@@ -155,10 +155,12 @@ func TestRefusParties(t *testing.T) {
 	if v := verifs(res); res.Code != 1 || v["D-2"].Statut != commun.Echoue || v["M-2"].Raison != commun.PrerequisEnEchec {
 		t.Errorf("partie absente du répertoire : code %d", res.Code)
 	}
-	// Fichier non déclaré : ignoré (EX-4.1).
+	// Fichier non déclaré : ignoré (EX-4.1) ; code 3, non 0, parce que le
+	// dossier de CT-1 est signé par une clé d'essai (EX-6.26, complément du
+	// 2026-11-23), et rien n'échoue.
 	rep = copier(t, base)
 	os.WriteFile(filepath.Join(rep, "ancres.json"), []byte("{"), 0o644)
-	if res := lancer(t, rep); res.Code != 0 {
+	if res := lancer(t, rep); res.Code != 3 || len(res.Rapport.FailedChecks) != 0 {
 		t.Errorf("fichier non déclaré : code %d", res.Code)
 	}
 }
@@ -173,7 +175,8 @@ func TestRefusAttestation(t *testing.T) {
 	remplacer(t, rep, "attestation-perimetre.json", gros)
 	res := lancer(t, rep)
 	v := verifs(res)
-	if res.Code != 0 || v["AT-1"].Statut != commun.Echoue || v["D-2"].Statut != commun.Reussi {
+	// Code 3 (clés d'essai de CT-1, EX-6.26), jamais 1 : AT-1 est sans effet sur le verdict.
+	if res.Code != 3 || v["AT-1"].Statut != commun.Echoue || v["D-2"].Statut != commun.Reussi {
 		t.Errorf("attestation de plus de 4 Mio : code %d, AT-1 %s, D-2 %s", res.Code, v["AT-1"].Statut, v["D-2"].Statut)
 	}
 	// AV-AT-1 suit les avertissements de pièce d'essai (E-8, E-9, P-5 précèdent AT-1).

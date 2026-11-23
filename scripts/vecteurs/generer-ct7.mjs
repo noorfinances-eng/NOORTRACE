@@ -32,7 +32,7 @@
 // octet pour octet (EX-A.2). Ce générateur ne touche aucun fichier de ct-1 à
 // ct-6 (EX-A.3).
 
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -392,10 +392,15 @@ function epreuveAttestation(t9, rapport) {
   };
 }
 
-/** Rapport lisible du dossier ct-1 valide-seq-12-attestation-inscrite, sans les lignes qui nomment la machine et le répertoire. */
+/**
+ * Rapport lisible du dossier ct-1 valide-seq-12-attestation-inscrite, sans les lignes qui nomment la machine et le
+ * répertoire. Le dossier est signé par rec-test-02, clé d'essai : depuis le complément du 2026-11-23 de CT-6 (EX-6.26),
+ * le vérificateur rend le code 3 (rien n'a échoué, pièces d'essai), que le générateur exige.
+ */
 function rapportDossierAttestation() {
-  const sortie = execFileSync(process.execPath, [path.join(RACINE_PROJET, "scripts", "verify", "dossier.mjs"), path.join(VECTEURS, "ct-1", "dossiers", "valide-seq-12-attestation-inscrite")], { encoding: "utf8" });
-  return sortie.split("\n").filter((l) => !/^(Vérificateur|Répertoire)\s*:/.test(l)).join("\n");
+  const r = spawnSync(process.execPath, [path.join(RACINE_PROJET, "scripts", "verify", "dossier.mjs"), path.join(VECTEURS, "ct-1", "dossiers", "valide-seq-12-attestation-inscrite")], { encoding: "utf8" });
+  if (r.status !== 3 || !/^Résultat\s*: INCOMPLET — repose sur des pièces d'essai : /m.test(r.stdout)) throw new Error(`rapport du dossier d'attestation : code ${r.status} (3 attendu, pièces d'essai, CT-6 EX-6.26)\n${r.stderr}`);
+  return r.stdout.split("\n").filter((l) => !/^(Vérificateur|Répertoire)\s*:/.test(l)).join("\n");
 }
 
 // ---------------------------------------------------------------------------

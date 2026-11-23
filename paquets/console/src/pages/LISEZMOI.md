@@ -93,7 +93,7 @@ Chacune est éprouvée par `test/exploitation-console-pages-chromium.test.js`.
 - **Après une panne du portefeuille** (refus, délai, signature refusée), la
   décision est à choisir de nouveau : les deux boutons sont offerts.
 - **`voter` sans réponse** (504 ou requête sans réponse) : le même corps est
-  renvoyé une fois ; toujours sans réponse, un bouton « Renvoyer le même vote »
+  renvoyé une fois ; toujours sans réponse, un bouton « Renvoyer la même décision »
   renvoie ce même corps, jamais un autre.
 - **Vue d'un autre ticket** que celui de l'adresse de l'écran : ni affichée ni
   signée (`reponse_service_invalide` de `$defs/code_console`, CT-3 0.6,

@@ -346,12 +346,30 @@ func TestVecteursCT1(t *testing.T) {
 				if res.Erreur != nil {
 					t.Fatalf("erreur inattendue : %s", res.Erreur.Message.Fr)
 				}
+				// Complément du 2026-11-23 de CT-6 (EX-6.26) : tout dossier de
+				// CT-1 est signé par rec-test-01 ou rec-test-02, clés d'essai ; un
+				// dossier dont rien n'échoue rend donc 3, non 0, et le rapport
+				// dit pourquoi (EX-8.12).
 				code := 1
 				if att.Valide {
-					code = 0
+					code = 3
 				}
 				if att.ExitCode != nil && *att.ExitCode != code {
 					t.Fatalf("attendu incohérent : exit_code %d, valide %v", *att.ExitCode, att.Valide)
+				}
+				if att.Valide {
+					if r := res.Rapport; r == nil || strings.Join(r.IncompleteReasons, ",") != "piece_essai" {
+						t.Errorf("incomplete_reasons attendu [piece_essai]")
+					}
+					essai := false
+					for _, w := range res.Avertissements {
+						if commun.EstAvertissementEssai(w.ID) {
+							essai = true
+						}
+					}
+					if !essai {
+						t.Errorf("aucun avertissement de pièce d'essai, code 3 attendu pourtant")
+					}
 				}
 				comparerExiges(t, o, exiges)
 				if res.Code != code {

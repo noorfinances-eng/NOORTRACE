@@ -31,6 +31,7 @@ import { casDeRefus, chargerArchives } from "./fixtures/verification-page/archiv
 import { attendreArtefact, choisirRepertoire, deplierOptions, lancer, lancerVerification, ouvrir } from "./fixtures/verification-page/navigateur.mjs";
 import { ANCRES, CHAINE, RACINE, RacineNatif, VERSION, argumentsVerification, construireTout, enAttente, environnementGo, essaiRacineNatif, fichiersDe, repertoireTemporaire, sha256 } from "./fixtures/verification-page/outils.mjs";
 import { outilsArchivesDisponibles, recettesArchives } from "./fixtures/verification-page/recettes.mjs";
+import { dossierAleatoire, ecrireDossier } from "./fixtures/verificateur/dossier-aleatoire.mjs";
 
 const EXIGER = process.env.NOORTRACE_EXIGER_CHROMIUM === "1";
 const VECTEURS = path.join(RACINE, "spec", "vecteurs");
@@ -42,10 +43,15 @@ const LIBELLES_EN = vm.runInNewContext(`${fs.readFileSync(path.join(RACINE, "paq
 // violation de politique ; il est relevé à part.
 const AVIS_INTEGRITY_POLICY = "The Integrity-Policy destination 'style' is not supported.";
 
-/** Échantillon fixé : au moins un dossier par code 0, 1, 2 et 3. */
+/**
+ * Échantillon fixé : au moins un dossier par code 1, 2 et 3. Décision du 2026-11-23 (CT-6 EX-6.26) : tout dossier publié
+ * des vecteurs porte une pièce d'essai et rend 3 ; le code 0 est éprouvé par test/verificateur.test.js sur un dossier
+ * construit au moment de l'essai avec des clés tirées au hasard, et par test/verification-page-presentation.test.js
+ * (page de bout en bout).
+ */
 const ECHANTILLON = [
-  { titre: "code 0, dossier CT-1", dossier: "ct-1/dossiers/valide-seq-7", options: {}, code: 0 },
-  { titre: "code 0, dossier CT-6 aux huit contrôles, ancres et chaîne", dossier: "ct-6/dossiers/valide-seq-7-complet", options: { ancres: true, entetes: true }, code: 0 },
+  { titre: "code 3, dossier CT-1 (clés et approbateurs d'essai, rien n'a échoué)", dossier: "ct-1/dossiers/valide-seq-7", options: {}, code: 3 },
+  { titre: "code 3, dossier CT-6 aux huit contrôles réussis, ancres et chaîne (pièces d'essai)", dossier: "ct-6/dossiers/valide-seq-7-complet", options: { ancres: true, entetes: true }, code: 3 },
   { titre: "code 1", dossier: "ct-1/dossiers/invalide-hash-faux", options: { langue: "en" }, code: 1 },
   { titre: "code 2", dossier: "ct-1/dossiers/illisible-index-non-json", options: {}, code: 2 },
   { titre: "code 3, --exiger 4,5,8, --detail, rapport anglais", dossier: "ct-1/dossiers/valide-seq-7", options: { exiger: [4, 5, 8], detail: true, langue: "en" }, code: 3 },
@@ -457,7 +463,10 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
         fs.rmSync(copie, { recursive: true, force: true });
       }
       // 2. Travailleur dont la seconde exécution prend un autre argument : les
-      //    deux codes diffèrent (0 et 3).
+      //    deux codes diffèrent (0 et 3). Le dossier est construit au moment de l'essai avec des clés tirées au hasard :
+      //    depuis la décision du porteur du 2026-11-23 (CT-6 EX-6.26), un dossier publié des vecteurs rend 3 sans --exiger
+      //    aussi (pièces d'essai), et les deux codes ne différeraient plus.
+      const alea = ecrireDossier(dossierAleatoire(), fs.mkdtempSync(path.join(dir, "aleatoire-")));
       const travailleur = fs.readFileSync(path.join(construit.page, "travailleur.js"), "utf8");
       const seconde = 'executions.push(await executer([...lisible, "--json"]));';
       expect(travailleur.split(seconde)).to.have.length(2);
@@ -465,7 +474,7 @@ for (const moteur of ["chromium", "firefox", "webkit"]) {
       try {
         await m.page.goto("https://verification.example/index.html");
         await attendreArtefact(m.page);
-        await choisirRepertoire(m.page, path.join(VECTEURS, "ct-1/dossiers/valide-seq-7"));
+        await choisirRepertoire(m.page, alea.dossier);
         await lancerVerification(m.page);
         const r = await lireResultat(m.page);
         expect(r.nonFaite).to.equal(LIBELLES.non_faite);

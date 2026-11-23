@@ -60,7 +60,7 @@ const LIBELLES = {
   argument_different: "un argument affiché diffère de la pièce",
   argument_absent_de_l_affichage: "un argument de la pièce manque à l'affichage",
   empreinte_divergente: "le service a calculé un autre condensé que la console : aucune signature n'est demandée",
-  ticket_clos_aux_votes: "le ticket ne reçoit plus de votes",
+  ticket_clos_aux_votes: "le ticket ne reçoit plus de décisions",
   jeu_non_fige: "le jeu d'approbateurs n'est pas figé",
   identite_inconnue: "votre identité n'a pas d'entrée dans l'annuaire des approbateurs",
   identite_desactivee: "votre entrée de l'annuaire est désactivée",
@@ -76,16 +76,16 @@ const LIBELLES = {
   annonce_en_double: "deux portefeuilles revendiquent le même identifiant : une extension en imite une autre ; prévenez l'administrateur, et si votre portefeuille est exclu, désactivez l'extension en cause et rechargez la page",
   annonce_invalide: "annonce de portefeuille invalide, ignorée",
   adresse_non_exposee: "le portefeuille n'expose pas l'adresse active que l'annuaire vous attribue",
-  refus_approbateur: "signature refusée dans le portefeuille ; aucun vote n'a été envoyé",
+  refus_approbateur: "signature refusée dans le portefeuille ; aucune décision n'a été envoyée",
   non_autorise: "le portefeuille n'a pas autorisé cette page",
-  methode_non_prise_en_charge: "ce portefeuille ne peut pas voter",
+  methode_non_prise_en_charge: "ce portefeuille ne peut pas signer une décision",
   deconnecte: "portefeuille indisponible (déconnecté)",
   chaine_deconnectee: "portefeuille indisponible (chaîne déconnectée) ; aucun changement de réseau n'est demandé",
   erreur_portefeuille: "erreur du portefeuille",
-  reponse_invalide: "réponse du portefeuille invalide ; aucun vote",
+  reponse_invalide: "réponse du portefeuille invalide ; aucune décision envoyée",
   delai_depasse: "délai dépassé : la console n'attend plus la signature et ne l'enverra pas",
-  signature_invalide: "signature mal formée ; aucun vote",
-  adresse_differente: "la signature ne vient pas de l'adresse choisie ; aucun vote",
+  signature_invalide: "signature mal formée ; aucune décision envoyée",
+  adresse_differente: "la signature ne vient pas de l'adresse choisie ; aucune décision envoyée",
   service_indisponible: "service indisponible",
   session_non_autorisee: "le service refuse cette session pour ce ticket",
 };
@@ -445,7 +445,7 @@ function afficherTicket() {
   sec.appendChild(ligne("ticket", "Ticket, organisation, journal", `${m.ticket}, ${m.org_id}, ${m.journal_id}`));
   sec.appendChild(ligne("echeance", "Échéance", `${m.deadline ?? "—"} (reste ${m.remaining_ms === null ? "—" : Math.max(0, Math.floor(m.remaining_ms / 1000)) + " s"}) ; fin de fenêtre ${m.contest.window_end ?? "—"} ; objections ${m.contest.objections.length} ; seuil à atteindre avant ${m.contest.last_threshold_at ?? "—"}`));
   sec.appendChild(ligne("jeu", "Jeu figé", m.approver_set === null ? "non figé" : `seuil ${m.effective_required} sur ${m.approver_set.threshold.size} ; membres ${m.approver_set.members.join(", ")} ; source ${m.approver_set.source}`));
-  sec.appendChild(ligne("votes", "Votes exprimés", m.votes.map((x) => `${x.approver} ${x.decision}${x.reason ? ` (« ${x.reason} »)` : ""} à ${x.at}`).join(" ; ") || "aucun"));
+  sec.appendChild(ligne("votes", "Décisions exprimées", m.votes.map((x) => `${x.approver} ${x.decision}${x.reason ? ` (« ${x.reason} »)` : ""} à ${x.at}`).join(" ; ") || "aucun"));
   z.appendChild(sec);
   const avert = [...m.warnings];
   z.appendChild(el("ul", { testid: "avertissements" }, avert.map((w) => el("li", { testid: "avertissement", attrs: { "data-code": w }, texte: w }))));
@@ -544,7 +544,7 @@ function consignesSignature(origine) {
     "Si tout concorde, confirmer dans le portefeuille.",
     `Si l'empreinte diffère, ou si le portefeuille montre autre chose qu'un message (une transaction, des données typées) : refuser dans le portefeuille, ne pas réessayer depuis cette page, et prévenir l'administrateur de l'organisation par un autre canal que la console. Si le portefeuille ne montre pas les 64 chiffres en hexadécimal, en entier : refuser dans le portefeuille et ne pas voter avec ce portefeuille ; voter avec un portefeuille qui détient la même clé et montre les 64 chiffres (un autre portefeuille de navigateur, ou l'appareil matériel qui porte la clé, par un portefeuille de navigateur), depuis une page de console rechargée ; si aucun ne détient la clé, inscrire une autre adresse. Refuser dans le portefeuille n'est pas voter « refuse » : aucun vote n'est envoyé. Pour s'opposer à la demande, signer la décision « refuse » depuis une console saine : la console de l'organisation ouverte à son origine (${origine}), sur un autre poste ou dans un autre profil de navigateur sans extension que celui où l'écart est apparu, ou après que l'administrateur prévenu a écarté la cause. La concordance des empreintes ne prouve pas qu'une console est saine. Tant que la décision « refuse » n'est pas signée, l'opposition ne compte pas : les autres membres peuvent encore atteindre le seuil « approuve » ; sans décision scellée avant l'échéance, le ticket expire, et un délai écoulé ne vaut jamais approbation.`,
     "Si la console affiche elle-même « empreinte_divergente » : il n'y a rien à signer ; prévenir l'administrateur.",
-    "Après le vote, si l'organisation a mis en place la notification indépendante, vérifier qu'elle annonce le vote inscrit en son nom avec le ticket, la décision choisie et l'empreinte affichée. Si elle nomme un autre ticket, une autre décision ou une autre empreinte, ou si elle n'arrive pas dans le délai que l'organisation a fixé, prévenir l'administrateur par un autre canal ; tant que le ticket accepte des votes (ouvert, seuil atteint, vérification), signer la décision voulue sur le ticket concerné depuis une console saine, ce qui remplace le vote ; une décision déjà scellée ne s'annule pas.",
+    "Après la décision, si l'organisation a mis en place la notification indépendante, vérifier qu'elle annonce la décision enregistrée en son nom avec le ticket, la décision choisie et l'empreinte affichée. Si elle nomme un autre ticket, une autre décision ou une autre empreinte, ou si elle n'arrive pas dans le délai que l'organisation a fixé, prévenir l'administrateur par un autre canal ; tant que le ticket accepte des votes (ouvert, seuil atteint, vérification), signer la décision voulue sur le ticket concerné depuis une console saine, ce qui remplace le vote ; une décision déjà scellée ne s'annule pas.",
   ];
 }
 
@@ -610,14 +610,14 @@ async function signer(m, decision, motif, vue) {
   const v = await appel("consulter", { ticket: m.ticket, session_identity: etat.session });
   const a = await lireAnnuaire();
   if (etat.generation !== gen || etat.ticket !== m.ticket) return; // un autre ticket a été ouvert : rien n'est envoyé
-  if (!v.ok || !a.ok || v.corps?.ticket !== m.ticket) return terminer(!v.ok ? v.code : !a.ok ? a.code : "service_indisponible", " Le vote n'a pas été envoyé.");
+  if (!v.ok || !a.ok || v.corps?.ticket !== m.ticket) return terminer(!v.ok ? v.code : !a.ok ? a.code : "service_indisponible", " La décision n'a pas été envoyée.");
   if (v.corps.state !== vue.state || etat.annuaire?.revision !== revision) {
     try {
       const m2 = K.modeleAffichage(v.corps, { session: K.sessionDepuisAnnuaire(etat.annuaire, etat.session, v.corps.request.delegation.launched_by), decision, approver: adresse, reason: motif, now: new Date().toISOString() });
       const c2 = K.controleVote(etat.annuaire, etat.session, "voter", adresse, ticketDeControle(v.corps));
       if (m2.blocking.length || !c2.allowed) return terminer(m2.blocking[0] ?? c2.reason);
     } catch {
-      return terminer("service_indisponible", " Le vote n'a pas été envoyé.");
+      return terminer("service_indisponible", " La décision n'a pas été envoyée.");
     }
   }
   const vote = K.requeteVoter(vue, decision, r.signature, adresse, motif, etat.session);
@@ -625,11 +625,11 @@ async function signer(m, decision, motif, vue) {
   let rep = await appel("voter", vote);
   if (!rep.ok && rep.code === "service_indisponible") rep = await appel("voter", vote);
   if (etat.generation !== gen) {
-    message(`Ticket ${m.ticket} : ${rep.ok ? `vote inscrit (état ${rep.corps.state})` : `${LIBELLES[rep.code] ?? rep.code} (${rep.code})`}.`);
+    message(`Ticket ${m.ticket} : ${rep.ok ? `décision enregistrée (état ${rep.corps.state})` : `${LIBELLES[rep.code] ?? rep.code} (${rep.code})`}.`);
     return;
   }
-  if (rep.ok) return terminer(null, `Vote inscrit ; état du ticket : ${rep.corps.state}.`, rep.corps.state);
-  if (rep.code === "vote_identique") return terminer(null, "Vote déjà inscrit ; le motif n'a pas changé.", "vote_identique");
+  if (rep.ok) return terminer(null, `Décision enregistrée ; état du ticket : ${rep.corps.state}.`, rep.corps.state);
+  if (rep.code === "vote_identique") return terminer(null, "Décision déjà enregistrée ; le motif n'a pas changé.", "vote_identique");
   return terminer(rep.code);
 }
 

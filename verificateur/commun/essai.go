@@ -84,15 +84,118 @@ func EstCleChaineEssai(cle string) bool { return clesChaineEssai[strings.ToLower
 // EstApprobateurEssai : adresse (0x…) d'approbateur d'essai.
 func EstApprobateurEssai(adresse string) bool { return approbateursEssai[strings.ToLower(adresse)] }
 
+// avertissementsEssai : identifiants des avertissements de pièce d'essai
+// (EX-6.24) ; un seul suffit à rendre le verdict incomplet (EX-6.26,
+// complément du 2026-11-23).
+var avertissementsEssai = ensemble("AV-O-3", "AV-T-5", "AV-R-4", "AV-N-1", "AV-N-2")
+
+// EstAvertissementEssai : l'identifiant est celui d'un avertissement de pièce
+// d'essai d'EX-6.24 (comparaison exacte).
+func EstAvertissementEssai(id string) bool { return avertissementsEssai[id] }
+
+// Mention qui suit, dans l'énoncé, chaque pièce d'essai qu'il nomme (EX-6.8,
+// complément du 2026-11-23, décision du porteur).
+const (
+	MentionEssaiFr = " (pièce d'essai, sans valeur de preuve hors des essais)"
+	MentionEssaiEn = " (test piece, no evidential value outside tests)"
+)
+
+// PiecesEssai : les pièces d'essai qui ont levé un avertissement d'EX-6.24
+// dans ce rapport, telles que l'énoncé les nomme : identifiants de clé
+// d'enregistreur (AV-N-1 de E-8, P-5, K-3), adresses d'approbateur en
+// minuscules (AV-N-2), noms d'autorité d'horodatage (AV-T-5), identifiants
+// de chaîne du registre (AV-R-4). L'énoncé fait suivre chacune de la mention
+// là où il la nomme, et elle seule.
+type PiecesEssai struct {
+	Cles         map[string]bool
+	Approbateurs map[string]bool
+	Autorites    map[string]bool
+	Registres    map[string]bool
+}
+
+// NouvellesPiecesEssai rend un relevé vide.
+func NouvellesPiecesEssai() *PiecesEssai {
+	return &PiecesEssai{Cles: map[string]bool{}, Approbateurs: map[string]bool{}, Autorites: map[string]bool{}, Registres: map[string]bool{}}
+}
+
+func mention(nom string, marque bool, en bool) string {
+	if !marque {
+		return nom
+	}
+	if en {
+		return nom + MentionEssaiEn
+	}
+	return nom + MentionEssaiFr
+}
+
+// Cle rend l'identifiant de clé, suivi de la mention si la clé est d'essai.
+func (p *PiecesEssai) Cle(id string, en bool) string {
+	return mention(id, p != nil && p.Cles[id], en)
+}
+
+// Approbateur rend l'adresse, suivie de la mention si le compte est d'essai.
+func (p *PiecesEssai) Approbateur(adresse string, en bool) string {
+	return mention(adresse, p != nil && p.Approbateurs[strings.ToLower(adresse)], en)
+}
+
+// Autorite rend le nom de l'autorité, suivi de la mention si elle est d'essai.
+func (p *PiecesEssai) Autorite(nom string, en bool) string {
+	return mention(nom, p != nil && p.Autorites[nom], en)
+}
+
+// Registre rend l'identifiant de chaîne, suivi de la mention si le registre
+// est d'essai.
+func (p *PiecesEssai) Registre(chainID string, en bool) string {
+	return mention(chainID, p != nil && p.Registres[chainID], en)
+}
+
+// MarquerProposition pose la mention dans une proposition d'EX-9.20 (F4) ou
+// d'EX-11.22 (F6), après l'autorité, le registre et les clés d'enregistreur
+// qu'elle nomme, aux places fixées par ces textes.
+func (p *PiecesEssai) MarquerProposition(texte string, en bool) string {
+	if p == nil {
+		return texte
+	}
+	t := texte
+	selon, unite, sur := "selon ", " (unité ", "sur le registre "
+	avants := []string{"pour la clé d'enregistreur ", "la clé de chaîne de "}
+	if en {
+		selon, unite, sur = "according to ", " (unit ", "on registry "
+		avants = []string{"for recorder key ", "the chain key of "}
+	}
+	for nom := range p.Autorites {
+		if strings.HasPrefix(t, selon+nom+unite) {
+			t = selon + mention(nom, true, en) + t[len(selon)+len(nom):]
+		}
+	}
+	for id := range p.Registres {
+		if strings.HasPrefix(t, sur+id+", ") {
+			t = sur + mention(id, true, en) + t[len(sur)+len(id):]
+		}
+	}
+	for id := range p.Cles {
+		for _, avant := range avants {
+			t = strings.ReplaceAll(t, avant+id, avant+mention(id, true, en))
+		}
+	}
+	return t
+}
+
+// Valeurs de incomplete_reasons (EX-8.12), dans leur ordre.
+const (
+	RaisonExigenceNonRemplie = "exigence_non_remplie"
+	RaisonPieceEssai         = "piece_essai"
+)
+
 // DetailAutoriteEssai : détail d'AV-T-5.
 func DetailAutoriteEssai(nom, sha string) Texte {
-	return T("autorité "+nom+" : certificat d'essai "+sha+", sans valeur probante hors des tests",
+	return T("autorité "+nom+" : certificat d'essai "+sha+", sans valeur de preuve hors des essais",
 		"authority "+nom+": test certificate "+sha+", no evidential value outside tests")
 }
 
 // DetailRegistreEssai : détail d'AV-R-4.
 func DetailRegistreEssai(chainID string) Texte {
-	return T("registre "+chainID+" : réseau de développement, sans valeur probante hors des tests",
+	return T("registre "+chainID+" : réseau de développement, sans valeur de preuve hors des essais",
 		"registry "+chainID+": development network, no evidential value outside tests")
 }
 
@@ -101,19 +204,19 @@ func DetailRegistreEssai(chainID string) Texte {
 func DetailCleEssai(keyID, role string) Texte {
 	fr := map[string]string{"evenement": "événement", "manifeste": "manifeste", "point": "point de contrôle"}[role]
 	en := map[string]string{"evenement": "event", "manifeste": "manifest", "point": "checkpoint"}[role]
-	return T("clé d'enregistreur "+keyID+" ("+fr+") : clé d'essai publiée, sans valeur probante hors des tests",
+	return T("clé d'enregistreur "+keyID+" ("+fr+") : clé d'essai publiée, sans valeur de preuve hors des essais",
 		"recorder key "+keyID+" ("+en+"): published test key, no evidential value outside tests")
 }
 
 // DetailCleChaineEssai : détail d'AV-N-1 pour une clé de chaîne (N-4).
 func DetailCleChaineEssai(chainKey, keyID string) Texte {
-	return T("clé de chaîne "+chainKey+" de "+keyID+" : clé d'essai publiée, sans valeur probante hors des tests",
+	return T("clé de chaîne "+chainKey+" de "+keyID+" : clé d'essai publiée, sans valeur de preuve hors des essais",
 		"chain key "+chainKey+" of "+keyID+": published test key, no evidential value outside tests")
 }
 
 // DetailApprobateurEssai : détail d'AV-N-2.
 func DetailApprobateurEssai(adresse string) Texte {
-	return T("approbateur "+adresse+" : compte d'essai publié, sans valeur probante hors des tests",
+	return T("approbateur "+adresse+" : compte d'essai publié, sans valeur de preuve hors des essais",
 		"approver "+adresse+": published test account, no evidential value outside tests")
 }
 

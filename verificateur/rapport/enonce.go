@@ -53,6 +53,9 @@ type DonneesEnonce struct {
 	FK, FP commun.Texte
 	// NonExecutes : contrôles non exécutés (4, 5, 7, 8 pour F7).
 	NonExecutes map[int]bool
+	// Essai : pièces d'essai que l'énoncé fait suivre de la mention
+	// (EX-6.8, complément du 2026-11-23) ; nil : aucune.
+	Essai *commun.PiecesEssai
 }
 
 // TexteProvenance : texte de la colonne « Une clé, cas mixte » d'EX-6.8.
@@ -105,30 +108,37 @@ func ConstruireEnonce(d DonneesEnonce) commun.Texte {
 	ps, pe := commun.FormaterSecondes(d.PeriodStart), commun.FormaterSecondes(d.PeriodEnd)
 	fr += fmt.Sprintf(" est bien formé, %s et inclus dans la période du %s au %s close par le manifeste %s", vFr, ps, pe, d.PeriodHash)
 	en += fmt.Sprintf(" is well-formed, %s and included in the period from %s to %s closed by manifest %s", vEn, ps, pe, d.PeriodHash)
-	// F2
+	// F2 ; complément du 2026-11-23 : la mention suit chaque clé d'essai nommée.
+	es := d.Essai
+	cleEvFr, cleEvEn := es.Cle(d.CleEvenement, false), es.Cle(d.CleEvenement, true)
+	cleManFr, cleManEn := es.Cle(d.CleManifeste, false), es.Cle(d.CleManifeste, true)
 	if d.CleEvenement == d.CleManifeste {
 		p := provenanceCommune(d.ProvEvenement, false)
-		fr += fmt.Sprintf(" ; l'événement est signé, comme le manifeste, par la clé d'enregistreur %s, %s", d.CleEvenement, p.Fr)
-		en += fmt.Sprintf("; the event is signed, like the manifest, by recorder key %s, %s", d.CleEvenement, p.En)
+		fr += fmt.Sprintf(" ; l'événement est signé, comme le manifeste, par la clé d'enregistreur %s, %s", cleEvFr, p.Fr)
+		en += fmt.Sprintf("; the event is signed, like the manifest, by recorder key %s, %s", cleEvEn, p.En)
 	} else {
 		var p commun.Texte
 		if d.ProvEvenement == d.ProvManifeste {
 			p = provenanceCommune(d.ProvEvenement, true)
 		} else {
 			p1, p2 := TexteProvenance(d.ProvEvenement), TexteProvenance(d.ProvManifeste)
-			p = commun.T(fmt.Sprintf("clé %s %s, clé %s %s", d.CleEvenement, p1.Fr, d.CleManifeste, p2.Fr),
-				fmt.Sprintf("key %s %s, key %s %s", d.CleEvenement, p1.En, d.CleManifeste, p2.En))
+			p = commun.T(fmt.Sprintf("clé %s %s, clé %s %s", cleEvFr, p1.Fr, cleManFr, p2.Fr),
+				fmt.Sprintf("key %s %s, key %s %s", cleEvEn, p1.En, cleManEn, p2.En))
 		}
-		fr += fmt.Sprintf(" ; l'événement est signé par la clé d'enregistreur %s et le manifeste par la clé %s, %s", d.CleEvenement, d.CleManifeste, p.Fr)
-		en += fmt.Sprintf("; the event is signed by recorder key %s and the manifest by key %s, %s", d.CleEvenement, d.CleManifeste, p.En)
+		fr += fmt.Sprintf(" ; l'événement est signé par la clé d'enregistreur %s et le manifeste par la clé %s, %s", cleEvFr, cleManFr, p.Fr)
+		en += fmt.Sprintf("; the event is signed by recorder key %s and the manifest by key %s, %s", cleEvEn, cleManEn, p.En)
 	}
 	// F3
 	if a := d.Approbation; a != nil {
 		nb := len(a.Approbateurs)
 		sigFr := commun.Pluriel(nb, "1 signature", fmt.Sprintf("%d signatures", nb))
 		sigEn := sigFr
-		listeFr := commun.JoindreListe(a.Approbateurs, ", ", " et ")
-		listeEn := commun.JoindreListe(a.Approbateurs, ", ", " and ")
+		var apFr, apEn []string
+		for _, x := range a.Approbateurs {
+			apFr, apEn = append(apFr, es.Approbateur(x, false)), append(apEn, es.Approbateur(x, true))
+		}
+		listeFr := commun.JoindreListe(apFr, ", ", " et ")
+		listeEn := commun.JoindreListe(apEn, ", ", " and ")
 		switch a.Decision {
 		case "approuve":
 			fr += fmt.Sprintf(" ; l'événement porte l'approbation de la demande %s (ticket %s), signée par %s (%s, seuil de %d sur %d du jeu déclaré par le dossier)", a.RequestHash, a.Ticket, listeFr, sigFr, a.Required, a.Size)
@@ -141,12 +151,16 @@ func ConstruireEnonce(d DonneesEnonce) commun.Texte {
 			en += fmt.Sprintf("; the event carries an approval request that expired without signature (threshold %d of %d of the set declared by the dossier)", a.Required, a.Size)
 		}
 	}
-	// F4, F5, F6, FK, FP
-	for _, f := range []commun.Texte{d.F4, d.F5, d.F6, d.FK, d.FP} {
-		if !f.Vide() {
-			fr += " ; " + f.Fr
-			en += "; " + f.En
+	// F4, F5, F6 (la mention posée dans F4 et F6, EX-6.8), FK, FP
+	for i, f := range []commun.Texte{d.F4, d.F5, d.F6, d.FK, d.FP} {
+		if f.Vide() {
+			continue
 		}
+		if i == 0 || i == 2 {
+			f = commun.T(es.MarquerProposition(f.Fr, false), es.MarquerProposition(f.En, true))
+		}
+		fr += " ; " + f.Fr
+		en += "; " + f.En
 	}
 	// F7
 	avecFK := !d.FK.Vide()
@@ -234,6 +248,9 @@ type DonneesFK struct {
 	// contrôle 8 réussi) et chain_id du fichier d'ancres.
 	Registre *registre.FaitsAncrePoint
 	ChainID  string
+	// Essai : pièces d'essai que FK fait suivre de la mention (EX-6.8,
+	// complément du 2026-11-23) ; nil : aucune.
+	Essai *commun.PiecesEssai
 }
 
 // tsu rend le nom de l'unité d'horodatage (EX-9.20).
@@ -258,15 +275,17 @@ func FragmentFK(d DonneesFK) commun.Texte {
 		return commun.Texte{}
 	}
 	p := TexteProvenance(d.Provenance)
-	fr := fmt.Sprintf("l'événement est couvert par le point de contrôle du journal de taille %d de sa période (empreinte %s, signé par la clé d'enregistreur %s, %s), préfixe prouvé de ce manifeste", d.TreeSize, d.CheckpointHash, d.KeyID, p.Fr)
-	en := fmt.Sprintf("the event is covered by the journal checkpoint of size %d of its period (digest %s, signed by recorder key %s, %s), a proven prefix of this manifest", d.TreeSize, d.CheckpointHash, d.KeyID, p.En)
+	es := d.Essai
+	fr := fmt.Sprintf("l'événement est couvert par le point de contrôle du journal de taille %d de sa période (empreinte %s, signé par la clé d'enregistreur %s, %s), préfixe prouvé de ce manifeste", d.TreeSize, d.CheckpointHash, es.Cle(d.KeyID, false), p.Fr)
+	en := fmt.Sprintf("the event is covered by the journal checkpoint of size %d of its period (digest %s, signed by recorder key %s, %s), a proven prefix of this manifest", d.TreeSize, d.CheckpointHash, es.Cle(d.KeyID, true), p.En)
 	if j := d.Jeton; j != nil {
+		autFr, autEn := es.Autorite(j.Authority, false), es.Autorite(j.Authority, true)
 		if j.UpperBound != nil {
-			fr += fmt.Sprintf(", horodaté au plus tard le %s UTC selon %s (unité %s)", *j.UpperBound, j.Authority, tsu(j))
-			en += fmt.Sprintf(", time-stamped no later than %s UTC according to %s (unit %s)", *j.UpperBound, j.Authority, tsu(j))
+			fr += fmt.Sprintf(", horodaté au plus tard le %s UTC selon %s (unité %s)", *j.UpperBound, autFr, tsu(j))
+			en += fmt.Sprintf(", time-stamped no later than %s UTC according to %s (unit %s)", *j.UpperBound, autEn, tsu(j))
 		} else {
-			fr += fmt.Sprintf(", horodaté au plus tard le %s UTC, à la précision près de la politique %s, que le jeton n'indique pas selon %s (unité %s)", j.GenTime, j.Policy, j.Authority, tsu(j))
-			en += fmt.Sprintf(", time-stamped no later than %s UTC, within the accuracy of policy %s, not stated in the token according to %s (unit %s)", j.GenTime, j.Policy, j.Authority, tsu(j))
+			fr += fmt.Sprintf(", horodaté au plus tard le %s UTC, à la précision près de la politique %s, que le jeton n'indique pas selon %s (unité %s)", j.GenTime, j.Policy, autFr, tsu(j))
+			en += fmt.Sprintf(", time-stamped no later than %s UTC, within the accuracy of policy %s, not stated in the token according to %s (unit %s)", j.GenTime, j.Policy, autEn, tsu(j))
 		}
 		if j.Qualified != nil {
 			fr += fmt.Sprintf(" (horodatage qualifié %s selon le réviseur (%s))", cadre(j.Qualified.Framework), j.Qualified.Source)
@@ -277,8 +296,8 @@ func FragmentFK(d DonneesFK) commun.Texte {
 		fr += fmt.Sprintf(", antérieur à la création du bloc Bitcoin %d (%s, réseau %s) sous %d blocs rattachés au point de contrôle Bitcoin %d du réviseur", b.RetainedHeight, b.BlockHash, b.Network, b.Confirmations, b.Checkpoint.Height)
 		en += fmt.Sprintf(", earlier than the creation of Bitcoin block %d (%s, %s network) under %d blocks connected to the reviewer's Bitcoin checkpoint %d", b.RetainedHeight, b.BlockHash, b.Network, b.Confirmations, b.Checkpoint.Height)
 		if b.Network == "regtest" {
-			fr += " (réseau d'essai, sans valeur probante)"
-			en += " (test network, no evidential value)"
+			fr += " (réseau d'essai, sans valeur de preuve hors des essais)"
+			en += " (test network, no evidential value outside tests)"
 		}
 	}
 	if r := d.Registre; r != nil {
@@ -286,8 +305,8 @@ func FragmentFK(d DonneesFK) commun.Texte {
 		if r.BlockTime != nil {
 			bt = *r.BlockTime
 		}
-		fr += fmt.Sprintf(", ancré au registre %s au bloc %d (heure déclarée par le bloc : %s UTC) par AttestationRegistry %s", d.ChainID, r.BlockNumber, bt, r.Contract)
-		en += fmt.Sprintf(", anchored in registry %s in block %d (time declared by the block: %s UTC) by AttestationRegistry %s", d.ChainID, r.BlockNumber, bt, r.Contract)
+		fr += fmt.Sprintf(", ancré au registre %s au bloc %d (heure déclarée par le bloc : %s UTC) par AttestationRegistry %s", es.Registre(d.ChainID, false), r.BlockNumber, bt, r.Contract)
+		en += fmt.Sprintf(", anchored in registry %s in block %d (time declared by the block: %s UTC) by AttestationRegistry %s", es.Registre(d.ChainID, true), r.BlockNumber, bt, r.Contract)
 	}
 	switch {
 	case d.Jeton != nil:
@@ -323,6 +342,9 @@ type DonneesFP struct {
 	// MemeVersion : AT-7 a réussi.
 	MemeVersion bool
 	Exceptions  int
+	// Essai : pièces d'essai que FP fait suivre de la mention (EX-6.8,
+	// complément du 2026-11-23) ; nil : aucune.
+	Essai *commun.PiecesEssai
 }
 
 // FragmentFP construit FP (EX-6.19).
@@ -336,17 +358,22 @@ func FragmentFP(d DonneesFP) commun.Texte {
 		return commun.T("l'attestation de périmètre jointe n'est pas retenue (vérification(s) non exécutée(s) : "+ids+")",
 			"the attached perimeter attestation is not retained (check(s) not run: "+ids+")")
 	}
+	// Complément du 2026-11-23 (EX-6.8) : un signataire qui est un approbateur d'essai porte la mention.
+	var sigFr, sigEn []string
+	for _, x := range d.Signataires {
+		sigFr, sigEn = append(sigFr, d.Essai.Approbateur(x, false)), append(sigEn, d.Essai.Approbateur(x, true))
+	}
 	nb := len(d.Signataires)
 	sig := commun.Pluriel(nb, "1 signature", fmt.Sprintf("%d signatures", nb))
 	fr := fmt.Sprintf("le périmètre de capture est déclaré, non prouvé, par l'attestation %s valable du %s au %s, signée par %s (%s, seuil de %d sur %d du jeu déclaré par le dossier)",
-		d.Digest, d.From, d.Until, commun.JoindreListe(d.Signataires, ", ", " et "), sig, d.Required, d.Size)
+		d.Digest, d.From, d.Until, commun.JoindreListe(sigFr, ", ", " et "), sig, d.Required, d.Size)
 	en := fmt.Sprintf("the capture perimeter is declared, not proven, by attestation %s valid from %s to %s, signed by %s (%s, threshold %d of %d of the set declared by the dossier)",
-		d.Digest, d.From, d.Until, commun.JoindreListe(d.Signataires, ", ", " and "), sig, d.Required, d.Size)
+		d.Digest, d.From, d.Until, commun.JoindreListe(sigEn, ", ", " and "), sig, d.Required, d.Size)
 	switch d.Inscription {
 	case "reussie":
 		p := TexteProvenance(d.ProvI)
-		fr += fmt.Sprintf(", inscrite au journal par l'événement seq %d (clé %s %s)", d.SeqI, d.CleI, p.Fr)
-		en += fmt.Sprintf(", recorded in the journal by event seq %d (key %s %s)", d.SeqI, d.CleI, p.En)
+		fr += fmt.Sprintf(", inscrite au journal par l'événement seq %d (clé %s %s)", d.SeqI, d.Essai.Cle(d.CleI, false), p.Fr)
+		en += fmt.Sprintf(", recorded in the journal by event seq %d (key %s %s)", d.SeqI, d.Essai.Cle(d.CleI, true), p.En)
 		if d.MemeVersion {
 			fr += " sous une version de politique de même nom que celle de cet événement"
 			en += " under a policy version with the same name as this event's"

@@ -187,7 +187,7 @@ describe("enregistreur + ancrage, TE-12 hors réseau public : démon réel, troi
     expect(promuManifeste.promoted).to.equal(true);
   });
 
-  it("export du dossier de l'événement avant la mise à niveau : treize parties, point couvrant de 07:30:00 contresigné et ancré, trois ancres embarquées, parties du registre avec ancre_point_de_controle ; vérificateur JavaScript : valide, K-1 à K-8 réussies, K-9 et contrôle 5 non exécutés (preuve en attente), même verdict et même énoncé par le binaire Go", async function () {
+  it("export du dossier de l'événement avant la mise à niveau : treize parties, point couvrant de 07:30:00 contresigné et ancré, trois ancres embarquées, parties du registre avec ancre_point_de_controle ; vérificateur JavaScript : aucune vérification en échec, K-1 à K-8 réussies, K-9 et contrôle 5 non exécutés (preuve en attente), verdict incomplet, code 3 (pièces d'essai), même verdict et même énoncé par le binaire Go", async function () {
     if (!pret.call(this)) return;
     const seq = seqs[1];
     const destination = path.join(dir, "dossier-avant");
@@ -218,8 +218,9 @@ describe("enregistreur + ancrage, TE-12 hors réseau public : démon réel, troi
     entetes = null;
     fichierAncres({ chemin: ancres, montage: m, bitcoin: pointDeControleBitcoin(m, 1000) });
     const js = verifierJs(destination, { ancres, entetes });
-    expect(js.code, js.stderr).to.equal(0);
-    expect(js.rapport.verdict).to.equal("valide");
+    // Code 3 depuis le complément du 2026-11-23 de CT-6 (EX-6.26) : clé rec-test-01 et registre de développement, pièces d'essai ; rien n'échoue.
+    expect([js.code, js.rapport.failed_checks, js.rapport.incomplete_reasons], js.stderr).to.deep.equal([3, [], ["piece_essai"]]);
+    expect(js.rapport.verdict).to.equal("incomplet");
     const s = statuts(js.rapport);
     for (const k of ["K-1", "K-2", "K-3", "K-4", "K-5", "K-6", "K-7", "K-8"]) expect(s[k], k).to.equal("reussi");
     expect(s["K-9"]).to.equal("non_execute");
@@ -237,8 +238,8 @@ describe("enregistreur + ancrage, TE-12 hors réseau public : démon réel, troi
     const bin = binaireGo();
     if (!bin) return enAttente(this, "vérificateur Go de CT-6 (NOORTRACE_VERIFIER_BIN, NOORTRACE_GO_BIN ou verificateur/dist/noortrace-verifier-linux-amd64) : vérification JavaScript faite, vérification Go non faite");
     const go = verifierGo(destination, { ancres, entetes, bin });
-    expect(go.code).to.equal(0);
-    expect(go.rapport.verdict).to.equal("valide");
+    expect([go.code, go.rapport.failed_checks, go.rapport.incomplete_reasons]).to.deep.equal([3, [], ["piece_essai"]]);
+    expect(go.rapport.verdict).to.equal("incomplet");
     expect(statuts(go.rapport)).to.deep.equal(s);
     expect(go.rapport.statement.fr).to.equal(js.rapport.statement.fr);
     expect(go.rapport.statement.en).to.equal(js.rapport.statement.en);
@@ -264,7 +265,7 @@ describe("enregistreur + ancrage, TE-12 hors réseau public : démon réel, troi
     expect((await demon.commande({ cmd: "reexports" })).dus).to.deep.equal([]);
     entetes = path.join(destination, "entetes-bitcoin.json");
     const js = verifierJs(destination, { ancres, entetes });
-    expect(js.code, js.stderr).to.equal(0);
+    expect([js.code, js.rapport.failed_checks, js.rapport.verdict], js.stderr).to.deep.equal([3, [], "incomplet"]);
     const s = statuts(js.rapport);
     for (const k of ["K-1", "K-2", "K-3", "K-4", "K-5", "K-6", "K-7", "K-8", "K-9"]) expect(s[k], k).to.equal("reussi");
     const controles = Object.fromEntries(js.rapport.controls.map((c) => [c.number, c]));
@@ -285,7 +286,7 @@ describe("enregistreur + ancrage, TE-12 hors réseau public : démon réel, troi
     const bin = binaireGo();
     if (!bin) return enAttente(this, "vérificateur Go de CT-6 (NOORTRACE_VERIFIER_BIN, NOORTRACE_GO_BIN ou verificateur/dist/noortrace-verifier-linux-amd64) : vérification JavaScript faite, vérification Go non faite");
     const go = verifierGo(destination, { ancres, entetes, bin });
-    expect(go.code).to.equal(0);
+    expect([go.code, go.rapport.failed_checks]).to.deep.equal([3, []]);
     expect(statuts(go.rapport)).to.deep.equal(s);
     expect(go.rapport.statement.fr).to.equal(js.rapport.statement.fr);
     expect(go.rapport.statement.en).to.equal(js.rapport.statement.en);
@@ -578,8 +579,8 @@ describe("enregistreur + ancrage, TE-12 sur le réseau de développement réel :
     expect(fs.existsSync(entetes)).to.equal(true);
     const js = verifierHorsLigne("js", destination, { ancres, entetes });
     console.log(`      vérification JavaScript : ${js.methode}`);
-    expect(js.code, js.stderr).to.equal(0);
-    expect(js.rapport.verdict).to.equal("valide");
+    expect([js.code, js.rapport.failed_checks, js.rapport.incomplete_reasons], js.stderr).to.deep.equal([3, [], ["piece_essai"]]);
+    expect(js.rapport.verdict).to.equal("incomplet");
     const s = statuts(js.rapport);
     for (const k of ["K-1", "K-2", "K-3", "K-4", "K-5", "K-6", "K-7", "K-8", "K-9"]) expect(s[k], k).to.equal("reussi");
     const controles = Object.fromEntries(js.rapport.controls.map((c) => [c.number, c]));
@@ -593,8 +594,8 @@ describe("enregistreur + ancrage, TE-12 sur le réseau de développement réel :
     if (!bin) return enAttente(this, "vérificateur Go de CT-6 absent (NOORTRACE_VERIFIER_BIN) : vérification JavaScript faite sans réseau, vérification Go non faite");
     const go = verifierHorsLigne(bin, destination, { ancres, entetes });
     console.log(`      vérification Go : ${go.methode}`);
-    expect(go.code).to.equal(0);
-    expect(go.rapport.verdict).to.equal("valide");
+    expect([go.code, go.rapport.failed_checks]).to.deep.equal([3, []]);
+    expect(go.rapport.verdict).to.equal("incomplet");
     expect(statuts(go.rapport)).to.deep.equal(s);
     expect(Object.fromEntries(go.rapport.controls.map((c) => [c.number, c.status]))).to.deep.equal(Object.fromEntries(js.rapport.controls.map((c) => [c.number, c.status])));
     expect(go.rapport.statement.fr).to.equal(js.rapport.statement.fr);
@@ -633,7 +634,7 @@ describe("enregistreur + ancrage, TE-12 sur le réseau de développement réel :
       fichierAncres({ chemin: ancres, montage: m2, bitcoin: null, registry: false });
       const js = verifierHorsLigne("js", destination, { ancres, entetes: null });
       console.log(`      vérification JavaScript : ${js.methode}`);
-      expect(js.code, js.stderr).to.equal(0);
+      expect([js.code, js.rapport.failed_checks, js.rapport.verdict], js.stderr).to.deep.equal([3, [], "incomplet"]);
       const s = statuts(js.rapport);
       expect(s["K-7"]).to.equal("reussi");
       expect(s["K-9"]).to.equal("non_execute");
@@ -643,7 +644,7 @@ describe("enregistreur + ancrage, TE-12 sur le réseau de développement réel :
       const bin = binaireGo();
       if (bin) {
         const go = verifierHorsLigne(bin, destination, { ancres, entetes: null });
-        expect(go.code).to.equal(0);
+        expect([go.code, go.rapport.failed_checks]).to.deep.equal([3, []]);
         expect(statuts(go.rapport)).to.deep.equal(s);
         expect(go.rapport.statement.fr).to.equal(js.rapport.statement.fr);
       }

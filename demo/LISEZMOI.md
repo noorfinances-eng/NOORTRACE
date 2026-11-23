@@ -21,9 +21,11 @@ noortrace — démonstration de référence
   registre-dev    : clé inscrite (RecorderRegistry), période enregistrée (PeriodRegistry), racine ancrée (AttestationRegistry), bloc certifié par 4 validateurs
   dossier         : dossiers/seq-7/ (demo__payments.create, approuvé par 0x7099…79c8 et 0x3c44…93bc, seuil 2 sur 3)
   vérificateur    : 6 contrôles [ok], 2 non exécutés avec raison admise (T-*, O-* : démonstration hors ligne)
-  Résultat : VALIDE — cet événement est bien formé, chaîné à ses voisins, inclus dans la période close par ce manifeste
+  Résultat : INCOMPLET — cet événement est bien formé, chaîné à ses voisins, inclus dans la période close par ce manifeste
              signé par cette clé, approuvé par ces adresses, et son ancre est dans un bloc que les validateurs nommés ont signé.
              Il ne prouve pas la date (ancres RFC 3161 et OpenTimestamps absentes : démonstration hors ligne).
+             Il repose sur des pièces d'essai (clé rec-test-01, comptes d'approbation et registre de développement, tous publiés) :
+             il ne vaut pas comme preuve hors de la démonstration (CT-6, décision du 2026-11-23).
   Ce que l'agent n'a pas pu faire : joindre outils-demo ou modele-demo directement (réseaux séparés) ; obtenir
   le résultat de payments.create avant qu'un événement durable existe ; effacer seq 5 (sa demande retenue).
   Durée totale : 52,108 s
@@ -31,8 +33,13 @@ noortrace — démonstration de référence
 
 La période, le nombre de validateurs qui ont signé le bloc le moins signé
 (trois ou quatre : le quorum est de trois) et la durée varient d'un passage à
-l'autre ; le reste est fixe. Le service se termine avec le code 0 si le
-dossier est valide, 1 sinon.
+l'autre ; le reste est fixe. Le service se termine avec le code 0 quand le
+dossier est celui que la démonstration attend, 1 sinon. Depuis la décision du
+porteur du 2026-11-23 (CT-6 EX-6.26), le vérificateur dit ce dossier
+« incomplet », code 3, et non « valide » : il est signé par la clé publiée
+`rec-test-01`, approuvé par des comptes Hardhat et inscrit au registre de
+développement, pièces d'essai ; il ne vaut pas comme preuve hors de la
+démonstration, et la ligne `Résultat` le dit.
 
 `docker compose up` reste attachée tant que les autres services tournent
 (Ctrl-C pour finir). Pour un script, qui doit rendre la main à la fin du

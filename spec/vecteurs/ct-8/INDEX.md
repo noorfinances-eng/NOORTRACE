@@ -25,7 +25,7 @@ Familles de cette génération :
 ```bash
 npm run vecteurs:ct8
 npm run deploiement:conteneurs   # code 0
-node scripts/paquet-reviseur/verifier.mjs spec/vecteurs/ct-8/paquets/valide.tar   # code 0
+node scripts/paquet-reviseur/verifier.mjs spec/vecteurs/ct-8/paquets/valide.tar   # code 3 : dossiers d'essai (CT-6 EX-6.26)
 node scripts/deploiement/verifier-journal.mjs spec/vecteurs/ct-8/journaux/valide --cles spec/vecteurs/ct-8/journaux/valide/cles.json   # code 0
 ```
 
@@ -361,18 +361,18 @@ donne, pour chaque cas, ses options et le résultat attendu de l'outil de
 vérification, que le générateur a obtenu en l'exécutant (EX-A.14).
 
 13 archives, 3 624 960 octets en tout ; SHA-256 de `cas.json` :
-`0x0980fe7517db6dcce7d8528de8c4f6b737a72c84ef0c71775a96c34e4d40dd51`.
+`0x7a69333f7ac4804bcd6018e2ac2af593b537871aace6bf8ff9ebdee88acd4c64`.
 
 | Cas | Archive | SHA-256 | Options | Code | Paquet | PR- en échec | Avertissements | Codes des dossiers | Ce qui change |
 |---|---|---|---|---|---|---|---|---|---|
-| `valide` | `valide.tar` (296960 octets) | `0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd` | — | 0 | `intact` | — | AV-PR-3 | 0, 0, 0 | Paquet construit par l'outil de référence : trois dossiers valides de ct-6, le fichier d'ancres de test, deux fichiers d'en-têtes, l'attestation de ct-7 ; sans vérificateur joint. |
-| `valide-empreinte` | `valide.tar` (296960 octets) | `0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd` | `--empreinte 0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd` | 0 | `intact` | — | AV-PR-3 | 0, 0, 0 | Le même paquet, vérifié avec l'empreinte attendue reçue à part : PR-2 réussit. |
+| `valide` | `valide.tar` (296960 octets) | `0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd` | — | 3 | `intact` | — | AV-PR-3 | 3, 3, 3 | Paquet construit par l'outil de référence : trois dossiers de ct-6 dont aucune vérification n'échoue, le fichier d'ancres de test, deux fichiers d'en-têtes, l'attestation de ct-7 ; sans vérificateur joint. Depuis le complément du 2026-11-23 de CT-6 (EX-6.26), chaque dossier rend le code 3, non 0 : il est fait de pièces d'essai (clés de CT-1 §13, comptes Hardhat, autorité de test, registre de développement) ; le paquet rend donc 3. |
+| `valide-empreinte` | `valide.tar` (296960 octets) | `0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd` | `--empreinte 0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd` | 3 | `intact` | — | AV-PR-3 | 3, 3, 3 | Le même paquet, vérifié avec l'empreinte attendue reçue à part : PR-2 réussit ; code 3, pièces d'essai. |
 | `empreinte-fausse` | `valide.tar` (296960 octets) | `0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd` | `--empreinte 0x12862e28ab1cafe6c8c89bda6823f96a6e895be92609af3135d4a3c2ad59a0b1` | 4 | `non_conforme` | PR-2 | — | — | Le même paquet, vérifié avec l'empreinte d'un autre paquet : PR-2 échoue, rien d'autre n'est lu. |
 | `fichier-altere` | `fichier-altere.tar` (296960 octets) | `0x12862e28ab1cafe6c8c89bda6823f96a6e895be92609af3135d4a3c2ad59a0b1` | — | 4 | `non_conforme` | PR-8 | — | — | Un octet de dossiers/valide-seq-7-complet/evenement.json changé (seq 7 devenu 9), manifeste inchangé : PR-8. |
 | `fichier-manquant` | `fichier-manquant.tar` (296960 octets) | `0xd2196a662e1914840728ad3a8230f56118d3aec025fe1bad22dd736d5209ba91` | — | 4 | `non_conforme` | PR-8 | — | — | dossiers/valide-seq-7-complet/voisins.json retiré de l'archive, toujours déclaré : PR-8. |
 | `fichier-en-trop` | `fichier-en-trop.tar` (296960 octets) | `0x732e95671da52608cfe89a2629028c5d9f591793d65e0dda626c0c78a31492b7` | — | 4 | `non_conforme` | PR-8 | — | — | dossiers/valide-seq-7-complet/note.txt ajouté à sa place dans l'ordre, absent du manifeste : PR-8. |
 | `manifeste-altere` | `manifeste-altere.tar` (296960 octets) | `0x932576a2a32fdc8c4fa08281a9a5b2e67182dc1e205a696026e4f3716ebca41f` | — | 4 | `non_conforme` | PR-8 | — | — | Le manifeste déclare pour evenement.json le SHA-256 d'une autre version ; le fichier est intact : PR-8. |
-| `contrefacon-coherente` | `contrefacon-coherente.tar` (296960 octets) | `0xae31214b730fca87ac605964f5d3336eb43a47f65bde5ba1733a3c34cd66f96e` | — | 1 | `intact` | — | AV-PR-3 | 1, 0, 0 | evenement.json changé et le manifeste recalculé : le paquet est intact (PR-1 à PR-10), et le vérificateur de CT-6 rend le dossier invalide (D-2) : code 1. |
+| `contrefacon-coherente` | `contrefacon-coherente.tar` (296960 octets) | `0xae31214b730fca87ac605964f5d3336eb43a47f65bde5ba1733a3c34cd66f96e` | — | 1 | `intact` | — | AV-PR-3 | 1, 3, 3 | evenement.json changé et le manifeste recalculé : le paquet est intact (PR-1 à PR-10), et le vérificateur de CT-6 rend le dossier invalide (D-2) : code 1. |
 | `chemin-hors-archive` | `chemin-hors-archive.tar` (296960 octets) | `0x8fc463d87c78dcca039fd16e7fe290937a0a9f2d7e0eb7070257a8b62acc87d5` | — | 4 | `non_conforme` | PR-5 | — | — | Entrée paquet-reviseur/../../evasion.txt, qui sortirait du répertoire d'extraction : PR-5. |
 | `chemin-absolu` | `chemin-absolu.tar` (296960 octets) | `0x3f6e990edd6c176650e1538eebdb96d5d719fb42464688bc420f51d6c34ae107` | — | 4 | `non_conforme` | PR-5 | — | — | Entrée /paquet-reviseur/evasion.txt, nom absolu : PR-5. |
 | `lien-symbolique` | `lien-symbolique.tar` (296960 octets) | `0x9991ca51ed861fb78ab0c99787946961a8caf0c8318df4517a563b190b2efc71` | — | 4 | `non_conforme` | PR-4 | — | — | Entrée paquet-reviseur/ancres/raccourci, lien symbolique vers ../../../evasion, hors du répertoire d'extraction : PR-4. |
@@ -381,15 +381,15 @@ vérification, que le générateur a obtenu en l'exécutant (EX-A.14).
 | `metadonnees-non-fixees` | `metadonnees-non-fixees.tar` (296960 octets) | `0xe9ecb529e428b0f2c443ecc3ffa59704f5a41a560c9833b36f05871efd1ab3db` | — | 4 | `non_conforme` | PR-6 | — | — | paquet-reviseur/README.md au mode 0600 : PR-6. |
 | `ancres-du-reviseur-discordantes` | `valide.tar` (296960 octets) | `0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd` | `--ancres spec/vecteurs/ct-6/ancres/ancres-cle-enregistreur-autre.json` | 1 | `intact` | — | — | 1, 1, 1 | Le paquet valide, vérifié avec un fichier d'ancres du réviseur qui attribue à rec-test-01 la clé de rec-test-02 : paquet intact, N-3 échoue dans chaque dossier, code 1. |
 | `ancres-non-conformes` | `valide.tar` (296960 octets) | `0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd` | `--ancres spec/vecteurs/ct-6/ots/entetes/chaine.json` | 2 | `intact` | — | — | 2, 2, 2 | Le paquet valide, vérifié avec --ancres désignant un fichier qui n'est pas un fichier d'ancres : chaque dossier rend le code 2 (N-1), code 2. |
-| `observation` | `observation.tar` (61440 octets) | `0x813fd05b9fb84cf99a4bfa7afccd3df53223feb0081951b5aa21725aa9031810` | — | 0 | `intact` | — | AV-PR-4 | 0, 0 | Paquet des dossiers de seq 1 (annonce de l'ensemble, policy.rule nulle) et de seq 3 (appel marqué) du journal d'exemple de 12.4, avec la pièce de l'ensemble : les deux dossiers sont déclarés en mode observation (policy_version en -observation), seq 3 avec la marque a_approuver (EX-12.9, EX-A.15). |
+| `observation` | `observation.tar` (61440 octets) | `0x813fd05b9fb84cf99a4bfa7afccd3df53223feb0081951b5aa21725aa9031810` | — | 3 | `intact` | — | AV-PR-4 | 3, 3 | Paquet des dossiers de seq 1 (annonce de l'ensemble, policy.rule nulle) et de seq 3 (appel marqué) du journal d'exemple de 12.4, avec la pièce de l'ensemble : les deux dossiers sont déclarés en mode observation (policy_version en -observation), seq 3 avec la marque a_approuver (EX-12.9, EX-A.15) ; code 3 : le journal d'exemple est signé par une clé d'essai (CT-6 EX-6.26). |
 
 Commande de chaque cas, depuis la racine du dépôt (code de sortie attendu en
 commentaire) :
 
 ```bash
-# valide : code 0
+# valide : code 3
 node scripts/paquet-reviseur/verifier.mjs spec/vecteurs/ct-8/paquets/valide.tar
-# valide-empreinte : code 0
+# valide-empreinte : code 3
 node scripts/paquet-reviseur/verifier.mjs spec/vecteurs/ct-8/paquets/valide.tar --empreinte 0xdf2ccf3b1e5f0967ae01aadd5888e7dc2e70369ec51adb58c4b8b80e2e1d02dd
 # empreinte-fausse : code 4
 node scripts/paquet-reviseur/verifier.mjs spec/vecteurs/ct-8/paquets/valide.tar --empreinte 0x12862e28ab1cafe6c8c89bda6823f96a6e895be92609af3135d4a3c2ad59a0b1
@@ -419,7 +419,7 @@ node scripts/paquet-reviseur/verifier.mjs spec/vecteurs/ct-8/paquets/metadonnees
 node scripts/paquet-reviseur/verifier.mjs spec/vecteurs/ct-8/paquets/valide.tar --ancres spec/vecteurs/ct-6/ancres/ancres-cle-enregistreur-autre.json
 # ancres-non-conformes : code 2
 node scripts/paquet-reviseur/verifier.mjs spec/vecteurs/ct-8/paquets/valide.tar --ancres spec/vecteurs/ct-6/ots/entetes/chaine.json
-# observation : code 0
+# observation : code 3
 node scripts/paquet-reviseur/verifier.mjs spec/vecteurs/ct-8/paquets/observation.tar
 ```
 
