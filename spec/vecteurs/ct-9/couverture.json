@@ -568,7 +568,7 @@
       },
       {
         "file": "test/enregistreur-journal-soi.test.js",
-        "sha256": "96c0259b068383157cd84a341aba6ff31db180dab2f9b1482debb00363588dd3"
+        "sha256": "50360178d342144f8b09f298559e93e27a7c8af4667accf00d07c9079ab12115"
       },
       {
         "file": "test/enregistreur-matrice-pannes.test.js",
@@ -712,7 +712,7 @@
       },
       {
         "file": "test/enregistreur-sdk-python.test.js",
-        "sha256": "094d6586911d866d3cfd5453c514d7f182b3a7ec6c4ac01747b61ff82558850c"
+        "sha256": "0097e91bd043a13517c6201c3eec7ecaa0dabafd577a98ae3319bf6c9b06001b"
       },
       {
         "file": "test/enregistreur-sdk-vecteurs.test.js",

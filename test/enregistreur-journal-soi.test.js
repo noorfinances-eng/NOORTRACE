@@ -557,17 +557,22 @@ describe("TE-14 (JS-9, JS-10) et complément TM-16 sur le support WORM réel (S3
     expect(cles).to.include(`${PREFIXE}points/periode-${PERIODE}.ndjson`);
     expect(cles.some((k) => k.startsWith(`${PREFIXE}ancres/periode-${PERIODE}/rfc3161/`))).to.equal(true);
     // Fin de ligne « Support WORM » de la matrice de CT-2 §14.2 (CT-9 TE-16) : dossier du premier événement de la période
-    // close pendant la coupure, exporté après le rétablissement, valide pour l'implémentation de référence et le binaire Go.
+    // close pendant la coupure, exporté après le rétablissement ; aucune vérification en échec pour l'implémentation de
+    // référence ni pour le binaire Go. La clé rec-test-01 du banc est une pièce d'essai (CT-6 EX-6.24) : depuis le complément
+    // du 2026-11-23 (EX-6.26), le verdict est « incomplet », code 3, pour la seule raison « piece_essai » (EX-8.12).
     const dossier = path.join(dir, "dossier-js10");
     await demon.commande({ cmd: "exporter", seq: 1, destination: dossier });
-    const js = spawnSync(process.execPath, [path.join(import.meta.dirname, "..", "scripts", "verify", "dossier.mjs"), dossier, "--json"], { encoding: "utf8", cwd: path.join(import.meta.dirname, "..") });
-    expect(js.status, js.stdout + js.stderr).to.equal(0);
-    expect(JSON.parse(js.stdout).verdict).to.equal("valide");
+    const incomplet = (r, nom) => {
+      expect(r.status, `${nom} : ${r.stdout}${r.stderr}`).to.equal(3);
+      const rapport = JSON.parse(r.stdout);
+      expect(rapport.verdict, nom).to.equal("incomplet");
+      expect(rapport.failed_checks, nom).to.deep.equal([]);
+      expect(rapport.incomplete_reasons, nom).to.deep.equal(["piece_essai"]);
+    };
+    incomplet(spawnSync(process.execPath, [path.join(import.meta.dirname, "..", "scripts", "verify", "dossier.mjs"), dossier, "--json"], { encoding: "utf8", cwd: path.join(import.meta.dirname, "..") }), "référence");
     const go = process.env.NOORTRACE_VERIFIER_BIN;
     if (!go || !fs.existsSync(go)) return enAttente(this, "binaire noortrace-verifier absent (NOORTRACE_VERIFIER_BIN)");
-    const g = spawnSync(go, [dossier, "--json"], { encoding: "utf8" });
-    expect(g.status, g.stdout + g.stderr).to.equal(0);
-    expect(JSON.parse(g.stdout).verdict).to.equal("valide");
+    incomplet(spawnSync(go, [dossier, "--json"], { encoding: "utf8" }), "binaire Go");
   });
 
   it("JS-9 gel juridique posé par l'outil de l'exploitant (noortrace-ctl worm gel poser) : la lecture quotidienne du registre des gels consigne worm_legal_hold_observed par enregistrement (pose, pose_resultat), garde respectée ; noortrace_worm_legal_holds_active 1", async function () {

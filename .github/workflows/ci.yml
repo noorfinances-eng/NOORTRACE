@@ -347,14 +347,21 @@ jobs:
           node scripts/paquet-reviseur/construire.mjs --description "$T/description.json" --sortie "$T/b.tar"
           cmp "$T/a.tar" "$T/b.tar"
           H=$(sha256sum "$T/a.tar" | cut -c1-64)
-          node scripts/paquet-reviseur/verifier.mjs "$T/a.tar" --empreinte "$H" --json > "$T/rapport.json"
+          # Code 3 attendu (CT-8 EX-13.26) : paquet intact, PR-1 à PR-11 réussies, chaque dossier publié incomplet
+          # par ses pièces d'essai (CT-6 EX-6.26) ; lu par « || code=$? », chaque contrôle fait échouer l'étape.
+          code=0
+          node scripts/paquet-reviseur/verifier.mjs "$T/a.tar" --empreinte "$H" --json > "$T/rapport.json" || code=$?
+          test "$code" -eq 3
           node -e '
             const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
             const pr11 = r.checks.find((c) => c.id === "PR-11");
-            if (r.exit_code !== 0 || !pr11 || pr11.status !== "reussi") { console.error(JSON.stringify(pr11)); process.exit(1); }' "$T/rapport.json"
+            const ko = r.checks.filter((c) => c.status !== "reussi").map((c) => c.id);
+            if (r.exit_code !== 3 || !pr11 || pr11.status !== "reussi" || ko.length !== 0 || !r.dossiers.every((d) => d.verdict === "incomplet")) { console.error(r.exit_code, ko, JSON.stringify(pr11), r.dossiers.map((d) => d.verdict)); process.exit(1); }' "$T/rapport.json"
           mkdir "$T/x" && tar -xkf "$T/a.tar" -C "$T/x"
+          code=0
           sudo unshare -n env -i TMPDIR="$T" "$(command -v node)" \
-            "$T/x/paquet-reviseur/verificateur/scripts/paquet-reviseur/verifier.mjs" "$T/a.tar" --empreinte "$H"
+            "$T/x/paquet-reviseur/verificateur/scripts/paquet-reviseur/verifier.mjs" "$T/a.tar" --empreinte "$H" || code=$?
+          test "$code" -eq 3
       # Vecteurs de CT-9 (spec/CT-9-plan-de-tests.md, annexe A, EX-A.1,
       # EX-A.6, EX-A.10) : le générateur écrit catalogue.json, couverture.json
       # (sortie de l'outil de couverture, condensés des spécifications, du

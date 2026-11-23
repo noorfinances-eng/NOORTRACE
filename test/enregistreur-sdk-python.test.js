@@ -143,14 +143,16 @@ describe("enregistreur, SDK Python noortrace-sdk et adaptateurs de cadres Python
         expect(l, r.sortie.slice(-2000)).to.match(/journal \d+ evenements valide ; dossier noyau valide/);
       });
       if (go) {
-        it(`${a.nom} : dossier du parcours valide pour le binaire Go noortrace-verifier (go1.27.3)`, function () {
+        it(`${a.nom} : dossier du parcours pour le binaire Go noortrace-verifier (go1.27.3) : aucune vérification en échec, verdict incomplet, code 3 (clé d'enregistreur d'essai, CT-6 EX-6.26)`, function () {
           if (!r) {
             // r reste vide si l'essai pytest précédent n'est pas joué ou s'arrête avant sa fin (son échec est déjà compté).
             this.test.title += ` — en attente : pytest ${a.fichier} sans résultat (essai pytest précédent non joué ou interrompu)`;
             this.skip();
           }
           const l = r.sortie.split("\n").find((x) => x.startsWith("noortrace-parcours "));
-          expect(l).to.match(/binaire Go valide$/);
+          // conftest.py vérifie le code 3, le verdict « incomplet », la raison « piece_essai » seule et l'absence de contrôle en
+          // échec (CT-6 EX-6.26, EX-8.12 : la clé rec-test-01 du banc est une pièce d'essai), puis imprime le verdict.
+          expect(l).to.match(/binaire Go incomplet$/);
         });
       } else {
         it(`${a.nom} — en attente : go1.27.3 introuvable (NOORTRACE_GO_BIN ou PATH), dossier non soumis au binaire Go`);

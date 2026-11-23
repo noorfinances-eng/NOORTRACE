@@ -15326,6 +15326,19 @@
           "apres": "ba7f481390eec8d3ee8ad70d1d7c1c0d11174ca13932958d4d8a509a148f0592"
         }
       ]
+    },
+    {
+      "id": "MC-112",
+      "date": "2026-11-23",
+      "etape": 8,
+      "motif": "Suite du complément du 2026-11-23 (dossiers d'essai) : deux bancs que la machine de travail ne joue pas (support WORM, adaptateurs Python) et l'étape de CI du paquet réviseur attendent le code 3 ; empreintes des essais dans la couverture de CT-9.",
+      "fichiers": [
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "55597d907e1f78fe118b8550cd98ff2771a882ce4baa1f0f6719253376a69d7c",
+          "apres": "7f0c757e6350dccbacc904187c45611d7cde66325b59e058a19870c92f9d5a05"
+        }
+      ]
     }
   ]
 }

@@ -48,8 +48,11 @@ is tagged.
   (CT-2 section 19.4), the reviewer package (CT-8 section 13.7, code 3 when
   every dossier is incomplete) and the CI step on the published dossiers
   expect this verdict; the registry run of TE-4 (CT-9 EX-9.2) now expects
-  code 3 for the sole reason `piece_essai` from both verifiers. CT-9
-  catalogue, line references and design freeze updated.
+  code 3 for the sole reason `piece_essai` from both verifiers, as do the
+  CI step on the reviewer package (CT-8 EX-13.26, code 3) and the two
+  benches of the WORM support (JS-10) and of the Python framework
+  adapters, which sign with the published test key. CT-9 catalogue, line
+  references and design freeze updated.
   Three further decisions of the owner on the same day. The statement
   (CT-6 7.1, EX-6.8), the one sentence a lawyer cites, now names each test
   piece it mentions as such: every recorder key, approver address,
