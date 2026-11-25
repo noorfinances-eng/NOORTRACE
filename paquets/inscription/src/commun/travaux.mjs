@@ -45,8 +45,11 @@ export const OPERATIONS_JEU = Object.freeze({
   "CuratorSet.acceptAdmin": "aucun",
 });
 
-/** Opérations d'une confirmation hors bande (EX-7.26, INTERFACES.md 3.5). */
-export const OPERATIONS_CONFIRMATION = Object.freeze(["approvisionnement", "approvisionner", "administrer-jeu"]);
+/**
+ * Opérations d'une confirmation hors bande (EX-7.26, INTERFACES.md 3.5). `jeu_approbateurs` (complément du 2026-11-25) :
+ * la fiche de contrôle des adresses des approbateurs renvoyée confirmée par le client, avant l'étape du même nom.
+ */
+export const OPERATIONS_CONFIRMATION = Object.freeze(["jeu_approbateurs", "approvisionnement", "approvisionner", "administrer-jeu"]);
 
 /** Identité d'un exploitant (INTERFACES.md 1) : `exploitant <name>`, nom du fichier des comptes. */
 export const MOTIF_IDENTITE = /^exploitant [!-~]{1,255}$/;
@@ -227,16 +230,20 @@ export function horodatage(champ, v) {
 /**
  * Lit une confirmation hors bande (EX-7.26, INTERFACES.md 3.5) :
  * `{ operation, objet: { org_id, cle_chaine }, personne_client, canal,
- * instant, piece_sha256 }`.
+ * instant, piece_sha256 }` ; `objet` porte `digest` pour `administrer-jeu` et
+ * `fiche_sha256` (l'empreinte de la fiche de contrôle, complément du
+ * 2026-11-25) pour `jeu_approbateurs`.
  */
 export function lireConfirmation(c) {
   clesExactes("confirmation", c, ["operation", "objet", "personne_client", "canal", "instant", "piece_sha256"], ["operation", "objet", "personne_client", "canal", "instant", "piece_sha256"]);
-  if (!OPERATIONS_CONFIRMATION.includes(c.operation)) throw new ErreurChamp("requete_invalide", "confirmation.operation", "approvisionnement, approvisionner ou administrer-jeu attendu");
-  // Objet (EX-7.26) : la clé de chaîne d'un approvisionnement, ou le condensé de la demande d'administration du jeu.
-  const membre = c.operation === "administrer-jeu" ? "digest" : "cle_chaine";
+  if (!OPERATIONS_CONFIRMATION.includes(c.operation)) throw new ErreurChamp("requete_invalide", "confirmation.operation", "jeu_approbateurs, approvisionnement, approvisionner ou administrer-jeu attendu");
+  // Objet (EX-7.26) : la clé de chaîne d'un approvisionnement, le condensé de la demande d'administration du jeu, ou
+  // l'empreinte de la fiche de contrôle des adresses des approbateurs (complément du 2026-11-25).
+  const membre = c.operation === "administrer-jeu" ? "digest" : c.operation === "jeu_approbateurs" ? "fiche_sha256" : "cle_chaine";
   clesExactes("confirmation.objet", c.objet, ["org_id", membre], ["org_id", membre]);
   const objet = { org_id: C.hachage("confirmation.objet.org_id", c.objet.org_id) };
   if (membre === "digest") objet.digest = C.hachage("confirmation.objet.digest", c.objet.digest);
+  else if (membre === "fiche_sha256") objet.fiche_sha256 = C.hachage("confirmation.objet.fiche_sha256", c.objet.fiche_sha256);
   else objet.cle_chaine = C.adresse("confirmation.objet.cle_chaine", c.objet.cle_chaine);
   return {
     operation: c.operation,

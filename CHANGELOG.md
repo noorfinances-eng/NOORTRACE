@@ -6,6 +6,63 @@ is tagged.
 
 ## Unreleased
 
+- Build step 8, supplement of 2026-11-25: owner's decisions on the client
+  onboarding tool (étape 8, complément du 2026-11-25 : décisions du porteur,
+  outil d'inscription). Two rules, each written first as a dated supplement
+  of CT-4 (EX-7.8, EX-7.9, EX-7.23, EX-7.26). Duration covered by a
+  provisioning. Every screen that shows a provisioning of a client's
+  technical account (the client page when the confirmation is to be recorded
+  or when step 5 is still to do, "Alimenter un compte technique" before and
+  after the transfer, the confirmation form) says, in a sentence fixed word
+  for word by CT-4, how many days of the expected daily consumption it
+  covers (N is `provision_days` of the instance fees, b the
+  `daily_budget_gas` of the dossier; a top-up sends only the difference and
+  the sentence says so; an amount already sent is given as the days it
+  represents, ⌊M / b⌋), that it is a forecast, and that what the client pays
+  for these credits is set by their contract, not by the tool. Without an
+  expected daily consumption, no number of days is written. No price, no
+  currency and no amount of money appears anywhere;
+  "the client does not pay for them" is removed from the credits explanation
+  and from the glossary. The agent writes the fees it applies in its data
+  (`frais-instance.json`: `provision_days`, `refill_below_days`,
+  `gas_limit`, `max_daily_budget_gas`, SHA-256 of the manifest), at start-up
+  and whenever a reread manifest changes them; the interface reads that file
+  and returns it with the dossier (`frais` of `GET /api/clients/<slug>`).
+  Approver address check sheet. As soon as the dossier is prepared, the tool
+  produces, from the dossier and the approver names it holds, a check sheet
+  of the approvers' addresses (title, short name of the organisation,
+  approvals required, one line per approver with the whole address and the
+  name the client gave, the approvers' administrator, the instruction to the
+  client), in two forms of the same content: a canonical text file
+  (`GET /api/clients/<slug>/fiche-controle`, UTF-8, fixed lines, the same
+  dossier gives the same bytes) and a printable page
+  (`/clients/<slug>/fiche-controle`); the digest of the sheet is the SHA-256
+  of the file, shown beside it. Each approver compares their line with what
+  their own wallet shows; the client returns the sheet confirmed in writing,
+  outside the tool; the operator records it as an out-of-band confirmation
+  (operation `jeu_approbateurs`, object the version of the sheet designated
+  by its digest, piece the returned sheet as received), and the agent
+  neither admits nor runs `inscrire-client` while the curator set is still
+  to deploy without such a confirmation, not yet consumed, citing the digest
+  of the sheet as the dossier stands: same refusal
+  ("confirmation hors bande absente"), same record, nothing sent; the
+  deployment consumes it. The approver names are given by the client and
+  typed by the operator (step 1 screen, then the sheet page until the
+  curator set is deployed), kept as an internal note out of the dossier and
+  the package, printed on the sheet and part of its digest; they never reach
+  the registry, the node, the package or a job body. The agent keeps every
+  version of the sheet (`fiches-controle.ndjson`); the confirmation form
+  asks which version the client returned and chooses none by default; a
+  confirmation of a version that is no longer the current one is recorded
+  but marked "ne vaut plus" and unlocks nothing; a dossier changed after a
+  confirmation (approver added or removed, address, threshold or name
+  changed) gives a new sheet and locks the step again. The operator's
+  checkbox "J'ai relu chaque adresse avec le client" stays required. What
+  goes to the public registry, the dossier, the package, the existing routes
+  and their request bodies (thirteen bodies compared byte for byte), the
+  schemas and the vectors do not change. Tests: new tests for each rule, red
+  before and green after, eleven mutants killed; CT-9 catalogue, line
+  references of CT-7, CT-8 and CT-9, and the design freeze updated.
 - Build step 8, supplement of 2026-11-23: owner's decision on test dossiers
   (étape 8, complément du 2026-11-23 : décision du porteur, dossiers
   d'essai). A dossier that rests on at least one test piece is never

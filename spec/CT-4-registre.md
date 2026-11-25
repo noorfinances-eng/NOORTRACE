@@ -66,6 +66,18 @@ l'application d'exploitant garde, hors du dossier, un nom interne de chaque
 client, demandé dès l'écran du pas 1, et la remise de son paquet, déclarée par l'exploitant et corrigée
 sans effacement ; ces notes ne sortent pas de l'application (EX-7.23) ;
 aucun schéma ni aucun vecteur ne change ;
+complément du 2026-11-25, décision du porteur (outil d'inscription) :
+l'application d'exploitant dit, sur chaque écran qui montre un versement sur
+un compte technique, combien de jours de la consommation prévue par jour ce
+versement couvre, et que ce que le client paie pour ces crédits est fixé par
+son contrat, pas par l'application (EX-7.9) ; avant que les adresses des
+approbateurs partent vers le registre public, elle produit une fiche de
+contrôle que le client renvoie confirmée par écrit, consignée comme une
+confirmation hors bande et exigée avant l'étape `jeu_approbateurs` (EX-7.8,
+EX-7.26) ; l'agent écrit dans ses données les frais de l'instance qu'il
+applique (EX-7.23) ; ce qui part vers le registre public, le dossier, le
+paquet, les routes existantes et leurs corps, les schémas et les vecteurs ne
+changent pas ;
 version 0.7 du 2026-11-11,
 révision 0.7 : commande `paquet-client` de l'outil
 de référence, codes de refus du paquet, reprise d'une étape en échec déjà
@@ -2389,7 +2401,63 @@ déployer un jeu, approvisionner une clé de chaîne et inscrire une clé qui ne
 sont pas celles du client, sans que l'outil le voie ; d'où l'obligation de
 contrôle du client d'EX-7.17 dès cette version, et la demande signée et les
 preuves de possession proposées en section 14 (version 0.1 du schéma
-`inscription-client`).
+`inscription-client`). Complément du 2026-11-25, décision du porteur (outil d'inscription) :
+l'application d'exploitant de 7.14 ajoute au contrôle de l'exploitant (la
+case de relecture des adresses d'EX-7.25) un contrôle du client, avant que
+les adresses des approbateurs partent vers le registre public. Dès que le
+dossier est préparé (pas 1), elle produit, depuis les seules données du
+dossier, une **fiche de contrôle des adresses des approbateurs** : le titre
+« Fiche de contrôle des adresses des approbateurs », l'organisation (son
+slug ; jamais le nom interne d'EX-7.23), le nombre d'approbations requises
+sur le nombre d'approbateurs, puis une ligne par approbateur, numéroté dans
+l'ordre du dossier, avec son adresse entière (42 caractères, en minuscules
+comme le dossier, jamais abrégée ni groupée) et son nom tel que le client
+l'a donné, que l'exploitant saisit dans l'application : le dossier ne porte
+pas le nom des approbateurs, c'est une donnée propre à l'application, hors
+du dossier et du paquet, comme le nom interne (EX-7.23), saisie avec les
+adresses à l'écran du pas 1 (un champ de la liste de valeurs du type texte
+d'EX-7.25, un nom par ligne dans l'ordre des adresses, facultatif, qui
+n'entre jamais dans le travail : la page le remet par une note une fois le
+dossier préparé) et modifiable sur la page de la fiche tant que l'étape
+`jeu_approbateurs` n'est pas faite ; un nom qui manque se lit « — (le client
+complète le nom) » ; une ligne pour le responsable des approbateurs
+(`set_admin`, qui part dans le même déploiement) ; et la consigne au
+client : chaque approbateur compare sa ligne à l'adresse que montre son
+propre portefeuille, et le client renvoie la fiche confirmée par écrit, par
+un autre moyen que l'application. Le client n'a rien à installer. La fiche a
+deux formes du même contenu : un fichier texte à télécharger (UTF-8, une
+ligne par élément, sauts de ligne `\n`, aucune date ni valeur variable : le
+même dossier donne les mêmes octets) et une page imprimable ; l'**empreinte
+de la fiche** est le SHA-256 de ce fichier, que la page affiche à côté de la
+fiche. Le nom de chaque approbateur entre dans le fichier, donc dans
+l'empreinte : une fiche dont un nom change est une fiche nouvelle, à faire
+confirmer de nouveau. L'application garde chaque version de la fiche
+produite (numéro de version, empreinte, instant), hors du paquet, avec le
+registre des confirmations (EX-7.23). La fiche renvoyée par le client est
+une confirmation hors bande d'EX-7.26 : opération `jeu_approbateurs`, objet
+l'organisation et la version de la fiche, désignée par son empreinte et
+choisie par l'exploitant parmi les versions produites d'après l'empreinte
+écrite sur la fiche renvoyée, pièce le SHA-256 de la fiche renvoyée telle
+que reçue, qui diffère de l'empreinte de la fiche produite dès que le client
+l'a signée ou annotée, ce que l'écran dit. L'agent n'exécute pas l'étape
+`jeu_approbateurs` du pas 2, la seule qui envoie ces adresses au registre
+public, tant qu'une telle confirmation, non consommée, ne cite pas
+l'empreinte de la fiche calculée depuis le dossier tel qu'il est au moment
+de l'exécution : même refus (« confirmation hors bande absente »), même
+consignation et même registre que pour le versement ; un dossier dont un
+approbateur a été ajouté ou retiré, dont une adresse ou un nom a changé,
+donne une autre fiche ; une confirmation qui cite une version qui n'est pas
+la version courante est consignée (elle a eu lieu) mais ne débloque rien :
+l'écran la dit « ne vaut plus », avec la raison (fiche changée depuis), et
+l'étape reste bloquée tant que la version courante n'est pas confirmée. La
+case de relecture de l'exploitant reste exigée. Rien ne change de ce qui
+part vers le registre public (le jeu déployé reste `CuratorSet(set_admin,
+members, threshold)`), ni les sorties des travaux, ni le dossier, ni le
+paquet (7.13), ni l'outil de référence, qui n'a pas d'écran : son exploitant
+tient le contrôle du client par la cérémonie d'EX-7.17. Raison : une
+adresse d'approbateur fausse ferait approuver une autre personne que prévu
+sans que l'outil le voie, et seul chaque approbateur peut reconnaître la
+sienne.
 
 ### 7.6 Pas 2 à 5 : jeu, assignation, lecture, approvisionnement
 
@@ -2405,7 +2473,10 @@ enchaîne, pour chaque étape encore à faire, dans cet ordre :
    `CuratorSet(set_admin, members, threshold)` (RG-15, déploiement) ; OP-11
    (événements `AdminAccepted`, `CuratorAdded` par membre,
    `ThresholdUpdated`), capture (rôle `jeu_approbateurs`), OP-12
-   (`getThreshold`, `getCuratorCount`, `isCurator` de chaque membre, `admin`).
+   (`getThreshold`, `getCuratorCount`, `isCurator` de chaque membre, `admin`) ;
+   complément du 2026-11-25 : dans l'application d'exploitant, cette étape
+   n'est exécutée que sur confirmation de la fiche de contrôle d'EX-7.8
+   (EX-7.26).
 2. **`assignation`** : OP-5 ; `curatorSetOf(orgId)` lu à `latest` : égal au
    jeu attendu, l'étape est déjà faite par cet acteur (reprise : l'envoi est
    retrouvé dans `--captures` ou par `eth_getLogs` de `CuratorSetAssigned`,
@@ -2460,7 +2531,56 @@ période (ancre et clôture) consomme de 331 000 à 411 000 gaz environ
 (`anchor` au plus 96 977, `submitPeriod` 234 079 à 314 256, 4.5), soit autant
 de wei à 1 wei par gaz : la provision par défaut, 327 000 000 wei, couvre au
 moins 30 jours d'un journal horaire, inscription de la clé comprise, OP-3
-gardant toujours `gas_limit` wei en réserve.
+gardant toujours `gas_limit` wei en réserve. Complément du 2026-11-25, décision du porteur (outil d'inscription) : sur
+chaque écran de l'application d'exploitant de 7.14 qui montre un versement
+sur un compte technique (la consigne de la fiche d'un client quand la
+confirmation du versement est à noter ou quand l'étape `approvisionnement`
+reste à faire, l'action « Alimenter un compte technique » d'un client déjà
+inscrit, et le formulaire de confirmation), une phrase, fixée ici mot pour
+mot, dit combien de jours de la consommation prévue par jour le versement
+couvre, que c'est une prévision, et que ce que le client paie pour ces
+crédits relève de son contrat. N est `provision_days` de `fees` du manifeste
+d'instance (4.8 ; 30 par défaut, EX-7.2), b le budget journalier du dossier
+(`daily_budget_gas`, 1 crédit par unité de gaz, EX-4.15), écrits en chiffres
+avec une espace entre les milliers. Pour le versement de l'inscription, dont
+le montant est `P_k = provision_days × b_k + gas_limit` : « Ce versement
+couvre N jours de la consommation prévue par jour, b crédits d'écriture,
+plus une réserve pour un envoi. C'est une prévision : une journée peut
+consommer plus ou moins. Ce que le client paie pour ces crédits est fixé par
+son contrat, pas par cet outil. » Pour un versement de complément (8.7), qui
+ne verse que la différence entre `P_k` et le solde, avant le versement :
+« Ce versement complète le compte jusqu'à N jours de la consommation prévue
+par jour, b crédits d'écriture, plus une réserve pour un envoi : il ne verse
+que ce qui manque. C'est une prévision : une journée peut consommer plus ou
+moins. Ce que le client paie pour ces crédits est fixé par son contrat, pas
+par cet outil. » ; le versement fait, pour le montant M versé, avec J = ⌊M /
+b⌋ : « Le versement de M crédits d'écriture représente J jours de la
+consommation prévue par jour, b crédits d'écriture. C'est une prévision :
+une journée peut consommer plus ou moins. Ce que le client paie pour ces
+crédits est fixé par son contrat, pas par cet outil. » (cette dernière
+phrase vaut aussi pour un montant qui n'est pas `provision_days × b +
+gas_limit` avec les frais que l'agent applique, par exemple un dossier
+préparé avant une révision du manifeste : aucun nombre de jours n'est alors
+inventé depuis `provision_days`, et OP-4 refuse l'étape,
+`provision_excessive`). Quand la consommation prévue par jour n'est pas
+renseignée, aucun nombre de jours n'est écrit : « La durée que couvre ce
+versement n'est pas calculable : la consommation prévue par jour n'est pas
+renseignée. Ce que le client paie pour ces crédits est fixé par son contrat,
+pas par cet outil. » La « réserve pour un envoi » est `gas_limit` (EX-4.18),
+que l'écran ne chiffre pas. L'application tient `provision_days` et
+`gas_limit` de l'agent, qui les lit dans `fees` et les écrit dans ses
+données (EX-7.23) ; sans ce fichier, elle ne dit d'un montant que ce qu'il
+représente (la phrase du versement fait) et, avant un versement de
+complément, qu'elle ne connaît pas encore ce réglage : « Le nombre de jours
+que ce versement couvrira dépend d'un réglage du registre public que l'outil
+ne connaît pas pour l'instant. Ce que le client paie pour ces crédits est
+fixé par son contrat, pas par cet outil. » Aucun prix, aucune devise, aucun
+montant en monnaie, aucune mention « gratuit » ou « payant » ne s'écrit
+nulle part : le mot « contrat » suffit, et la phrase « le client ne les paie
+pas », que les écrans disaient des crédits, est retirée, puisque ce que le
+client paie relève de son contrat. Une seule explication des crédits par
+écran reste la règle. Aucun schéma, aucune route, aucun corps envoyé, aucun
+vecteur ne changent.
 
 ### 7.7 Pas 6 : demande de signature et inscription de la clé
 
@@ -3268,7 +3388,26 @@ aucune partie, aucune sortie ni le paquet (EX-7.18) ; les travaux, leurs
 sorties, les schémas et les vecteurs ne changent pas. Épreuve : le nom
 interne donné avant les pas 2 à 10 ne se trouve dans aucune requête faite
 au nœud, aucun fichier des données de l'agent hors des notes, ni dans le
-paquet et son archive. Tenu par l'exploitant qui déploie l'application.
+paquet et son archive. Complément du 2026-11-25, décision du porteur (outil d'inscription) :
+l'agent écrit aussi dans ses données, hors du répertoire des clients, à son
+démarrage et à chaque relecture du manifeste qui les change, les frais de
+l'instance qu'il applique (`provision_days`, `refill_below_days`,
+`gas_limit`, `max_daily_budget_gas`, avec le SHA-256 du manifeste), que
+l'interface lit pour dire la durée que couvre un versement (EX-7.9) ; ce
+fichier n'entre dans aucun dossier, aucune sortie ni le paquet. L'interface
+lui remet aussi, par une note de plus, les noms des approbateurs de la fiche
+de contrôle d'EX-7.8 (`noms_approbateurs` : adresse et nom, ou retrait ;
+refusée pour une adresse hors du dossier, ou une fois l'étape
+`jeu_approbateurs` faite) ; et il garde, dans ses données, hors du
+répertoire des clients, chaque version de la fiche de contrôle
+(organisation, numéro de version, empreinte, instant), enregistrée à la
+préparation du dossier, à chaque note de noms, et chaque fois qu'un travail
+ou une confirmation lui fait recalculer la fiche. Ni les noms ni les
+versions n'entrent dans un dossier, une sortie ou le paquet. Épreuve : les
+noms des approbateurs donnés avant les pas 2 à 10 ne se trouvent dans aucune
+requête faite au nœud, aucun fichier des données de l'agent hors des notes
+et des versions, ni dans le paquet et son archive.
+Tenu par l'exploitant qui déploie l'application.
 
 **EX-7.24** **Mêmes sorties.** Pour chaque pas, l'application produit ce que
 produit l'outil de référence, sous les mêmes formes : le dossier
@@ -3371,6 +3510,19 @@ elle PEUT de même nommer « document à faire signer par le client », puis
 « document signé », le document `demande_signature` d'EX-7.27, le mot
 « demande » désignant, dans la console d'approbation de CT-3, ce qu'un
 approbateur doit décider : ce sont des libellés, la règle ne change pas.
+Complément du 2026-11-25, décision du porteur (outil d'inscription) :
+l'application exige de même, avant l'étape `jeu_approbateurs` du pas 2, la
+confirmation de la fiche de contrôle des adresses des approbateurs d'EX-7.8
+(opération `jeu_approbateurs` ; objet : l'organisation et la version de la
+fiche, désignée par son empreinte, que l'exploitant choisit parmi les
+versions produites, la plus récente d'abord, d'après l'empreinte écrite sur
+la fiche que le client a renvoyée ; pièce : la fiche renvoyée par le client,
+telle que reçue), recueillie, consignée, exigée et consommée comme les
+autres, dans le même registre ; une confirmation d'une version qui n'est pas
+la version courante de la fiche est consignée mais n'autorise rien (l'écran
+la dit « ne vaut plus ») ; la liste des opérations de ce paragraphe
+devient : `jeu_approbateurs`, `approvisionnement`, `approvisionner`,
+`administrer-jeu`. L'outil de référence, qui n'a pas d'écran, ne change pas.
 Tenu par l'application.
 
 **EX-7.27** **Signature des condensés du registre.** L'application ne change
@@ -4557,6 +4709,7 @@ appliqué.
 | Application d'exploitant (révision 0.6) | absente | interface web et agent séparé et privilégié d'EX-7.23 à EX-7.28 ; canal local par prise Unix, compte du pair vérifié (EX-7.28) ; épreuves d'EX-7.24 et d'EX-7.28 | construite à l'étape 6 (`paquets/inscription`) ; à faire (révision 0.7) : sortie `paquet-client` du travail de paquet et codes d'EX-7.30, recherche d'EX-7.21 sur chaque référence employée, travail `administrer-jeu` avec la confirmation d'EX-7.26, reprise d'EX-7.29 |
 | Complément du 2026-11-18, décision du porteur (langage des écrans) : EX-7.25, EX-7.26 | interface écrite pour un technicien ; empreinte de la pièce et instant d'une confirmation saisis à la main | libellés en langage courant ; mention « confirmation hors bande absente » gardée mot pour mot sous une phrase courante ; trois aides de saisie qui remplissent un champ sans rien envoyer (pièce, date et heure, slug tiré au hasard), l'empreinte d'une pièce se calculant aussi hors du formulaire, sans rien remplir ni noter ; une case de relecture des adresses au pas 1 et une recherche des clients, sans nom de champ ni envoi | fait : interface de `paquets/inscription` (`src/web/`) ; les routes, l'agent, les schémas et les vecteurs ne changent pas |
 | Complément du 2026-11-19, décision du porteur (suivi interne des clients) : EX-7.23 | un client ne se reconnaît qu'à son slug ; rien ne dit si son paquet a été remis | nom interne (demandé dès le pas 1, remis par une note une fois le dossier préparé) et remise du paquet, notes internes de l'agent hors du dossier, en ajout seul, qui ne sortent pas de l'application | fait : interface et agent de `paquets/inscription` ; les travaux, les schémas et les vecteurs ne changent pas |
+| Complément du 2026-11-25, décision du porteur (outil d'inscription) : EX-7.8, EX-7.9, EX-7.23, EX-7.26 | aucune durée dite pour un versement, et « le client ne les paie pas » ; adresses des approbateurs relues par l'exploitant seul | durée couverte par un versement, en jours de consommation prévue, et renvoi au contrat du client, sans prix ; fiche de contrôle des adresses produite par l'application, renvoyée confirmée par écrit par le client, consignée comme confirmation hors bande et exigée avant l'étape `jeu_approbateurs` ; frais de l'instance écrits par l'agent dans ses données | fait : interface et agent de `paquets/inscription` ; ce qui part vers le registre public, le dossier, le paquet, les routes existantes et leurs corps, les schémas et les vecteurs ne changent pas |
 | `test/registreCt4.test.js` (révision 0.6) | six exemples annotés, liste fermée | annoter l'exemple de manifeste et l'exemple de gabarit de 7.13, les ajouter à la liste, et charger `paquet-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` dans le registre des schémas du test | fait autrement : les deux exemples portent l'annotation `<!-- exemple: … -->` (celle des exemples de la révision 0.5 de CT-3), que la liste fermée des annotations `<!-- schema: … -->` (EX-A.6) ne lit pas ; un essai de ce fichier les valide contre `paquet-client-v0` chargé avec ces schémas et recalcule les SHA-256 et longueurs du manifeste |
 | `spec/README.md` (révision 0.6) | CT-4 version 0.5 ; table des schémas sans `paquet-client-v0` | CT-4 version 0.6 ; ligne `paquet-client-v0` (CT-4 §7.13), chargé avec `inscription-client-v0`, `configuration-approbation-v0`, `annuaire-approbateurs-v0`, `evenement-v0` et `ticket-v0` | fait |
 | Révision 0.8 (2026-11-14), revue de sécurité interne de l'étape 8 : EX-4.12, EX-6.8, EX-7.1 (`--rpc`), EX-7.3, OP-4, EX-7.25, EX-7.26, EX-7.28, 7.11 (`compte_inattendu`, `provision_excessive`, `nonce_incoherent`), EX-8.4, EX-8.6, EX-8.10, EX-8.14, EX-8.16, 8.7, EX-8.20, EX-8.21, 9.3, CP-4, CP-6, EX-9.3, EX-10.1 (d) | textes de la version 0.7 ; outil de référence, bibliothèque et composant d'ancrage corrigés à l'étape 8 d'après ces constats, module Go de `ct-4` à aligner | texte : fait ; schéma `operations-registre-v0` : `nonce_incoherent` ajouté à `error.code` (extension compatible) ; outil de référence, bibliothèque et composant d'ancrage : faits à l'étape 8 pour `--confirmation`, la provision, l'URI, les index relus, le code du jeu, les deux points, l'écriture après CP-2 à CP-6 (les deux points d'EX-8.14 : composant d'ancrage seul ; outil de référence et agent d'inscription : complément du 2026-11-17, ci-dessous) ; à faire : module Go de `ct-4` (provision, repli de 9.3), vecteurs `ct-4/capture` (fichier présent faux, certificat gonflé), garde d'admission d'EX-10.8 (décision du porteur du 2026-11-16 : livrable dû avant la production, EX-10.8, section 14) ; révision 0.8, complément du 2026-11-15 (décision du porteur) : CP-6, fichiers et index de capture lisibles du groupe (0644 avant le masque), composant d'ancrage aligné ; révision 0.8, demandée après sa première rédaction : EX-A.5 (plancher du module Go : code 1 sans famille, sans cas ou sur un cas absent de l'`INDEX.md`) ; module Go de `ct-4` : provision d'OP-4, nom de capture contrôlé avant lecture et plancher faits (revue de sécurité de l'étape 8, aucune discordance sur les vecteurs régénérés), repli de 9.3 non établi ; révision 0.8, complément du 2026-11-17 : EX-8.14, plancher du nonce (suivant du plus grand nonce des envois de l'expéditeur dont l'issue d'inclusion est écrite ; signé au plancher quand il dépasse de 1 la valeur des points, `nonce_incoherent` au-delà) ; outil de référence (envois et déploiement du jeu, dont l'adresse CREATE dépend du nonce), composant d'ancrage et agent d'inscription : faits ; aucun schéma ni aucun vecteur ne change ; module Go de `ct-4` : à aligner s'il lit le nonce ; révision 0.8, complément du 2026-11-17 (recoupement) : l'outil de référence lisait le nonce au premier point qui répond et l'agent d'inscription prenait la plus grande valeur de tous les points, sans le recoupement d'EX-8.14 que la mention « les deux points » ci-dessus disait fait ; valeur des points précisée dans EX-8.14 ; outil de référence (recoupement sur chaque point de `--rpc`, bibliothèque des conventions) et agent d'inscription (même règle que le composant d'ancrage, déploiement du jeu signé au nonce de son adresse CREATE) : faits ; aucun schéma ni aucun vecteur ne change ; module Go de `ct-4` : à aligner s'il lit le nonce |

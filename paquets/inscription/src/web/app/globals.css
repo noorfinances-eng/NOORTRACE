@@ -2758,3 +2758,52 @@ html[data-theme="clair"] .nt-case input {
     background: none;
   }
 }
+
+/* Fiche de contrôle des adresses des approbateurs (complément du 2026-11-25) : une ligne par approbateur, l'adresse
+   entière, le nom donné par le client ou le trait et la consigne ; à l'impression, la fiche seule, en clair, sans les
+   boutons. */
+.ins-fiche-controle {
+  max-width: 62rem;
+}
+
+.ins-fiche-approbateurs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--nt-e-3);
+  margin: var(--nt-e-4) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ins-fiche-approbateurs > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--nt-e-1);
+  min-width: 0;
+  padding: var(--nt-e-3) 0;
+  border-top: 1px solid var(--nt-bord-doux);
+}
+
+.ins-fiche-libelle {
+  font-weight: 600;
+  color: var(--nt-encre-titre);
+}
+
+.ins-fiche-nom {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--nt-e-2);
+  color: var(--nt-encre-attenuee);
+  font-size: var(--nt-t-s);
+}
+
+.ins-page-fiche-controle [data-actions-fiche] {
+  flex-wrap: wrap;
+}
+
+@media print {
+  .ins-fiche-approbateurs > li {
+    break-inside: avoid;
+  }
+}

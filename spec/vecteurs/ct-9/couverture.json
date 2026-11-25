@@ -22,7 +22,7 @@
       },
       {
         "file": "spec/CT-4-registre.md",
-        "sha256": "9189fb66d7d8767e234ecb8be5731c96906e02d99ddf5f3e22945eb001811ef1"
+        "sha256": "8b96d39ed2a7293745612dfc42e6cd8a0200744215f786f4f35e944b69690870"
       },
       {
         "file": "spec/CT-5-ancrage.md",
@@ -34,16 +34,16 @@
       },
       {
         "file": "spec/CT-7-securite-et-conformite.md",
-        "sha256": "ed48fce7342cbb60dd0c484a4a57fc70e80ebcf20e99ba5ab483bb2a6cc724f9"
+        "sha256": "4fd864a742d74b308d8e2f816d58c926efba098cf4f053d3cb1811615a6846d9"
       },
       {
         "file": "spec/CT-8-deploiement-et-exploitation.md",
-        "sha256": "c1a6439e890b6bb9a67378a88d71c24168f7428d50941e48aadc3b1957519916"
+        "sha256": "39b409c88aebbace399ef4d18bb794f47b946eca80e193764a11260513465b3e"
       }
     ],
     "catalogue": {
       "file": "spec/vecteurs/ct-9/catalogue.json",
-      "sha256": "3511e86e45cd0813fdd72a04a3d62d526d8a83afcc5a146780415a38c4453c06"
+      "sha256": "8cf116459e322466e92d5043d9abf1c02e2b64bc1afeb216bc3635ffa66986fb"
     },
     "threats": {
       "file": "spec/vecteurs/ct-7/menaces.json",
@@ -840,7 +840,7 @@
       },
       {
         "file": "test/inscription-agent-nonce-deploiement.test.js",
-        "sha256": "70e66dffde97dd931f2015164055e94adb9d5ad97a959bc895f969990f62695c"
+        "sha256": "32ccca314a131d63ba8391260b930efcdde15b4b8c7441f91f46543099d016cc"
       },
       {
         "file": "test/inscription-agent-nonce-plancher.test.js",
@@ -848,23 +848,23 @@
       },
       {
         "file": "test/inscription-agent.test.js",
-        "sha256": "87727ef37872221c0417847b94f7a755ad8cbade874725a1265cb455ce855604"
+        "sha256": "53512786dc87a54121b6fc63ded22013dd93065c3554bf4fab1d1c3820630e97"
       },
       {
         "file": "test/inscription-application.test.js",
-        "sha256": "bac3d72b8991723f55a3738473462d1cd8f7b5aa8409986d210c19edd5ae1cd3"
+        "sha256": "db87ff7fe0b1932802eb9a212c5a3bdfa23651c1365b7adb813948783da527e8"
       },
       {
         "file": "test/inscription-paquet.test.js",
-        "sha256": "1c1ecb95e2f9157ddbd471ecf869d1b5614a03cb3dac8ae01f8dc53507545e88"
+        "sha256": "8c93fa91f20924f523f412fa3b790af2ee1ef1d64c897e2782e86ce572c051a0"
       },
       {
         "file": "test/inscription-presentation-chromium.test.js",
-        "sha256": "d6f219b48d6a6def1de6b3ab6183c4b5bee6d8553779be1537d431248618121a"
+        "sha256": "e64c6f44073c5112f36039c629dfc9c92a120fa80974595c03161be005e0e97b"
       },
       {
         "file": "test/inscription-presentation.test.js",
-        "sha256": "58debcc44d5b8ec1a27a8b1325fd17f5a4e2f67e725a92ca29f8abc6133b1ebe"
+        "sha256": "ba22fa6c9e89f58037fbb8a5fd3fcc0d0e4fec5df43d07690d685683e21e57f0"
       },
       {
         "file": "test/inscription-prises-unix.test.js",
@@ -872,7 +872,7 @@
       },
       {
         "file": "test/inscription-reseau.test.js",
-        "sha256": "fae86c1016314ed6b7ee2196e1d4addab60bd66b6e475a6fafac4daa3bdf41ad"
+        "sha256": "119350d3d4904bbd8cd99f78cdee6525309556353fdf03ac199d4bcb5e14ba48"
       },
       {
         "file": "test/inscription-revue.test.js",
@@ -1350,7 +1350,7 @@
   },
   "executable": {
     "total": 302,
-    "titles_checked": 749,
+    "titles_checked": 751,
     "titles_missing": []
   },
   "text_tables": {

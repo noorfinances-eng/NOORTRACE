@@ -33,6 +33,7 @@ import FormulaireTravail from "../../../composants/FormulaireTravail.js";
 import Icone from "../../../composants/Icone.js";
 import Lexique from "../../../composants/Lexique.js";
 import { exigerSession, nature } from "../../../lib/page.mjs";
+import { NOMS_APPROBATEURS } from "../../../lib/parcours.mjs";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,8 @@ export default async function PageNouveau() {
               releve: RELECTURE,
               champs: [
                 { nom: "approbateurs", libelle: "Adresses de signature des approbateurs", type: "liste_adresses", exemple: "0x1111111111111111111111111111111111111111", aide: "Le client vous donne par écrit l'adresse de signature de chacun de ses approbateurs : « 0x » suivi de 40 caractères. Une adresse par ligne ; copiez-les sans les retaper." },
+                // Décisions du 2026-11-25 (CT-4 EX-7.8) : les noms, une note à part, jamais dans le travail ni le dossier.
+                { nom: "noms_approbateurs", libelle: NOMS_APPROBATEURS.libelle, type: "liste_textes", facultatif: true, note: "noms_approbateurs", exemple: NOMS_APPROBATEURS.exemple, aide: NOMS_APPROBATEURS.aide },
                 SEUIL,
                 { nom: "admin_jeu", libelle: "Adresse de signature du responsable des approbateurs", type: "adresse", exemple: "0x2222222222222222222222222222222222222222", aide: "La personne du client qui pourra, plus tard, ajouter ou retirer un approbateur. Le client vous donne son adresse par écrit. C'est toujours une adresse du client, jamais une des nôtres : sur le registre réel, l'outil refuse une de nos adresses." },
               ],

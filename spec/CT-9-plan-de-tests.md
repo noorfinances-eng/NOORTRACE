@@ -181,11 +181,11 @@ les lignes.
 | TC-12 | CT-3 §1 (l. 751) | Périmètre. | Ce document. |
 | TC-13 | CT-3 §1 (l. 780) | EX-, AP-, TK-, SG-, AN-, CS-, vecteurs `ct-3`, épreuve à trois relecteurs, épreuve de lecture de la console. | TR-1 (A.5, trois relecteurs) et TR-2 (A.11, console) en §12 ; EX-, AP-, TK-, SG-, AN-, CS- et vecteurs ct-3 : TU-, TV- (§6, §7). |
 | TC-14 | CT-3 §7.12 (l. 2690) | Rattachement des TK-1 à TK-13 aux tests. | TV- `ct-3/tickets/` et TU- tickets (§6, §7) : `covers` CT-3 TK-1 à TK-13. |
-| TC-15 | CT-4 §0 (l. 115) | Rattachement aux EX-. | §5.1, règle (a). |
-| TC-16 | CT-4 §1 (l. 331) | Périmètre. | Ce document. |
-| TC-17 | CT-4 §1 (l. 359) | EX-, RG-, vecteurs `ct-4`, épreuve d'acceptation sur le réseau de développement. | TR-3 (§7.12, relecteur sur le réseau de développement) en §12 ; EX-, RG- et vecteurs ct-4 : TV- (§7), TE- (§9). |
-| TC-18 | CT-4 §9.2 (l. 3902) | Taille du certificat et de la capture d'une transaction d'un bloc plein de 64 ancres : mesure TM-31 de CT-9 du 2026-11-02 (certificat 32 587 octets ; capture 109 479 octets, 123 761 avec son index) ; bloc plein qui mêle des clôtures non mesuré. | TM-31 (§11, rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json`, ligne `b_cap_bloc_plein` ; index et certificat relevés dans `notes`) ; bloc plein qui mêle des clôtures : TM-44 (§11, rapport de campagne `mesures/rapport-2026-11-13-capture-bloc-plein-clotures.json`). |
-| TC-19 | CT-4 §B.1 (l. 4987) | Point non vérifié 14 de R1 (taille d'un certificat de bloc plein) clos par la mesure TM-31 de CT-9 et son rapport. | TM-31 (§11) : rapport du 2026-11-02, certificat de 32 587 octets pour 64 transactions d'ancre (`notes`). |
+| TC-15 | CT-4 §0 (l. 127) | Rattachement aux EX-. | §5.1, règle (a). |
+| TC-16 | CT-4 §1 (l. 343) | Périmètre. | Ce document. |
+| TC-17 | CT-4 §1 (l. 371) | EX-, RG-, vecteurs `ct-4`, épreuve d'acceptation sur le réseau de développement. | TR-3 (§7.12, relecteur sur le réseau de développement) en §12 ; EX-, RG- et vecteurs ct-4 : TV- (§7), TE- (§9). |
+| TC-18 | CT-4 §9.2 (l. 4054) | Taille du certificat et de la capture d'une transaction d'un bloc plein de 64 ancres : mesure TM-31 de CT-9 du 2026-11-02 (certificat 32 587 octets ; capture 109 479 octets, 123 761 avec son index) ; bloc plein qui mêle des clôtures non mesuré. | TM-31 (§11, rapport `mesures/rapport-2026-11-02-capture-bloc-plein.json`, ligne `b_cap_bloc_plein` ; index et certificat relevés dans `notes`) ; bloc plein qui mêle des clôtures : TM-44 (§11, rapport de campagne `mesures/rapport-2026-11-13-capture-bloc-plein-clotures.json`). |
+| TC-19 | CT-4 §B.1 (l. 5140) | Point non vérifié 14 de R1 (taille d'un certificat de bloc plein) clos par la mesure TM-31 de CT-9 et son rapport. | TM-31 (§11) : rapport du 2026-11-02, certificat de 32 587 octets pour 64 transactions d'ancre (`notes`). |
 | TC-20 | CT-5 §0 (l. 785) | Rattachement aux EX-. | §5.1, règle (a). |
 | TC-21 | CT-5 §1 (l. 900) | Périmètre. | Ce document. |
 | TC-22 | CT-5 §1 (l. 924) | EX-, AN-, vecteurs `ct-5`, épreuve à l'aveugle à deux relecteurs. | TR-4 (relecteur CT-5 et CT-1 §9 à §11) et TR-5 (second relecteur, CT-6 §7) en §12 ; consigne et grille sous spec/vecteurs/ct-9/ (EX-12.7) ; EX-, AN- et vecteurs ct-5 : TV- (§7). |
@@ -1472,7 +1472,7 @@ jamais corrigé à la main) :
   compte, 10.4 dit lesquelles) ;
 - 129 occurrences de « CT-9 » et 129 lignes TC-, sans manque ni orpheline
   (règle (c)) ;
-- 302 entrées exécutables citant 749 titres de tests ou étapes de CI, tous
+- 302 entrées exécutables citant 751 titres de tests ou étapes de CI, tous
   trouvés mot pour mot (règle (d)) ; verdict `reussi`.
 
 Par spécification (identifiants, couverts par une entrée, par une
@@ -1767,7 +1767,7 @@ compte rendu dans le dépôt (R10-NV4) ne valent pas ce test.
 | TE-19 | Service d'approbation de la révision 0.5 de CT-3 : document de configuration, état chiffré, annuaire persistant, liste des tickets | CT-3 EX-7- (1), CT-3 EX-10- (2), CT-3 EX-12- (2), CT-3 EX-13- (1) | — | exécutable : `test/approbation-service-configuration.test.js`, `test/approbation-service-persistance.test.js`, `test/approbation-service-console.test.js` |
 | TE-20 | Serveur de console : document de configuration, adresses, santé et sonde, système d'identité local, sessions, garde d'hôte et relais | CT-3 EX-10- (2), CT-3 EX-13- (5) | MN-47 | exécutable : `test/exploitation-console-serveur-configuration.test.js`, `test/exploitation-console-serveur-http.test.js` |
 | TE-21 | Paquet client produit par l'outil du registre à la fin de l'inscription, puis contrôlé à la réception par le client | CT-4 EX-7- (6) | — | exécutable : `test/registre-paquet-client.test.js`, `test/inscription-paquet.test.js`, `test/inscription-reseau.test.js` |
-| TE-22 | Application d'exploitant : interface web et agent séparé conduisent l'inscription avec les sorties de l'outil de référence | CT-4 EX-7- (7) | — | exécutable : `test/inscription-application.test.js`, `test/inscription-agent.test.js`, `test/registre-paquet-client.test.js`, `test/inscription-reseau.test.js`, `test/inscription-presentation.test.js`, `test/inscription-presentation-chromium.test.js`, `test/theme-commun.test.js`, étape de `ci.yml` |
+| TE-22 | Application d'exploitant : interface web et agent séparé conduisent l'inscription avec les sorties de l'outil de référence | CT-4 EX-7- (9) | — | exécutable : `test/inscription-application.test.js`, `test/inscription-agent.test.js`, `test/registre-paquet-client.test.js`, `test/inscription-reseau.test.js`, `test/inscription-presentation.test.js`, `test/inscription-presentation-chromium.test.js`, `test/theme-commun.test.js`, étape de `ci.yml` |
 | TE-23 | Page de vérification : le vérificateur compilé en WebAssembly rend dans le navigateur le rapport du binaire | CT-6 EX-18- (13) | MN-101 | exécutable : `test/verification-page-construction.test.js`, `test/verification-page-identite.test.js`, `test/verification-page-sources.test.js`, `test/verification-page-chromium.test.js`, `test/exploitation-console-parcours.test.js`, `test/verification-page-presentation.test.js`, `test/theme-commun.test.js`, étape de `ci.yml` |
 | TE-24 | Clé de chaîne vue par le composant d'ancrage, son relais d'inscription et le démon : OP-9 pour l'ancre d'une période, OP-8 « autre organisation », bloc de déploiement transmis, refus pour débit | CT-4 OP- (2), CT-4 EX-8- (1), CT-5 EX-9- (1) | MN-55 | exécutable : `test/ancrage-registre-cle-manifeste.test.js`, `test/ancrage-registre-inscription-organisation.test.js`, `test/ancrage-registre-refus-debit.test.js`, `test/enregistreur-ancrage-registre-deploiement.test.js` |
 | TE-25 | Prises Unix d'au plus 103 octets et lignes de commande strictes des programmes livrés : démon, miroir et connecteur, service d'approbation, serveur de console, agent et interface d'inscription, composant d'ancrage, serveur RFC 3161 interne | CT-2 EX-6- (1), CT-2 EX-18- (1), CT-2 EX-5- (1), CT-3 EX-10- (2), CT-3 EX-12- (1), CT-4 EX-7- (1), CT-5 EX-8- (1) | MN-12 | exécutable : `test/enregistreur-prises-unix.test.js`, `test/approbation-prises-unix.test.js`, `test/exploitation-console-prises-unix.test.js`, `test/inscription-prises-unix.test.js`, `test/ancrage-lignes-de-commande.test.js` |
@@ -3377,7 +3377,7 @@ liste des consignations publiées fait foi de celles qui l'ont été.
   (EX-3.12).
 - **Les épreuves elles-mêmes** : aucune des quinze épreuves TR- n'a été
   conduite pour cette version ; les deux relectures de CT-4 §7.12 (CT-4
-  l. 195-198) n'ont pas de consignation publiée (R10-NV4) et ne comptent pas.
+  l. 207-210) n'ont pas de consignation publiée (R10-NV4) et ne comptent pas.
 - **Une méthode normée de mesure par paire** : EX-11.8 compose des pratiques
   publiées (R11-F29 à R11-F35) ; aucune source primaire dédiée à la latence
   ajoutée par un mandataire n'a été lue (R11-NV5).
@@ -3445,7 +3445,7 @@ du test concerné.
 | PD-16 | CT-2 §16.2 (pas 7), §16.3 | Adopter le rapport de mesure de CT-9 (`$defs/rapport_mesure`) comme forme du rapport de `npm run mesures:ct2`, ou en faire une projection ; garder le code 0 du harnais ; le seuil de régression est PD-3 | proposition |
 | PD-17 | CT-5 §1 (ligne CT-9), §14 (ligne CT-9) | En §14, remplacer l'état « proposition » par le renvoi aux entrées TR-4 et TR-5 ; en §1, ajouter le renvoi aux consignes et grilles de `spec/vecteurs/ct-9/acceptation-ancrage/` et `acceptation-verdict-point/` ; CT-5 ne publie ni consigne ni grille (R10-F8) | proposition |
 | PD-18 | CT-5 §3.3, §4.4 | Écrire la configuration de la porte 2 (`c_T` = 60 s, points chez le principal) comme profil nommé de `ancrage-v0`, pour que TM-42 cite un profil et non une liste de réglages | proposition |
-| PD-19 | CT-4 §7.12 | Consigner les épreuves selon `consignation_rejeu` (TR-3) : les deux relectures passées (CT-4 l. 195-198) n'ont laissé aucune consignation publiable | proposition |
+| PD-19 | CT-4 §7.12 | Consigner les épreuves selon `consignation_rejeu` (TR-3) : les deux relectures passées (CT-4 l. 207-210) n'ont laissé aucune consignation publiable | proposition |
 | PD-20 | CT-8 §8.1, §15 | Renvoyer à CT-9 §11.1 pour le système de référence (« que CT-9 fixe ») ; après la première campagne, inscrire l'instance nommée | proposition |
 | PD-21 | CT-8 §6.2 (IP-5), annexe B | Remplacer « à relever sur chrony 4.6, CT-9 » par le relevé de TM-40 quand il existe | proposition |
 | PD-22 | CT-8 §14 (EX-14.10) | Renvoyer à `consignation_rejeu` de CT-9 §12.1, qui en est la forme lisible par machine | proposition |
@@ -3854,7 +3854,7 @@ ancre (CT-7 annexe A.10).
 | R10-F41 | Familles et homonymies par spécification | tables de la section 0 de CT-2 à CT-8 ; CT-1 §11.4 | 2026-11-01 |
 | R10-F43, R10-F44 | Étapes de la phase 2, cas de démonstration (plan privé ; nom du concurrent non recopié) | document interne, lecture seule | 2026-11-01 |
 | R10-F45 | Porte 2 : neuf critères « continuer si » une fois la ligne de parité scindée, trois lignes « arrêter ou reprendre si » (plan privé, révision du 2 novembre 2026, qui retire le critère de prestataire et sa ligne d'arrêt) | document interne, lecture seule | 2026-11-13 |
-| R10-NV4 | Épreuve CT-4 §7.12 réussie deux fois, sans compte rendu dans le dépôt | CT-4 l. 195-198, EX-7.14 | 2026-11-01 |
+| R10-NV4 | Épreuve CT-4 §7.12 réussie deux fois, sans compte rendu dans le dépôt | CT-4 l. 207-210, EX-7.14 | 2026-11-01 |
 | R10-NV7 | Cas en attente selon l'environnement (Playwright) | `.github/workflows/ci.yml`, jobs `tests` et `console-chromium` | 2026-11-01 |
 | R11-F7 | Aucune dépendance `fast-check`, `sinon`, `@stryker-mutator/*` dans le dépôt | `package.json`, `node_modules/` | 2026-11-01 |
 | R11-F16 à R11-F18 | `fast-check` 4.10.2 ; `seed` `Date.now()` par défaut, `numRuns` 100, `path`, `xorshift128plus` ; rapport `seed`/`path` et rejeu | registre npm ; `https://fast-check.dev/docs/api/interfaces/Parameters/` ; `…/tutorials/quick-start/read-test-reports/` | 2026-11-01 |
@@ -3937,7 +3937,7 @@ Docker Compose (2026-11-02).
 | R11-F37, R11-F38 | reproductibilité : « Results Reproduced », « Functional » | NISO RP-31-2021 (2021-01-28), annexe A | 2026-11-01 |
 | R11-F5, R11-F53 | horloge injectée de CT-5 ; minuteries simulées de Node v22.22.0 | `scripts/lib/ancrage.mjs` l. 1098 ; exécution locale | 2026-11-01 |
 | R11-NV5 | aucune source dédiée à la mesure par paire | — | non vérifié |
-| R10-F4 à R10-F15 | épreuves déléguées : participants, matériel, grilles, verdicts | `spec/CT-3-approbations.md` l. 9711-9747, 10234-10266 ; `CT-4` l. 2944-2977 ; `CT-5` l. 924, 6167 ; `CT-6` l. 2241-2265, 2911-3024 ; `CT-7` l. 4039-4115, 4768-4780 ; `CT-8` l. 8471-8612 | 2026-11-01 |
+| R10-F4 à R10-F15 | épreuves déléguées : participants, matériel, grilles, verdicts | `spec/CT-3-approbations.md` l. 9711-9747, 10234-10266 ; `CT-4` l. 3064-3097 ; `CT-5` l. 924, 6167 ; `CT-6` l. 2241-2265, 2911-3024 ; `CT-7` l. 4039-4115, 4768-4780 ; `CT-8` l. 8471-8612 | 2026-11-01 |
 | R10-F16 à R10-F25 | cibles et méthode : CT-2 §16 ; CT-5 §3.6, §7.2, §15 ; CT-8 EX-7.1, EX-8.1, §9.2, §10, EX-11.5, §12.2, EX-13.1 | `spec/CT-2-enregistreur.md` l. 12230-12323 ; `CT-5` l. 1165-1178, 2548-2569, 6221-6230 ; `CT-8` l. 3145-3154, 3544-3561, 3598-3618, 4217-4242, 4601-4607, 5658-5677, 6315-6335, 6794-6832 | 2026-11-01 |
 | exécution | tailles des lignes du segment de la démonstration | `node -e` et `awk` sur `spec/vecteurs/ct-2/evenements/journal-demo/segment.ndjson` : 9 lignes, 14 293 octets, moyenne 1 588,11 | 2026-11-01 |
 | exécution | durée de vérification d'un dossier (illustration de la méthode) | `chronometrer.mjs`, 3 échauffements, 20 répétitions, horloge monotone : p50 454,14 ms, p99 563,47 ms | 2026-11-01 |

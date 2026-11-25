@@ -8,6 +8,11 @@
 // erreur dit ce qui s'est passé, si quelque chose a été envoyé ou dépensé, et quoi faire ; les codes et les valeurs
 // exactes restent lisibles dans le détail replié des écrans.
 //
+// Complément du 2026-11-25, décision du porteur (outil d'inscription ; CT-4 EX-7.8, EX-7.9, EX-7.26) : la durée que
+// couvre un versement se dit en jours de consommation prévue (`dureeVersement`, phrases fixées par CT-4), avec le
+// renvoi au contrat du client et sans prix ; la fiche de contrôle des adresses des approbateurs est une confirmation
+// du client de plus, attendue avant l'étape 2 (`confirmationsAttendues`, consigne « confirmation à noter »).
+//
 // Module pur, sans import : les pages du serveur et les composants de la page s'en servent, et les essais le
 // chargent seul. Il ne décide rien : l'agent tranche (EX-7.23) ; il dit seulement en mots ce que le dossier porte.
 // Aucune valeur n'est abrégée ni reformulée : le détail technique d'une étape rend les valeurs du dossier telles
@@ -61,6 +66,11 @@ export const PASTILLES = Object.freeze({
   confirmation_rien_a_noter: Object.freeze({ libelle: "Rien à noter", ton: "", icone: "tiret", sens: "Aucune confirmation n'est attendue ni prête à servir : c'est normal, vous n'avez rien à faire." }),
   confirmation_prete: Object.freeze({ libelle: "Prête à servir", ton: "info", icone: "info", sens: "La confirmation autorise une opération, qui n'est pas encore faite." }),
   confirmation_utilisee: Object.freeze({ libelle: "Déjà utilisée", ton: "", icone: "coche", sens: "L'opération qu'elle autorisait est faite : elle ne peut plus servir." }),
+  confirmation_perimee: Object.freeze({ libelle: "Ne vaut plus", ton: "refus", icone: "croix", sens: "La confirmation cite une version de la fiche de contrôle qui n'est plus celle du dossier : elle ne peut plus servir, faites confirmer la fiche actuelle." }),
+  // Fiche de contrôle des adresses des approbateurs (complément du 2026-11-25).
+  fiche_a_confirmer: Object.freeze({ libelle: "À faire confirmer par le client", ton: "attente", icone: "alerte", sens: "Remettez la fiche au client ; il la renvoie confirmée par écrit, et vous notez cette confirmation." }),
+  fiche_confirmee: Object.freeze({ libelle: "Confirmée par le client", ton: "succes", icone: "coche", sens: "La confirmation de la fiche est notée : l'outil peut enregistrer les approbateurs sur le registre public." }),
+  fiche_adresses_enregistrees: Object.freeze({ libelle: "Adresses enregistrées", ton: "succes", icone: "coche", sens: "Les adresses de la fiche sont enregistrées sur le registre public : la fiche n'a plus à être confirmée." }),
 });
 
 /** Le mot, le ton et l'icône d'une pastille de la table, pour l'afficher (son sens reste dans la table). */
@@ -321,7 +331,7 @@ export function avancement(dossier, { remise = null, travaux = [] } = {}) {
  * ligne « Ayez sous la main » (`aPreparer` null). Une consigne qui envoie des écritures porte `quiPaie` (`QUI_PAIE`,
  * la même phrase partout) et, en mode essai (`essai`), `essaiDepense` (`ESSAI_DEPENSE`).
  */
-export function prochaineAction({ slug, dossier, confirmations = [], demandes = [], periodes = [], parties = [], travaux = [], paquet = null, remise = null, essai = false }) {
+export function prochaineAction({ slug, dossier, confirmations = [], demandes = [], periodes = [], parties = [], travaux = [], paquet = null, remise = null, essai = false, fiche = null, frais = null }) {
   const etapes = dossier.steps ?? [];
   const faite = (e) => ETATS_ETAPE[e.state]?.rang === "faite";
   const numero = (e) => etapes.indexOf(e) + 2;
@@ -371,35 +381,57 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
   const conduites = etapes.filter((e) => ETAPES_CONDUITES.includes(e.step));
   const restantes = conduites.filter((e) => !faite(e));
   if (restantes.length > 0) {
-    const cles = versementsSansConfirmation(dossier, confirmations);
-    if (cles.length > 0) {
-      // La confirmation porte sur le versement seul (EX-7.26) ; l'action « Faire les étapes 2 à 5 » l'enchaîne avec
-      // les étapes qui le précèdent, et le service d'inscription refuse de la commencer sans elle.
-      const versement = etapes.find((e) => e.step === "approvisionnement" && e.subject === cles[0]);
+    // Les confirmations du client qu'attendent les étapes 2 à 5 (complément du 2026-11-25 : la fiche de contrôle des
+    // adresses des approbateurs avant l'étape 2 ; EX-7.26 : le versement de l'étape 5), dans l'ordre des étapes
+    // qu'elles débloquent. L'action « Faire les étapes 2 à 5 » les enchaîne, et le service d'inscription refuse de la
+    // commencer tant qu'une confirmation manque, même pour les étapes qui n'en demandent pas.
+    const attendues = confirmationsAttendues({ dossier, confirmations, fiche }).filter((x) => x.operation !== "administrer-jeu");
+    if (attendues.length > 0) {
+      const ficheAttendue = attendues.find((x) => x.operation === "jeu_approbateurs") ?? null;
+      const cles = attendues.filter((x) => x.operation === "approvisionnement").map((x) => x.cle_chaine);
+      const versement = cles.length > 0 ? etapes.find((e) => e.step === "approvisionnement" && e.subject === cles[0]) : null;
       const etapeVersement = versement ? numero(versement) : null;
+      const etapeJeu = numero(etapes.find((e) => e.step === "jeu_approbateurs"));
       const premiere = numero(restantes[0]);
       const derniere = 1 + conduites.length;
       const jusquaConduites = premiere === derniere ? `l'étape ${premiere}` : `les étapes ${premiere} à ${derniere}`;
+      const deux = ficheAttendue && cles.length > 0;
+      const montant = dossier.funding?.amount_wei ?? null;
+      const parJour = dossier.funding?.daily_budget_gas ?? null;
       return {
         code: "consigner_confirmation",
         surTitre,
-        titre: "Notez la confirmation du client",
-        phrase: phraseConfirmationAttendue({ etapeVersement, jusqua: jusquaConduites }),
+        titre: deux ? "Notez les deux confirmations du client" : "Notez la confirmation du client",
+        phrase: phraseConfirmationAttendue({ etapeVersement, jusqua: jusquaConduites, fiche: Boolean(ficheAttendue), versement: cles.length > 0, etapeJeu }),
         credits: CREDITS_EN_CLAIR,
-        versement: VERSEMENT_EN_CLAIR,
-        adresse: ADRESSE_A_CONFIRMER,
-        quiPaieExplique: QUI_PAIE,
-        aPreparer: "Ayez sous la main : le nom et la fonction de la personne qui a confirmé, le moyen employé, la date et l'heure, et la pièce qui en garde la trace (le courrier signé, ou votre compte rendu de l'appel).",
-        apres: "Après le clic : vous arrivez sur l'écran des confirmations de ce client, où vous remplissez le formulaire. Rien n'est envoyé au registre public.",
-        bouton: "Aller noter la confirmation",
+        versement: cles.length > 0 ? VERSEMENT_EN_CLAIR : null,
+        adresse: cles.length > 0 ? ADRESSE_A_CONFIRMER : null,
+        quiPaieExplique: cles.length > 0 ? QUI_PAIE : null,
+        duree: cles.length > 0 ? dureeVersement({ montant, parJour, frais }) : null,
+        repere: cles.length > 0 ? repereEnClair(montant, parJour) : null,
+        pourquoiFiche: ficheAttendue ? POURQUOI_LA_FICHE : null,
+        aPreparer: deux
+          ? "Ayez sous la main : la fiche de contrôle renvoyée par le client, telle que vous l'avez reçue ; pour le versement, le nom et la fonction de la personne qui a confirmé, le moyen employé, la date et l'heure, et la pièce qui en garde la trace (le courrier signé, ou votre compte rendu de l'appel)."
+          : ficheAttendue
+            ? "Ayez sous la main : la fiche de contrôle renvoyée par le client, telle que vous l'avez reçue, et le nom et la fonction de la personne du client qui l'a renvoyée, le moyen employé, la date et l'heure."
+            : "Ayez sous la main : le nom et la fonction de la personne qui a confirmé, le moyen employé, la date et l'heure, et la pièce qui en garde la trace (le courrier signé, ou votre compte rendu de l'appel).",
+        apres: deux
+          ? "Après le clic : vous arrivez sur l'écran des confirmations de ce client, où vous remplissez le formulaire, une confirmation à la fois. Rien n'est envoyé au registre public."
+          : "Après le clic : vous arrivez sur l'écran des confirmations de ce client, où vous remplissez le formulaire. Rien n'est envoyé au registre public.",
+        bouton: deux ? "Aller noter les confirmations" : "Aller noter la confirmation",
         lien: `/clients/${slug}/confirmations`,
-        cles,
+        attendues: attendues.map((x) => ({ ...x, etape: x.operation === "jeu_approbateurs" ? etapeJeu : etapeVersement })),
+        ficheAttendue,
+        cles: cles.length > 0 ? cles : null,
       };
     }
     const dernier = 1 + conduites.length;
     const n = numero(restantes[0]);
     const jusqua = n === dernier ? `l'étape ${n}` : `les étapes ${n} à ${dernier}`;
-    const commun = { code: "conduire_etapes", surTitre, commande: "inscrire-client", premiereEtape: n, derniereEtape: dernier, ...depense };
+    // L'étape 5 reste à faire : la consigne dit la durée que couvre son versement (complément du 2026-11-25).
+    const verseEncore = restantes.some((e) => e.step === "approvisionnement");
+    const duree = verseEncore ? dureeVersement({ montant: dossier.funding?.amount_wei ?? null, parJour: dossier.funding?.daily_budget_gas ?? null, frais }) : null;
+    const commun = { code: "conduire_etapes", surTitre, commande: "inscrire-client", premiereEtape: n, derniereEtape: dernier, duree, ...depense };
     if (restantes.some((e) => e.state === "echec")) {
       return {
         ...commun,
@@ -426,7 +458,11 @@ export function prochaineAction({ slug, dossier, confirmations = [], demandes = 
       ...commun,
       variante: "commencer",
       titre: "Lancez l'inscription sur le registre public",
-      phrase: `La confirmation du client est notée : elle porte sur le versement de l'étape ${dernier}. L'outil peut maintenant enregistrer les approbateurs, les rattacher au client, contrôler le résultat, puis alimenter le compte technique.`,
+      // Complément du 2026-11-25 : l'étape 2 restant à faire, la fiche de contrôle est confirmée elle aussi (sinon la
+      // consigne serait « Notez la confirmation ») ; la phrase dit les deux confirmations notées.
+      phrase: fiche && restantes.some((e) => e.step === "jeu_approbateurs")
+        ? `Les deux confirmations du client sont notées : la fiche de contrôle des adresses de ses approbateurs, pour l'étape 2, et le versement de l'étape ${dernier}. L'outil peut maintenant enregistrer les approbateurs, les rattacher au client, contrôler le résultat, puis alimenter le compte technique.`
+        : `La confirmation du client est notée : elle porte sur le versement de l'étape ${dernier}. L'outil peut maintenant enregistrer les approbateurs, les rattacher au client, contrôler le résultat, puis alimenter le compte technique.`,
       aPreparer: RIEN_A_RASSEMBLER,
       apres: `Après le clic : l'outil enchaîne les étapes 2 à ${dernier} sans vous et la fiche se met à jour. S'il rencontre un refus, il s'arrête, vous dit pourquoi, et reprendra là où il s'est arrêté.`,
       bouton: `Commencer les étapes 2 à ${dernier}`,
@@ -562,6 +598,20 @@ function versementsSansConfirmation(dossier, confirmations) {
     .map((e) => e.subject);
 }
 
+/**
+ * La fiche de contrôle des adresses des approbateurs (complément du 2026-11-25, CT-4 EX-7.8) reste à faire confirmer :
+ * l'étape `jeu_approbateurs` est à faire ou en échec, et aucune confirmation non consommée de l'opération
+ * `jeu_approbateurs` ne cite l'empreinte de la fiche du dossier tel qu'il est (`fiche.sha256`).
+ */
+export function ficheSansConfirmation(dossier, confirmations, fiche) {
+  const e = (dossier.steps ?? []).find((x) => x.step === "jeu_approbateurs");
+  if (!e || (e.state !== "a_faire" && e.state !== "echec")) return false;
+  return !confirmations.some((c) => !c.consommee_par && c.operation === "jeu_approbateurs" && c.objet?.fiche_sha256 === fiche?.sha256);
+}
+
+/** Une confirmation de la fiche qui cite une autre empreinte que la fiche du dossier tel qu'il est : elle ne vaut plus. */
+export const confirmationPerimee = (c, fiche) => !c.consommee_par && c.operation === "jeu_approbateurs" && c.objet?.fiche_sha256 !== fiche?.sha256;
+
 /** Un document préparé (`demande-…`) que l'agent a relayé signé (`demande-<opération>-relayee-…`). */
 const estRelayee = (x) => /^demande-(inscription|administration)-relayee-/.test(x.nom);
 
@@ -573,8 +623,12 @@ const estRelayee = (x) => /^demande-(inscription|administration)-relayee-/.test(
  * servir pour son empreinte. Liste vide : aucune confirmation n'est attendue (un nouveau versement, après
  * l'inscription, n'est pas prévisible d'ici ; il reste possible de le noter). L'agent refait son contrôle (EX-7.26).
  */
-export function confirmationsAttendues({ dossier, confirmations = [], demandes = [] }) {
-  const l = versementsSansConfirmation(dossier, confirmations).map((cle) => ({ operation: "approvisionnement", cle_chaine: cle }));
+export function confirmationsAttendues({ dossier, confirmations = [], demandes = [], fiche = null }) {
+  const l = [];
+  // Complément du 2026-11-25 (CT-4 EX-7.8) : avant l'étape 2, la fiche de contrôle du dossier tel qu'il est, renvoyée
+  // confirmée par le client ; une confirmation qui cite une autre empreinte de fiche ne vaut plus.
+  if (fiche && ficheSansConfirmation(dossier, confirmations, fiche)) l.push({ operation: "jeu_approbateurs", fiche_sha256: fiche.sha256 });
+  for (const cle of versementsSansConfirmation(dossier, confirmations)) l.push({ operation: "approvisionnement", cle_chaine: cle });
   const relayees = new Set(demandes.filter(estRelayee).map((x) => x.document?.digest));
   for (const x of demandes) {
     if (!x.nom.startsWith("demande-administration-") || estRelayee(x)) continue;
@@ -595,9 +649,11 @@ export function confirmationsAttendues({ dossier, confirmations = [], demandes =
  * l'exploitant vers ces expéditeurs, et ne se vend ni ne s'achète. Ce que la personne envoie d'ici part des comptes
  * de l'exploitant (déployeur, administrateur du registre, trésorerie, relayeur : EX-7.3), sauf l'envoi par un compte
  * qu'une référence désigne, réservé aux essais ; une preuve de date part de la clé de chaîne de l'enregistreur
- * (CT-4 8.1). Aucune somme d'argent, aucun équivalent, aucune durée.
+ * (CT-4 8.1). Aucune somme d'argent, aucun équivalent, aucune durée. Complément du 2026-11-25 : la phrase ne dit
+ * plus que le client ne paie rien pour ces crédits ; ce qu'il paie relève de son contrat, et c'est la phrase de la
+ * durée (`dureeVersement`) qui le dit, là où un versement s'affiche.
  */
-export const QUI_PAIE = "Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société ; le client ne les paie pas.";
+export const QUI_PAIE = "Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société.";
 /**
  * Ce qu'une écriture consomme en mode essai (registre de nature « developpement ») : des crédits d'écriture, comme
  * sur le registre réel (CT-4 4.5 : aucune exemption), mais ceux du registre d'essai.
@@ -608,21 +664,57 @@ export const ESSAI_DEPENSE = "En mode essai, ces écritures consomment aussi des
  * 2026-11-18, quatrième lecture des écrans). Chaque membre de phrase vient de CT-4 : ils n'ont pas d'autre usage
  * que payer les écritures, et ne se vendent, ne s'achètent ni ne s'échangent (EX-4.16) ; toute écriture en consomme,
  * sans exemption (4.5, EX-4.15) ; ils ne circulent que de la trésorerie de l'exploitant, notre société, vers un compte
- * qui en reçoit (EX-4.16, EX-4.19). Ne pouvant être vendus, ils ne sont pas payés par le client. Aucune durée n'est
- * dite : la provision `P_k = provision_days × b_k + gas_limit` dépend de réglages du manifeste du registre que
- * l'interface n'affiche pas, et CT-4 note lui-même que l'exemple de 30 jours ne compte pas les preuves de date des
- * points de contrôle (EX-4.19, note de la révision 0.3). Sixième lecture : qui paie se dit par `QUI_PAIE`, la même
- * phrase que sur les écrans qui l'affichent sans rien ouvrir.
+ * qui en reçoit (EX-4.16, EX-4.19). Sixième lecture : qui paie se dit par `QUI_PAIE`, la même phrase que sur les
+ * écrans qui l'affichent sans rien ouvrir. Complément du 2026-11-25 : la durée que couvre un versement se dit à part,
+ * là où le versement s'affiche (`dureeVersement`), avec le renvoi au contrat du client.
  */
 export const CREDITS_EN_CLAIR = `Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. ${QUI_PAIE}`;
 /** Ce que permettent ceux du versement sur le compte technique : les écritures que la clé de chaîne envoie elle-même (CT-4 8.1, 8.2). */
 export const VERSEMENT_EN_CLAIR = "Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.";
 /**
- * D'où vient le montant du versement (CT-4 EX-4.19, 7.6 pas 4) : il est calculé à partir du budget journalier du
- * dossier (`daily_budget_gas`, dit « consommation prévue », à 1 crédit par unité, EX-4.15), et l'outil ne verse que
- * ce qui manque au compte (`P_k` moins le solde).
+ * La durée que couvre un versement (complément du 2026-11-25, décision du porteur ; CT-4 EX-7.9, phrases fixées mot
+ * pour mot) : N jours de la consommation prévue par jour, N étant `provision_days` des frais que l'agent applique
+ * (`frais`, lus dans ses données), plus une réserve pour un envoi (`gas_limit`) ; une prévision ; et ce que le client
+ * paie pour ces crédits relève de son contrat. Quatre cas :
+ * - le versement de l'inscription, dont le montant du dossier vaut `provision_days × b + gas_limit` : « couvre N jours » ;
+ * - un versement de complément (`complement`), avant qu'il parte : « complète le compte jusqu'à N jours … ne verse
+ *   que ce qui manque » ; sans les frais, l'outil ne connaît pas N et le dit ;
+ * - un montant versé (`verse`), ou un montant qui n'est pas `provision_days × b + gas_limit` : ce qu'il représente,
+ *   ⌊montant / b⌋ jours, sans rien inventer depuis `provision_days` ;
+ * - sans consommation prévue par jour (`parJour` absent ou nul) : aucun nombre de jours.
+ * Aucun prix, aucune devise, aucun montant en monnaie, jamais.
  */
-export const montantEnClair = (parJour) => `Le montant est calculé à partir de la consommation prévue pour son enregistreur, réglée à ${nombreLisible(parJour)} crédits par jour ; si le compte en a déjà, l'outil ne verse que la différence.`;
+export const CONTRAT = "Ce que le client paie pour ces crédits est fixé par son contrat, pas par cet outil.";
+const PREVISION = "C'est une prévision : une journée peut consommer plus ou moins.";
+export const DUREE_NON_CALCULABLE = `La durée que couvre ce versement n'est pas calculable : la consommation prévue par jour n'est pas renseignée. ${CONTRAT}`;
+export const DUREE_REGLAGE_INCONNU = `Le nombre de jours que ce versement couvrira dépend d'un réglage du registre public que l'outil ne connaît pas pour l'instant. ${CONTRAT}`;
+const entierDecimal = (v) => (/^[0-9]+$/.test(String(v ?? "")) ? BigInt(String(v)) : null);
+const jours = (n) => `${nombreLisible(String(n))} ${n === 1n || n === 1 ? "jour" : "jours"}`;
+export function dureeVersement({ montant = null, parJour = null, frais = null, complement = false, verse = false } = {}) {
+  const b = entierDecimal(parJour);
+  if (b === null || b < 1n) return DUREE_NON_CALCULABLE;
+  const bLisible = `${nombreLisible(String(b))} crédits d'écriture`;
+  const m = entierDecimal(montant);
+  const f = frais && Number.isSafeInteger(frais.provision_days) && Number.isSafeInteger(frais.gas_limit) ? frais : null;
+  if (verse && m !== null) return `Le versement de ${nombreLisible(String(m))} crédits d'écriture représente ${jours(m / b)} de la consommation prévue par jour, ${bLisible}. ${PREVISION} ${CONTRAT}`;
+  if (complement) {
+    if (!f) return DUREE_REGLAGE_INCONNU;
+    return `Ce versement complète le compte jusqu'à ${jours(BigInt(f.provision_days))} de la consommation prévue par jour, ${bLisible}, plus une réserve pour un envoi : il ne verse que ce qui manque. ${PREVISION} ${CONTRAT}`;
+  }
+  if (f && (m === null || m === BigInt(f.provision_days) * b + BigInt(f.gas_limit))) return `Ce versement couvre ${jours(BigInt(f.provision_days))} de la consommation prévue par jour, ${bLisible}, plus une réserve pour un envoi. ${PREVISION} ${CONTRAT}`;
+  if (m === null) return DUREE_REGLAGE_INCONNU;
+  return `Le versement de ${nombreLisible(String(m))} crédits d'écriture représente ${jours(m / b)} de la consommation prévue par jour, ${bLisible}. ${PREVISION} ${CONTRAT}`;
+}
+/** Pourquoi une fiche de contrôle (CT-4 EX-7.8) : ce que la personne sait répondre au client. */
+export const POURQUOI_LA_FICHE = "L'outil ne peut pas voir qu'une adresse est fausse : seul chaque approbateur reconnaît la sienne, dans son propre portefeuille. Avec une adresse fausse, une autre personne que prévu pourrait approuver à la place d'un approbateur du client ; c'est pourquoi les adresses ne partent vers le registre public qu'une fois la fiche renvoyée confirmée.";
+/** Les noms des approbateurs sur la fiche (décisions du 2026-11-25) : ce que l'écran en dit, là où on les saisit. */
+export const NOMS_APPROBATEURS = Object.freeze({
+  libelle: "Noms des approbateurs",
+  aide: "Le nom de chaque approbateur, tel que le client vous l'a écrit, un nom par ligne, dans le même ordre que les adresses ci-dessus ; laissez une ligne vide pour un nom que vous n'avez pas. Ces noms ne servent qu'à la fiche de contrôle, que chaque approbateur relit : ils ne partent jamais vers le registre public ni dans le paquet du client. Vous pourrez les changer sur la page de la fiche de contrôle tant que les approbateurs ne sont pas enregistrés ; la fiche change alors, et le client la confirme de nouveau.",
+  exemple: "Camille Durand",
+});
+/** La pièce d'une confirmation de la fiche : la fiche renvoyée telle que reçue, dont l'empreinte diffère de celle de la fiche produite dès qu'elle est signée ou annotée. */
+export const PIECE_FICHE = "La pièce est la fiche telle que le client vous l'a renvoyée. S'il l'a signée ou annotée, son empreinte n'est pas celle de la fiche que l'outil a produite : c'est normal, c'est celle de la fiche renvoyée que vous notez.";
 /** Le premier écrit d'un écran qui nomme les crédits d'écriture, d'après son texte (sert à placer `CREDITS_EN_CLAIR`). */
 export const nommeLesCredits = (texte) => /crédits? d'écriture/i.test(String(texte ?? ""));
 /** Titre du bloc replié qui porte `CREDITS_EN_CLAIR`, une fois par écran au plus (cinquième lecture des écrans). */
@@ -648,7 +740,8 @@ export const repereEnClair = (montant, parJour = null) => {
   const n = paires(montant);
   if (n === null || n < 1n) return null;
   const j = paires(parJour);
-  const jour = j !== null && j >= 1n ? ` La consommation prévue, ${nombreLisible(parJour)} crédits par jour, paie chaque jour au moins ${nombreLisible(j)} preuves de date suivies chacune de leur clôture.` : "";
+  // Complément du 2026-11-25 : la phrase de la durée donne déjà la consommation prévue en chiffres ; le repère ne la redit pas.
+  const jour = j !== null && j >= 1n ? ` La consommation prévue par jour paie au moins ${nombreLisible(j)} preuves de date suivies chacune de leur clôture.` : "";
   return `Repère : d'ordinaire, une preuve de date consomme au plus 100 000 crédits et une clôture de période au plus 350 000.${jour}`;
 };
 /** « Rien à rassembler » : la ligne « Ayez sous la main » d'une consigne qui ne demande rien (cinquième lecture des écrans). */
@@ -659,7 +752,12 @@ export const RIEN_A_RASSEMBLER = "Vous n'avez rien à rassembler avant de clique
  * d'inscription refuse de la commencer tant que la confirmation manque (`confirmationManquante`, admission du
  * travail `inscrire-client`). D'où l'ordre : la confirmation avant l'étape 2.
  */
-export function phraseConfirmationAttendue({ etapeVersement = 5, jusqua = "les étapes 2 à 5" } = {}) {
+export function phraseConfirmationAttendue({ etapeVersement = 5, jusqua = "les étapes 2 à 5", fiche = false, versement = true, etapeJeu = 2 } = {}) {
+  // Complément du 2026-11-25 : la fiche de contrôle des adresses des approbateurs, attendue avant l'étape 2, se dit
+  // d'abord, dans l'ordre des étapes que les confirmations débloquent.
+  const laFiche = `L'étape ${etapeJeu} enregistre les approbateurs du client sur le registre public : le client doit d'abord renvoyer, confirmée par écrit, la fiche de contrôle de leurs adresses, que cet outil lui prépare.`;
+  if (fiche && versement) return `Deux confirmations du client sont à noter ici, dans l'ordre des étapes qu'elles débloquent. ${laFiche} L'étape ${etapeVersement ?? 5} verse des crédits d'écriture sur le compte technique de l'enregistreur du client : le client doit aussi confirmer ce versement par un autre moyen que cet outil, un appel au numéro de son contrat, un courrier signé. L'outil fait ${jusqua} en une seule action : tant que ces deux confirmations ne sont pas notées ici, il ne la commence pas.`;
+  if (fiche) return `Une confirmation du client reste à noter ici. ${laFiche} La confirmation du versement de l'étape 5 est déjà notée. L'outil fait ${jusqua} en une seule action : tant que la fiche n'est pas notée ici, il ne la commence pas.`;
   return `L'étape ${etapeVersement ?? 5} verse des crédits d'écriture sur le compte technique de l'enregistreur du client. Le client doit d'abord confirmer ce versement par un autre moyen que cet outil : un appel au numéro de son contrat, un courrier signé. L'outil fait ${jusqua} en une seule action : tant que cette confirmation n'est pas notée ici, il ne la commence pas, même pour les étapes qui ne versent rien.`;
 }
 /**
@@ -790,6 +888,8 @@ const ERREURS = Object.freeze({
   paquet_inconnu: E("Ce paquet n'est pas l'un de ceux que l'outil a produits pour ce client : la remise n'est pas notée.", NOTE_NON_ECRITE, "Rechargez l'écran du paquet, puis notez la remise du paquet qu'il affiche."),
   remise_deja_notee: E("La remise de ce paquet est déjà notée.", NOTE_NON_ECRITE, "Rechargez l'écran du paquet : il dit quand et par qui. Si cette note est fausse, corrigez-la avec « Corriger cette note »."),
   remise_inconnue: E("Cette remise n'est pas notée pour ce client, ou elle est déjà corrigée.", NOTE_NON_ECRITE, "Rechargez l'écran du paquet : il montre chaque remise notée et sa correction."),
+  // Noms des approbateurs de la fiche de contrôle (décisions du 2026-11-25).
+  fiche_figee: E("Les approbateurs de ce client sont déjà enregistrés sur le registre public : les noms de la fiche de contrôle ne se changent plus.", NOTE_NON_ECRITE, "Rien à faire : la fiche a servi. Pour changer la liste des approbateurs, c'est « Préparer un changement des approbateurs », sur la fiche du client."),
   corps_trop_grand: E("Ce que vous envoyez est trop volumineux pour l'outil.", RIEN, "Vérifiez que vous avez collé le bon document, et lui seul, puis recommencez."),
   longueur_exigee: E("L'envoi n'a pas la forme que l'outil attend.", RIEN, `Rechargez la page, puis recommencez. ${PREVENIR}`),
   origine_refusee: E("L'outil a refusé cette action, qui ne vient pas de son adresse habituelle.", RIEN, "Ouvrez l'outil par son adresse habituelle, reconnectez-vous, puis recommencez."),
@@ -891,10 +991,12 @@ const SAISIES = Object.freeze({
   montant: "Écrivez un nombre entier plus grand que zéro, en chiffres, sans espace ni point.",
   reference_cle: "Ce n'est pas une référence. Une référence commence par « fichier: » ou « alias: » ; ce n'est jamais une clé secrète. Si l'équipe technique ne vous en a pas donné, laissez ce champ vide.",
   texte: "Ce texte est refusé : il est vide, trop long, ou il ressemble à une clé secrète. Écrivez un texte court, en mots.",
+  liste_textes: "Une des lignes est refusée : elle est trop longue, ou elle ressemble à une clé secrète. Écrivez un nom court par ligne, en mots, dans l'ordre des adresses ; laissez la ligne vide pour un nom que vous n'avez pas.",
   chemin: "Ce n'est pas un nom de fichier admis. Gardez le choix proposé, ou laissez le champ vide.",
   document: "Ce document est illisible. Collez-le en entier, de la première accolade « { » à la dernière « } », sans rien y changer.",
   liste_documents: "Ces fiches sont illisibles. Collez chaque fiche dans sa propre zone, en entier, sans rien y changer.",
   horodatage: "La date et l'heure n'ont pas la forme attendue. Servez-vous du champ « Date et heure » ou du bouton « Maintenant », qui l'écrivent pour vous.",
+  version_fiche: "Aucune version choisie. Choisissez, dans la liste, la version dont l'empreinte est écrite au bas de la fiche que le client vous a renvoyée, après l'avoir comparée au document.",
 });
 
 /** Phrase d'une saisie refusée, d'après le type déclaré du champ. */
@@ -939,6 +1041,7 @@ export const OPERATIONS_JEU = Object.freeze({
 
 /** Opérations qu'une confirmation du client autorise (INTERFACES.md 3.5) : nom courant. */
 export const OPERATIONS_CONFIRMATION = Object.freeze({
+  jeu_approbateurs: "Adresses des approbateurs : fiche de contrôle renvoyée (étape 2 de l'inscription)",
   approvisionnement: "Premier versement sur le compte technique (étape 5 de l'inscription)",
   approvisionner: "Nouveau versement sur le compte technique (client déjà inscrit)",
   "administrer-jeu": "Changement de la liste des approbateurs",
@@ -958,7 +1061,8 @@ export const LEXIQUE = Object.freeze([
   { terme: "preuve de date", explication: "une preuve, déposée sur le registre public, que le journal existait à cette date" },
   { terme: "empreinte", explication: "une suite de caractères qui identifie un document sans erreur possible : si un seul caractère du document change, l'empreinte change" },
   { terme: "compte technique", explication: "le compte de l'enregistreur du client sur le registre public : c'est lui qui paie ses écritures" },
-  { terme: "crédits d'écriture", explication: "ce qui paie chaque écriture sur le registre public ; ce n'est pas de l'argent : notre société les fournit, ils ne s'achètent ni ne se vendent, et le client ne les paie pas" },
+  { terme: "crédits d'écriture", explication: "ce qui paie chaque écriture sur le registre public ; ce n'est pas de l'argent : notre société les fournit, ils ne s'achètent ni ne se vendent ; ce que le client paie pour eux est fixé par son contrat" },
+  { terme: "fiche de contrôle des adresses", explication: "la fiche que l'outil prépare avec les adresses de signature des approbateurs du client, que chaque approbateur compare à son propre portefeuille, et que le client nous renvoie confirmée par écrit avant que les adresses partent vers le registre public" },
   { terme: "service d'inscription", explication: "le programme de notre serveur qui exécute les actions que vous lancez d'ici ; lui seul écrit sur le registre public" },
   { terme: "paquet du client", explication: "l'ensemble des fichiers que nous remettons au client à la fin de l'inscription" },
   { terme: "nom interne", explication: "le nom que notre équipe donne à un client pour le reconnaître dans cet outil ; seule notre équipe le voit : il ne part jamais vers le registre public ni dans le paquet du client" },

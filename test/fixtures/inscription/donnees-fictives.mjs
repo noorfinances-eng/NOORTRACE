@@ -19,6 +19,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { empreinteFiche } from "../../../paquets/inscription/src/commun/fiche-controle.mjs";
 
 const h32 = (nom) => "0x" + crypto.createHash("sha256").update(`noortrace/essai/presentation/${nom}`).digest("hex");
 const adr = (nom) => h32(nom).slice(0, 42);
@@ -142,6 +143,10 @@ export function ecrireDonneesFictives(donnees) {
   const consommation = (c, t) => ({ consommation: c.id, travail: t.id, org_id: c.objet.org_id, cle_chaine: c.objet.cle_chaine, instant: CONSOMMATION });
   const lignes = [confirmations[0], consommation(confirmations[0], travaux[1]), confirmations[1], confirmations[2], confirmations[3], consommation(confirmations[3], travaux[10])];
   fs.writeFileSync(path.join(donnees, "confirmations.ndjson"), lignes.map((l) => JSON.stringify(l)).join("\n") + "\n");
+  // La fiche de contrôle de chaque client, version 1, que l'agent enregistre à la préparation du dossier (décisions du 2026-11-25).
+  fs.writeFileSync(path.join(donnees, "fiches-controle.ndjson"), Object.values(clients).map((c) => JSON.stringify({ org_id: c.dossier.organisation.org_id, version: 1, fiche_sha256: empreinteFiche(c.dossier), produite_a: "2026-11-12T07:55:00.000Z" })).join("\n") + "\n");
+  // Les frais de l'instance que l'agent écrit à son démarrage (décisions du 2026-11-25 ; défauts de CT-4 EX-7.2).
+  fs.writeFileSync(path.join(donnees, "frais-instance.json"), JSON.stringify({ version: 0, provision_days: 30, refill_below_days: 7, gas_limit: 3000000, max_daily_budget_gas: null, manifest_sha256: null }, null, 2) + "\n");
   return { clients, confirmations, travaux, piece, manifestePaquet, demande };
 }
 
@@ -153,6 +158,10 @@ export function ecrireDonneesFictives(donnees) {
  * `histoire` (seconde lecture des écrans) : écrit en outre ce qu'un agent aurait écrit pour arriver à cet état : le
  * travail de préparation, à l'instant de `prepared_at` ; dès qu'une des étapes 2 à 5 a été tentée, le travail qui
  * les conduit et la confirmation du client que l'agent exige avant de l'admettre, consommée si le versement est fait.
+ *
+ * Décisions du 2026-11-25 (CT-4 EX-7.8) : avec `confirmation`, tant que l'étape 2 reste à faire, la fiche de contrôle
+ * des adresses des approbateurs est aussi confirmée (opération `jeu_approbateurs`, empreinte de la fiche du dossier),
+ * prête à servir ; un client dont l'étape 2 a été tentée (dates du 12 novembre, avant la règle) n'en a pas.
  */
 export function ajouterClientFictif(donnees, slug, etats, { confirmation = false, travaux = [], erreur = undefined, histoire = false } = {}) {
   const dossier = dossierFictif(slug, etats, erreur ? { erreur } : undefined);
@@ -161,6 +170,10 @@ export function ajouterClientFictif(donnees, slug, etats, { confirmation = false
   fs.writeFileSync(path.join(dir, "dossier.json"), JSON.stringify(dossier, null, 2) + "\n");
   const registre = path.join(donnees, "confirmations.ndjson");
   const avant = fs.existsSync(registre) ? fs.readFileSync(registre, "utf8") : null;
+  // La version 1 de la fiche de contrôle, enregistrée par l'agent à la préparation (décisions du 2026-11-25).
+  const fiches = path.join(donnees, "fiches-controle.ndjson");
+  const fichesAvant = fs.existsSync(fiches) ? fs.readFileSync(fiches, "utf8") : null;
+  fs.appendFileSync(fiches, JSON.stringify({ org_id: dossier.organisation.org_id, version: 1, fiche_sha256: empreinteFiche(dossier), produite_a: dossier.prepared_at }) + "\n");
   const conduites = etats.slice(0, 4);
   const tentee = conduites.some((e) => e !== "a_faire");
   if (histoire) {
@@ -183,6 +196,10 @@ export function ajouterClientFictif(donnees, slug, etats, { confirmation = false
   if (confirmation) {
     const c = { id: `cnf-${crypto.createHash("sha256").update(slug).digest("hex").slice(0, 32)}`, operation: "approvisionnement", objet: { org_id: dossier.organisation.org_id, cle_chaine: dossier.recorders[0].chain_key }, personne_client: "Camille Durand (personne fictive)", canal: "appel au numéro du contrat", instant: "2026-11-12T07:58:00.000Z", piece_sha256: h32(`piece/${slug}`), exploitant: "exploitant operateur-1", recu_a: "2026-11-12T08:00:00.000Z" };
     fs.appendFileSync(registre, JSON.stringify(c) + "\n");
+    if (etats[0] === "a_faire") {
+      const f = { id: `cnf-${crypto.createHash("sha256").update(`${slug}/fiche`).digest("hex").slice(0, 32)}`, operation: "jeu_approbateurs", objet: { org_id: dossier.organisation.org_id, fiche_sha256: empreinteFiche(dossier) }, personne_client: "Camille Durand (personne fictive)", canal: "fiche de contrôle renvoyée signée, par courrier", instant: "2026-11-12T07:57:00.000Z", piece_sha256: h32(`piece/fiche/${slug}`), exploitant: "exploitant operateur-1", recu_a: "2026-11-12T07:59:00.000Z" };
+      fs.appendFileSync(registre, JSON.stringify(f) + "\n");
+    }
     if (histoire?.versee) fs.appendFileSync(registre, JSON.stringify({ consommation: c.id, travail: histoire.conduite.id, org_id: c.objet.org_id, cle_chaine: c.objet.cle_chaine, instant: CONSOMMATION }) + "\n");
   }
   fs.mkdirSync(path.join(donnees, "travaux"), { recursive: true });
@@ -200,6 +217,8 @@ export function ajouterClientFictif(donnees, slug, etats, { confirmation = false
         if (avant === null) fs.rmSync(registre, { force: true });
         else fs.writeFileSync(registre, avant);
       }
+      if (fichesAvant === null) fs.rmSync(fiches, { force: true });
+      else fs.writeFileSync(fiches, fichesAvant);
     },
   };
 }

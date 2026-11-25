@@ -13,6 +13,8 @@ import { spawn } from "node:child_process";
 import { HDNodeWallet } from "ethers";
 import { clePubliqueEd25519, ecrireHorodatage, octetsVersHex, sha256, signerEip191, utf8, hexVersOctets } from "@noortrace/noyau";
 import { remettre } from "../../../paquets/inscription/src/agent/client.mjs";
+import { empreinteFiche, texteFiche } from "../../../paquets/inscription/src/commun/fiche-controle.mjs";
+import { etatNotes } from "../../../paquets/inscription/src/commun/notes.mjs";
 import { RACINE, MNEMONIQUE } from "./reseau-essai.mjs";
 import { creerRepertoireTemporaire } from "../../aides/temporaires.mjs";
 
@@ -197,6 +199,22 @@ export async function demarrerAgentEssai({ manifeste, rpc, comptes = { exploitan
     remettre: (requete) => remettre(config.prise, requete),
     travail: (exploitant, travail) => remettre(config.prise, { version: 0, kind: "travail", exploitant, travail }),
     confirmation: (exploitant, confirmation) => remettre(config.prise, { version: 0, kind: "confirmation", exploitant, confirmation }),
+    /**
+     * Confirme la fiche de contrôle des adresses des approbateurs d'un client (CT-4 EX-7.8, décisions du 2026-11-25) :
+     * la fiche est recalculée depuis le dossier de l'agent, et la pièce est la fiche renvoyée telle quelle (son SHA-256
+     * est donc l'empreinte de la fiche) ; rend `{ reponse, fiche_sha256, texte }`.
+     */
+    async confirmerFiche(exploitant, slug, { piece = null, canal = "fiche renvoyée signée, par courrier" } = {}) {
+      const dossier = JSON.parse(fs.readFileSync(path.join(donnees, "clients", slug, "dossier.json"), "utf8"));
+      // Les noms des approbateurs notés entrent dans la fiche (décisions du 2026-11-25).
+      let lignes = [];
+      try { lignes = fs.readFileSync(path.join(donnees, "notes-internes.ndjson"), "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)); } catch { lignes = []; }
+      const noms = etatNotes(lignes, dossier.organisation.org_id).nomsApprobateurs;
+      const fiche_sha256 = empreinteFiche(dossier, noms);
+      const confirmation = { operation: "jeu_approbateurs", objet: { org_id: dossier.organisation.org_id, fiche_sha256 }, personne_client: "Responsable de l'essai", canal, instant: "2026-11-25T09:00:00.000Z", piece_sha256: piece ?? fiche_sha256 };
+      const reponse = await remettre(config.prise, { version: 0, kind: "confirmation", exploitant, confirmation });
+      return { reponse, fiche_sha256, texte: texteFiche(dossier, noms), confirmation };
+    },
     async attendre(id, delaiMs = 120000) {
       const debut = Date.now();
       for (;;) {

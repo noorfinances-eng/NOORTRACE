@@ -46,6 +46,17 @@
 //   champ, jamais cochée d'avance, envoyée à aucune route ; tant qu'elle n'est pas cochée, la page refuse de remettre
 //   le travail, comme une saisie refusée. La case ne prouve rien : elle dit que la personne déclare avoir fait la
 //   relecture, que l'outil ne peut pas vérifier (CT-4 EX-7.8).
+//
+// Décisions du porteur du 2026-11-25 (CT-4 EX-7.8) : un champ `note: "noms_approbateurs"` (liste de textes, un nom par
+// ligne dans l'ordre des adresses, facultatif) se contrôle avec les autres mais n'entre jamais dans les paramètres du
+// travail ; une fois le dossier préparé « réussi », la page remet les noms par POST /api/clients/<slug>/notes, au corps
+// `{ sorte: "noms_approbateurs", noms: [{ adresse, nom }] }`, chaque nom apparié à l'adresse de la même ligne.
+//
+// Décisions du porteur du 2026-11-25 (CT-4 EX-7.9) : un formulaire qui verse (`duree` : la consommation prévue du
+// dossier, les frais que l'agent applique, le champ où une autre consommation peut s'écrire) dit, avant le clic, la
+// durée que le versement complétera, d'après la valeur écrite dans le champ ou, à défaut, celle du dossier, et, le
+// versement fait, ce que le montant versé représente (`dureeVersement`, phrases fixées par CT-4). Rien de ce qui est
+// envoyé ne change.
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -54,12 +65,12 @@ import CreditsEnClair from "./CreditsEnClair.js";
 import Icone from "./Icone.js";
 import Pastille from "./Pastille.js";
 import { NOM_INTERNE_MAX } from "../../commun/notes.mjs";
-import { CHAMP_VIDE, etatTravail, explicationErreur, explicationFiche, explicationSaisie, libelleCommande } from "../lib/parcours.mjs";
+import { CHAMP_VIDE, dureeVersement, etatTravail, explicationErreur, explicationFiche, explicationSaisie, libelleCommande } from "../lib/parcours.mjs";
 
 const ATTENTE_MS = 1000;
 /** Types saisis en chasse fixe : identifiants, adresses, empreintes, références, documents. */
 const TYPES_FIXES = new Set(["adresse", "liste_adresses", "hachage", "cle_publique_ed25519", "slug", "nom_journal", "liste_noms_journal", "reference_cle", "chemin", "document", "liste_documents", "origine", "identite", "liste_identites", "montant"]);
-const ZONES = ["liste_adresses", "liste_noms_journal", "document", "liste_documents", "liste_identites"];
+const ZONES = ["liste_adresses", "liste_noms_journal", "document", "liste_documents", "liste_identites", "liste_textes"];
 /** Nombre de fiches d'enregistreur au plus (`parametres.cles_enregistreur`, 16 éléments : src/commun/travaux.mjs). */
 const FICHES_MAX = 16;
 
@@ -185,12 +196,18 @@ export function Refus({ code, message, slug = null, titre = null, verification =
   );
 }
 
-export default function FormulaireTravail({ commande, slug, champs = [], sections = null, fixe = {}, bouton = "Lancer l'action", sousBouton = null, principal = true, note = null, classe = "" }) {
+export default function FormulaireTravail({ commande, slug, champs = [], sections = null, fixe = {}, bouton = "Lancer l'action", sousBouton = null, principal = true, note = null, classe = "", duree = null }) {
   const prefixe = useId();
   const router = useRouter();
   const [etat, setEtat] = useState({ saisie: null, refus: null, travail: null, envoi: false });
   // Le nom interne remis après le travail : null, `{ fait: nom }` ou `{ refus: { code, message } }`.
   const [noteNom, setNoteNom] = useState(null);
+  // Les noms des approbateurs remis après le travail : null, `{ fait: n }` ou `{ refus: { code, message } }`.
+  const [noteNoms, setNoteNoms] = useState(null);
+  // La consommation prévue écrite dans le champ (vide : celle du dossier), pour la phrase de la durée.
+  const [parJourSaisi, setParJourSaisi] = useState("");
+  const parJourEnVigueur = duree ? (parJourSaisi.trim() === "" ? duree.parJour : /^[0-9]+$/.test(parJourSaisi.trim()) ? parJourSaisi.trim() : null) : null;
+  const phraseDuree = duree ? dureeVersement({ parJour: parJourEnVigueur, frais: duree.frais, complement: duree.complement === true }) : null;
   // Zones du champ des fiches : une clé stable par zone (une zone retirée garde le texte des autres).
   const [zones, setZones] = useState([0]);
   const [prochaineZone, setProchaineZone] = useState(1);
@@ -239,6 +256,7 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
     // part (elle n'est pas un paramètre du travail).
     const releves = new Map((sections ?? []).filter((s) => s.releve && s.champs.length > 0).map((s) => [s.champs[0], s.releve]));
     let nomInterne = null;
+    let nomsApprobateurs = null;
     for (const c of tous) {
       const rel = releves.get(c);
       if (rel && !formulaire.querySelector(`input[data-releve="${rel.nom}"]`)?.checked) refuser({ nom: rel.nom, libelle: rel.libelle }, rel.refus, "releve");
@@ -252,6 +270,14 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
         const v = lireChamp({ nom: c.nom, type: "texte" }, t);
         if (v.erreur) { refuser(c, explicationSaisie("texte"), v.erreur); continue; }
         nomInterne = v.valeur;
+        continue;
+      }
+      if (c.note === "noms_approbateurs") {
+        // Une ligne par adresse, dans l'ordre ; gardés à part, jamais dans le travail (décisions du 2026-11-25).
+        if (brut.trim() === "") continue;
+        const v = lireChamp({ nom: c.nom, type: "liste_textes" }, brut);
+        if (v.erreur) { refuser(c, explicationSaisie("liste_textes"), v.erreur); continue; }
+        nomsApprobateurs = v.valeur;
         continue;
       }
       if (c.fiches) {
@@ -291,6 +317,7 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
     // Ce que le bouton porte d'office vient après les champs, comme le paramètre que portait autrefois un champ.
     Object.assign(parametres, fixe);
     setNoteNom(null);
+    setNoteNoms(null);
     setEtat({ saisie: null, refus: null, travail: null, envoi: true });
     const slugTravail = commande === "inscrire-client-preparer" ? parametres.org : slug;
     let r;
@@ -318,6 +345,22 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
       else {
         const j = rn ? await rn.json().catch(() => null) : null;
         setNoteNom({ refus: { code: j?.error?.code ?? (rn ? `http_${rn.status}` : "outil_injoignable"), message: j?.error?.message ?? (rn ? `refus (${rn.status})` : "aucune réponse de l'outil à l'envoi du nom interne") } });
+      }
+    }
+    // Les noms des approbateurs, de même, appariés aux adresses du travail dans l'ordre des lignes.
+    const adresses = Array.isArray(parametres.approbateurs) ? parametres.approbateurs : [];
+    const noms = nomsApprobateurs ? nomsApprobateurs.map((nom, k) => ({ adresse: adresses[k] ?? null, nom })).filter((x) => x.adresse !== null && x.nom !== "") : [];
+    if (noms.length > 0 && commande === "inscrire-client-preparer" && fin?.etat === "fini" && fin.sortie?.result === "reussi") {
+      let rn = null;
+      try {
+        rn = await fetch(`/api/clients/${encodeURIComponent(slugTravail)}/notes`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ sorte: "noms_approbateurs", noms }) });
+      } catch {
+        rn = null;
+      }
+      if (rn?.ok) setNoteNoms({ fait: noms.length });
+      else {
+        const j = rn ? await rn.json().catch(() => null) : null;
+        setNoteNoms({ refus: { code: j?.error?.code ?? (rn ? `http_${rn.status}` : "outil_injoignable"), message: j?.error?.message ?? (rn ? `refus (${rn.status})` : "aucune réponse de l'outil à l'envoi des noms des approbateurs") } });
       }
     }
     // Le dossier a pu changer : la fiche rendue par le serveur est relue.
@@ -353,8 +396,9 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
   };
   return (
     <div className={["nt-pile", classe].filter(Boolean).join(" ")}>
-      <form className="nt-formulaire" onSubmit={envoyer} noValidate data-commande={commande}>
+      <form className="nt-formulaire" onSubmit={envoyer} noValidate data-commande={commande} onInput={duree?.champ ? (ev) => { if (ev.target?.name === duree.champ) setParJourSaisi(String(ev.target.value ?? "")); } : undefined}>
         {sections ? sections.map(rendreSection) : champs.map(rendreChamp)}
+        {phraseDuree ? <p className="nt-aide ins-a-retenir" data-duree-versement=""><Icone nom="info" /><span>{phraseDuree}</span></p> : null}
         {note ? <p className="nt-aide" data-apres-clic="">{note}</p> : null}
         <div className="nt-actions ins-actions-bouton">
           <button type="submit" className={principal ? "nt-bouton nt-bouton-principal" : "nt-bouton"} disabled={enCours} aria-describedby={sousBouton ? `${prefixe}-sous-bouton` : undefined}>{bouton}</button>
@@ -373,7 +417,23 @@ export default function FormulaireTravail({ commande, slug, champs = [], section
         {t && e.termine && e.ton === "succes" ? (
           <div className="nt-bandeau nt-bandeau-succes" data-etat-travail={e.code}>
             <Icone nom="coche" />
-            <div className="nt-bandeau-texte"><p className="nt-bandeau-titre">{libelleCommande(t.commande)} : {e.libelle.toLowerCase()}.</p><p>{e.explication} Cette page est à jour.</p>{noteNom?.fait ? <p data-nom-interne-note="">Le nom interne « <span data-valeur="">{noteNom.fait}</span> » est enregistré : seule notre équipe le voit.</p> : null}{t.commande === "inscrire-client-preparer" && t.slug ? <p><a href={`/clients/${t.slug}`}>Ouvrir la fiche du client pour continuer</a></p> : null}</div>
+            <div className="nt-bandeau-texte"><p className="nt-bandeau-titre">{libelleCommande(t.commande)} : {e.libelle.toLowerCase()}.</p><p>{e.explication} Cette page est à jour.</p>{t.commande === "approvisionner" && t.sortie?.result === "reussi" && t.sortie.outputs?.amount_wei !== undefined ? <p data-duree-versee="">{dureeVersement({ montant: t.sortie.outputs.amount_wei, parJour: t.sortie.outputs.daily_budget_gas, verse: true })}</p> : null}{noteNom?.fait ? <p data-nom-interne-note="">Le nom interne « <span data-valeur="">{noteNom.fait}</span> » est enregistré : seule notre équipe le voit.</p> : null}{noteNoms?.fait ? <p data-noms-approbateurs-note={noteNoms.fait}>{noteNoms.fait > 1 ? `Les noms de ${noteNoms.fait} approbateurs sont enregistrés` : "Le nom d'un approbateur est enregistré"} pour la fiche de contrôle : ils ne partent jamais vers le registre public.</p> : null}{t.commande === "inscrire-client-preparer" && t.slug ? <p><a href={`/clients/${t.slug}`}>Ouvrir la fiche du client pour continuer</a></p> : null}</div>
+          </div>
+        ) : null}
+        {noteNoms?.refus ? (
+          <div className="nt-bandeau nt-bandeau-avertissement" data-noms-approbateurs-refus={noteNoms.refus.code}>
+            <Icone nom="alerte" />
+            <div className="nt-bandeau-texte">
+              <p className="nt-bandeau-titre">Le dossier est préparé, mais les noms des approbateurs ne sont pas enregistrés.</p>
+              <p>Rien n'a été envoyé au registre public. Ouvrez la fiche du client, puis sa fiche de contrôle des adresses (sous « Confirmations et paquet ») : vous pouvez y donner ces noms, sous « Noms des approbateurs ».</p>
+              <details className="ins-detail">
+                <summary>Détail à transmettre à l'équipe technique</summary>
+                <dl className="nt-definitions ins-detail-corps">
+                  <dt>Code</dt><dd><span className="nt-fixe">{noteNoms.refus.code}</span></dd>
+                  <dt>Message exact</dt><dd><span className="nt-fixe">{noteNoms.refus.message}</span></dd>
+                </dl>
+              </details>
+            </div>
           </div>
         ) : null}
         {noteNom?.refus ? (

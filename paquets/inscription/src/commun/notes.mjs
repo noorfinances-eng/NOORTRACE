@@ -12,7 +12,10 @@
 // - `remise_paquet` : `{ manifest_sha256 }`, le SHA-256 du manifeste du paquet remis (EX-7.19) ; une déclaration de
 //   l'exploitant, rien de plus ;
 // - `correction_remise` : `{ remise, motif }`, l'identifiant de la remise corrigée et le motif (texte, 1 à 300
-//   caractères) ; la remise reste lisible, marquée corrigée.
+//   caractères) ; la remise reste lisible, marquée corrigée ;
+// - `noms_approbateurs` (décisions du 2026-11-25, CT-4 EX-7.8) : `{ noms: [{ adresse, nom }] }`, le nom de chaque
+//   approbateur tel que le client l'a donné (texte de 1 à 80 caractères, ou null pour le retirer), par adresse du
+//   dossier ; le dernier en date vaut, par adresse ; il entre dans la fiche de contrôle, jamais dans le dossier.
 //
 // Module pur : la route et l'agent lisent la forme par `lireCorpsNote` et `lireNote` ; l'interface et l'agent
 // interprètent le registre par `etatNotes`.
@@ -21,7 +24,7 @@ import * as C from "./champs.mjs";
 import { ErreurChamp } from "./champs.mjs";
 
 /** Sortes de note (complément du 2026-11-19). */
-export const SORTES_NOTE = Object.freeze(["nom_interne", "remise_paquet", "correction_remise"]);
+export const SORTES_NOTE = Object.freeze(["nom_interne", "remise_paquet", "correction_remise", "noms_approbateurs"]);
 /** Longueur d'un nom interne, en caractères. */
 export const NOM_INTERNE_MAX = 80;
 /** Longueur du motif d'une correction, en caractères. */
@@ -35,6 +38,7 @@ const MEMBRES = Object.freeze({
   nom_interne: ["nom"],
   remise_paquet: ["manifest_sha256"],
   correction_remise: ["remise", "motif"],
+  noms_approbateurs: ["noms"],
 });
 
 function exacts(champ, o, membres) {
@@ -59,6 +63,18 @@ function membresDeSorte(champ, n) {
       const motif = C.texte(`${champ}.motif`, n.motif, { max: MOTIF_CORRECTION_MAX });
       if (motif.trim() === "") throw new ErreurChamp("requete_invalide", `${champ}.motif`, "motif non vide attendu");
       return { remise: n.remise, motif };
+    }
+    case "noms_approbateurs": {
+      const liste = C.liste(`${champ}.noms`, n.noms, (c, x) => {
+        exacts(c, x, ["adresse", "nom"]);
+        const adresse = C.adresse(`${c}.adresse`, x.adresse);
+        if (x.nom === null) return { adresse, nom: null };
+        const nom = C.texte(`${c}.nom`, x.nom, { max: NOM_INTERNE_MAX });
+        if (nom.trim() !== nom || nom.trim() === "") throw new ErreurChamp("requete_invalide", `${c}.nom`, "nom sans espace au début ni à la fin attendu");
+        return { adresse, nom };
+      }, { min: 1, max: 64 });
+      if (new Set(liste.map((x) => x.adresse)).size !== liste.length) throw new ErreurChamp("requete_invalide", `${champ}.noms`, "une adresse ne figure qu'une fois");
+      return { noms: liste };
     }
     default:
       throw new ErreurChamp("requete_invalide", `${champ}.sorte`, `${SORTES_NOTE.join(", ")} attendu`);
@@ -86,17 +102,20 @@ export function lireNote(n) {
 
 /**
  * Ce que les notes disent d'un client, d'après les lignes du registre (dans l'ordre de leur écriture) :
- * `{ nom, noms, remises }`.
+ * `{ nom, noms, remises, nomsApprobateurs }`.
  * - `nom` : le nom interne en vigueur, `{ id, valeur, exploitant, recu_a }`, ou null (aucun, ou retiré) ;
  * - `noms` : chaque note de nom, dans l'ordre (`valeur` null pour un retrait) ;
  * - `remises` : chaque remise, dans l'ordre, `{ id, manifest_sha256, exploitant, recu_a, correction }`, `correction`
- *   valant `{ id, motif, exploitant, recu_a }` ou null.
+ *   valant `{ id, motif, exploitant, recu_a }` ou null ;
+ * - `nomsApprobateurs` (décisions du 2026-11-25) : le nom en vigueur de chaque approbateur, par adresse (`{ adresse: nom }`),
+ *   un nom retiré n'y figurant plus.
  * Une ligne illisible ou d'une autre organisation est ignorée ; une correction qui ne vise pas une remise de ce
  * client, non encore corrigée, aussi (l'agent ne l'écrit pas).
  */
 export function etatNotes(lignes, orgId) {
   const noms = [];
   const remises = [];
+  const nomsApprobateurs = {};
   for (const l of Array.isArray(lignes) ? lignes : []) {
     if (!l || typeof l !== "object" || l.org_id !== orgId || typeof l.id !== "string") continue;
     const auteur = { id: l.id, exploitant: typeof l.exploitant === "string" ? l.exploitant : "", recu_a: typeof l.recu_a === "string" ? l.recu_a : "" };
@@ -105,10 +124,16 @@ export function etatNotes(lignes, orgId) {
     else if (l.sorte === "correction_remise" && typeof l.motif === "string") {
       const r = remises.find((x) => x.id === l.remise && x.correction === null);
       if (r) r.correction = { ...auteur, motif: l.motif };
+    } else if (l.sorte === "noms_approbateurs" && Array.isArray(l.noms)) {
+      for (const x of l.noms) {
+        if (!x || typeof x.adresse !== "string") continue;
+        if (typeof x.nom === "string") nomsApprobateurs[x.adresse] = x.nom;
+        else if (x.nom === null) delete nomsApprobateurs[x.adresse];
+      }
     }
   }
   const dernier = noms.length > 0 ? noms[noms.length - 1] : null;
-  return { nom: dernier && dernier.valeur !== null ? dernier : null, noms, remises };
+  return { nom: dernier && dernier.valeur !== null ? dernier : null, noms, remises, nomsApprobateurs };
 }
 
 /** La remise en vigueur (non corrigée) d'un paquet, la dernière notée, ou null. */

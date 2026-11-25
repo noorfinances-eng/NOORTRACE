@@ -26,6 +26,8 @@ export function lireChamp(champ, brut) {
       case "liste_documents": { const l = JSON.parse(texte); if (!Array.isArray(l)) throw new C.ErreurChamp("requete_invalide", champ.nom, "tableau JSON attendu"); return { valeur: l }; }
       case "identite": return { valeur: texte };
       case "liste_identites": return { valeur: texte.split(/\n+/).map((x) => x.trim()).filter(Boolean) };
+      // Une ligne par valeur, une ligne vide gardée vide (les noms des approbateurs suivent l'ordre des adresses).
+      case "liste_textes": return { valeur: texte.split(/\r?\n/).map((x, k) => (x.trim() === "" ? "" : C.texte(`${champ.nom}[${k}]`, x.trim(), { max: 80 }))) };
       case "origine": return { valeur: texte };
       default: return { erreur: `${champ.nom} : type non déclaré (EX-7.25)` };
     }

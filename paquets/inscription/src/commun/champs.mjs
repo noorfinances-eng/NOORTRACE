@@ -176,6 +176,6 @@ export const TYPES = Object.freeze({
 export const TYPES_DECLARES = Object.freeze([
   "adresse", "hachage", "cle_publique_ed25519", "slug", "nom_journal", "seuil", "montant", "reference_cle", "texte",
   "entier", "origine", "identite", "document", "chemin",
-  // Listes de valeurs d'un de ces types.
-  "liste_adresses", "liste_noms_journal", "liste_identites", "liste_documents",
+  // Listes de valeurs d'un de ces types (`liste_textes` : les noms des approbateurs, décisions du 2026-11-25).
+  "liste_adresses", "liste_noms_journal", "liste_identites", "liste_documents", "liste_textes",
 ]);

@@ -201,7 +201,8 @@ d'`annuaire-approbateurs-v0`), document JSON contrôlé contre son schéma
 (demande signée, documents `cle_enregistreur`), chemin relatif sous le
 répertoire du client sans composant `.` ni `..`, et la liste de valeurs d'un
 de ces types (`liste_adresses`, `liste_noms_journal`, `liste_identites`,
-`liste_documents`) ; aucun autre. Une liste de choix porte le type de ses
+`liste_documents` et, décisions du 2026-11-25, `liste_textes` : les noms des
+approbateurs de la fiche de contrôle, un par ligne, 2.7) ; aucun autre. Une liste de choix porte le type de ses
 valeurs (`adresse` pour une clé de chaîne du dossier, `chemin` pour une
 période, `texte` pour un identifiant de clé ou une opération du jeu). Le
 champ des documents `cle_enregistreur` (`liste_documents`) a une zone par
@@ -220,6 +221,7 @@ pour l'affichage seulement).
 | `/clients/<slug>` | complément du 2026-11-19 : le nom interne en titre, son changement, la remise du paquet (2.6) ; dossier : étapes et leurs états, sorties des travaux, actions offertes selon l'état (pas 2 à 5 ; `approvisionner` ; `condense inscription` ; relais d'une demande signée ; `capturer` ; `exporter` ; `verifier` ; préparation et relais d'une demande d'administration du jeu) |
 | `/clients/<slug>/confirmations` | registre des confirmations hors bande (EX-7.26), chacune avec le travail qui l'a consommée, et formulaire d'ajout |
 | `/clients/<slug>/paquet` | production du paquet client (sortie `paquet-client`), son contrôle, et le gabarit (`console_origin` et `administrators` donnés par écrit par le client, ou `null`) ; complément du 2026-11-19 : la remise du paquet notée, et sa correction (2.6) |
+| `/clients/<slug>/fiche-controle` | complément du 2026-11-25 (2.7) : la fiche de contrôle des adresses des approbateurs, page imprimable du même contenu que le fichier texte, son empreinte, l'état de sa confirmation ; rien ne part d'ici |
 
 Le contenu de chaque page est celui de cette table ; sa présentation est
 celle de 2.4.
@@ -234,12 +236,13 @@ toutes sous session sauf `POST /api/connexion` :
 | `POST` | `/api/connexion` | `{ name, password }` | ouvre la session | 204 ; 401 ; 429 |
 | `POST` | `/api/deconnexion` | `{}` | ferme la session | 204 |
 | `GET` | `/api/clients` | — | lit l'état (3.6) | liste des clients |
-| `GET` | `/api/clients/<slug>` | — | lit le dossier et les travaux du client | dossier, travaux et sorties |
+| `GET` | `/api/clients/<slug>` | — | lit le dossier et les travaux du client | dossier, travaux et sorties ; complément du 2026-11-25 : `frais` (les frais de l'instance que l'agent applique, 3.6, ou `null`) et `fiche: { sha256, noms, versions }` (l'empreinte de la fiche de contrôle, les noms des approbateurs notés, par adresse, et les versions de la fiche, 2.7) |
 | `POST` | `/api/travaux` | un travail typé (3.3), sans identité | remet le travail à l'agent avec l'identité de la session | `{ id }` ; 400 (forme) ; 503 (agent injoignable) |
 | `GET` | `/api/travaux/<id>` | — | lit l'état du travail | `$defs/travail` (3.3) |
 | `POST` | `/api/clients/<slug>/confirmations` | une confirmation (3.5) | la remet à l'agent | `{ id }` |
-| `POST` | `/api/clients/<slug>/notes` | une note interne, sans l'organisation (2.6) : `{ sorte: "nom_interne", nom }` (`nom` : texte de 1 à 80 caractères, ou `null`), `{ sorte: "remise_paquet", manifest_sha256 }`, `{ sorte: "correction_remise", remise, motif }` (`motif` : texte de 1 à 300 caractères) | la remet à l'agent avec l'organisation du client et l'identité de la session (complément du 2026-11-19) | `{ id }` ; 400 (forme, ou refus de l'agent) ; 404 ; 503 |
+| `POST` | `/api/clients/<slug>/notes` | une note interne, sans l'organisation (2.6) : `{ sorte: "nom_interne", nom }` (`nom` : texte de 1 à 80 caractères, ou `null`), `{ sorte: "remise_paquet", manifest_sha256 }`, `{ sorte: "correction_remise", remise, motif }` (`motif` : texte de 1 à 300 caractères), `{ sorte: "noms_approbateurs", noms: [{ adresse, nom }] }` (décisions du 2026-11-25, 2.7 : `nom` texte de 1 à 80 caractères, ou `null` pour le retirer ; 400 `fiche_figee` une fois les approbateurs enregistrés) | la remet à l'agent avec l'organisation du client et l'identité de la session (complément du 2026-11-19) | `{ id }` ; 400 (forme, ou refus de l'agent) ; 404 ; 503 |
 | `GET` | `/api/clients/<slug>/paquet` | — | archive `tar` (POSIX `ustar`) du dernier paquet produit, produite à la demande après le contrôle d'EX-7.22 | `application/x-tar` ; 409 avec la sortie de `paquet-client controler` si le contrôle refuse |
+| `GET` | `/api/clients/<slug>/fiche-controle` | — | la fiche de contrôle des adresses des approbateurs en fichier texte canonique, produite à la demande depuis le dossier et les noms des approbateurs notés (complément du 2026-11-25, 2.7) ; route de lecture, rien ne part vers l'agent | `text/plain; charset=utf-8`, `Content-Disposition: attachment; filename="fiche-controle-<slug>.txt"` ; 404 |
 
 Une requête d'une autre méthode que `GET` exige l'en-tête `Origin` égal à
 l'origine de l'interface ; aucun en-tête `Access-Control-Allow-*`. La
@@ -774,11 +777,57 @@ un envoi est resté sans réponse ; le reste de 2.4 tient.
   - *Liste.* Une recherche par nom interne ou nom court, sans tenir compte
     des majuscules ni des accents, masque dans la page les cartes qui ne
     correspondent pas ; aucune requête, rien de gardé (même complément).
+- **Décisions du porteur du 2026-11-25** (CT-4 EX-7.9, complément de même
+  date). Aucune route existante, aucun corps envoyé, ni le dossier ne
+  changent.
+  - *Durée que couvre un versement.* Partout où un versement sur un compte
+    technique s'affiche, une phrase fixée mot pour mot par CT-4 EX-7.9
+    (`dureeVersement` de `lib/parcours.mjs`) dit combien de jours de la
+    consommation prévue par jour il couvre, que c'est une prévision, et que
+    ce que le client paie pour ces crédits est fixé par son contrat, pas par
+    l'outil. N est `provision_days` des frais que l'agent applique (3.6),
+    b la consommation prévue par jour du dossier (`daily_budget_gas`). Pour
+    le versement de l'inscription, dont le montant du dossier vaut
+    `provision_days × b + gas_limit` : « Ce versement couvre N jours de la
+    consommation prévue par jour, b crédits d'écriture, plus une réserve
+    pour un envoi. … » ; pour « Alimenter un compte technique », avant le
+    versement : « Ce versement complète le compte jusqu'à N jours … : il ne
+    verse que ce qui manque. … », d'après la consommation écrite dans le
+    champ ou, à défaut, celle du dossier ; le versement fait, d'après la
+    sortie du travail (`amount_wei`, `daily_budget_gas`) : « Le versement
+    de M crédits d'écriture représente ⌊M / b⌋ jours … » (phrase qui vaut
+    aussi pour un montant qui n'est pas `provision_days × b + gas_limit`
+    avec ces frais) ; sans consommation prévue, aucun nombre de jours : « La
+    durée que couvre ce versement n'est pas calculable : la consommation
+    prévue par jour n'est pas renseignée. … » ; sans les frais de l'agent,
+    avant un versement de complément : « Le nombre de jours que ce
+    versement couvrira dépend d'un réglage du registre public que l'outil ne
+    connaît pas pour l'instant. … ». Chaque phrase finit par « Ce que le
+    client paie pour ces crédits est fixé par son contrat, pas par cet
+    outil. » Écrans : la consigne de la fiche quand la confirmation du
+    versement est à noter (sous « Si le client demande d'où vient ce
+    montant », qui remplace l'ancienne phrase du calcul du montant) ou quand
+    l'étape 5 reste à faire (sous la phrase de la consigne ; l'explication
+    des crédits la suit), le formulaire « Alimenter un compte technique »
+    (avant et après), et le formulaire de confirmation (sous ce que le
+    client confirme). Le repère d'un montant ne redit plus la consommation
+    prévue en chiffres. Aucun prix, aucune devise, aucun montant en monnaie,
+    aucune mention « gratuit » ou « payant » : un essai le vérifie sur chaque
+    phrase et chaque écran.
+  - *Qui paie.* `QUI_PAIE` ne dit plus « le client ne les paie pas » : ce
+    qu'il paie relève de son contrat, et c'est la phrase de la durée qui le
+    dit ; le lexique dit de même « ce que le client paie pour eux est fixé
+    par son contrat ». Ce point remplace, dans les alinéas de la quatrième
+    et de la sixième lecture ci-dessus, les mots « le client ne les paie
+    pas » cités de l'explication des crédits et de « qui paie », et, en
+    2.4, la seule confirmation du versement attendue avant les étapes 2
+    à 5 : la fiche de contrôle (2.7) l'est aussi.
 
 ### 2.6 Suivi interne des clients
 
 Complément du 2026-11-19, décision du porteur (suivi interne des clients ;
-CT-4 EX-7.23, complément de même date). Deux notes internes, qu'aucun pas
+CT-4 EX-7.23, complément de même date). Deux notes internes (trois avec
+les noms des approbateurs de la fiche de contrôle, 2.7), qu'aucun pas
 ni aucune commande ne lit (`src/commun/notes.mjs`) :
 
 - **Nom interne.** L'équipe donne à un client un nom pour le reconnaître
@@ -814,6 +863,111 @@ n'entre ni dans le dossier, ni dans une sortie, une partie ou le paquet,
 et le journal de l'agent n'en garde que l'identifiant, la sorte,
 l'organisation et l'exploitant. Les corps envoyés aux autres routes ne
 changent pas.
+
+### 2.7 Fiche de contrôle des adresses des approbateurs
+
+Décisions du porteur du 2026-11-25 (CT-4 EX-7.8 et EX-7.26, compléments de
+même date). Avant que les adresses des approbateurs partent vers le registre
+public (étape `jeu_approbateurs` du pas 2, la seule qui les envoie), le
+client les contrôle lui-même ; la case de relecture de l'exploitant (2.5)
+reste exigée. Rien à installer chez le client.
+
+- **La fiche** (`src/commun/fiche-controle.mjs`, module pur partagé par
+  l'interface et l'agent) se produit depuis le dossier et les noms des
+  approbateurs notés, dès que le dossier est préparé. Fichier texte canonique
+  (UTF-8, sauts de ligne `\n`, terminé par un saut de ligne, aucune date ni
+  valeur variable : le même dossier et les mêmes noms donnent les mêmes
+  octets) :
+
+  ```text
+  Fiche de contrôle des adresses des approbateurs
+  Organisation (nom court) : <slug>
+  Nombre d'approbations requises : <t>, sur <n> approbateurs
+  Approbateur 1 : <adresse> — nom : <nom donné par le client>
+  …
+  Approbateur n : <adresse> — nom : — (le client complète le nom)
+  Responsable des approbateurs : <set_admin>
+  Consigne : Chaque approbateur compare sa ligne, en entier, à l'adresse que montre son propre portefeuille, et écrit son nom à côté. Renvoyez-nous ensuite cette fiche confirmée par écrit, par un autre moyen que l'outil d'inscription.
+  ```
+
+  Les adresses sont celles du dossier, entières, en minuscules, dans l'ordre
+  du dossier ; le responsable des approbateurs (`set_admin`) y est parce
+  qu'il part dans le même déploiement. Le dossier ne porte pas le nom des
+  approbateurs : il vient d'une note interne, `noms_approbateurs` (`{ noms:
+  [{ adresse, nom }] }`, `nom` texte de 1 à 80 caractères, ou `null` pour le
+  retirer ; le dernier en date vaut, par adresse), saisie par l'exploitant
+  d'après ce que le client a écrit : sur l'écran du pas 1, un champ « Noms
+  des approbateurs » (`liste_textes`, un nom par ligne dans l'ordre des
+  adresses, facultatif), qui n'entre jamais dans le travail et que la page
+  remet par la note une fois le dossier préparé « réussi » ; et sur la page
+  de la fiche de contrôle, sous la fiche, « Noms des approbateurs » (un champ
+  par adresse, replié : il n'engage rien), tant que l'étape
+  `jeu_approbateurs` n'est pas faite (l'agent refuse ensuite, `fiche_figee`,
+  et refuse une adresse hors du dossier). Un nom qui manque se lit « — (le
+  client complète le nom) ». Les noms entrent dans le fichier, donc dans
+  l'empreinte : un nom changé fait une fiche nouvelle. Ils ne sortent
+  jamais : ni dans un corps envoyé aux routes des travaux, ni dans le
+  dossier, ni dans le paquet (l'essai de l'application les cherche comme le
+  nom interne). Le nom interne (2.6) n'y entre jamais. L'**empreinte de la
+  fiche** est le SHA-256 de ce fichier (`empreinteFiche`).
+- **Versions.** L'agent garde chaque version de la fiche produite dans
+  `fiches-controle.ndjson` (3.6 : organisation, numéro, empreinte, instant),
+  enregistrée à la préparation du dossier, à chaque note de noms acceptée,
+  et chaque fois qu'un travail `inscrire-client` ou une confirmation
+  `jeu_approbateurs` lui fait recalculer la fiche ; une empreinte déjà
+  enregistrée ne l'est pas deux fois. L'interface les lit (`fiche.versions`
+  de `GET /api/clients/<slug>`, la plus récente d'abord, la courante
+  marquée) ; une fiche courante pas encore enregistrée (le dossier vient de
+  changer à la main) est listée sans numéro.
+- **Deux formes du même contenu** : `GET /api/clients/<slug>/fiche-controle`
+  (2.3) sert le fichier ; `/clients/<slug>/fiche-controle` (2.2) le met en
+  forme, imprimable (« Imprimer cette page » n'ouvre que la boîte
+  d'impression ; les boutons et l'état ne s'impriment pas), avec
+  l'empreinte du fichier, un bouton « Télécharger la fiche (fichier
+  texte) », l'état de la fiche (« À faire confirmer par le client »,
+  « Confirmée par le client », « Adresses enregistrées »), les confirmations
+  qui la citent, et, si le dossier a changé, celles qui ne valent plus.
+- **La confirmation** (3.5). La fiche renvoyée par le client est une
+  confirmation hors bande, notée sur `/clients/<slug>/confirmations` par le
+  même formulaire : opération `jeu_approbateurs` (« Adresses des
+  approbateurs : fiche de contrôle renvoyée (étape 2 de l'inscription) »),
+  objet `{ org_id, fiche_sha256 }` : la version de la fiche, désignée par son
+  empreinte, que l'exploitant choisit parmi les versions produites (liste à
+  choix de type `hachage`, la plus récente d'abord, chacune avec son numéro,
+  son instant, son empreinte abrégée et entière, la courante marquée)
+  d'après l'empreinte écrite au bas de la fiche que le client a renvoyée ;
+  l'aide dit de la comparer au document renvoyé ; pièce : le SHA-256 de la
+  fiche renvoyée telle que reçue, que « Choisir la pièce » calcule dans la
+  page ; une version qui n'est pas la courante est notée (la confirmation a
+  eu lieu) mais ne débloque rien, et la relecture le dit avant le clic ; l'écran dit que cette
+  empreinte diffère de celle de la fiche produite dès que le client l'a
+  signée ou annotée. Le choix proposé d'avance reste le premier versement ;
+  les corps des confirmations d'avant ne changent pas.
+- **Ce qu'elle débloque.** L'agent n'admet ni n'exécute `inscrire-client`
+  tant que l'étape `jeu_approbateurs` reste à faire ou en échec sans
+  confirmation `jeu_approbateurs`, non consommée, qui cite l'empreinte de la
+  fiche calculée depuis le dossier tel qu'il est : même refus
+  (`confirmation_absente`, « confirmation hors bande absente »), même
+  consignation et même registre que pour le versement ; le déploiement du
+  jeu la consomme (`{ "consommation", "travail", "org_id", "fiche_sha256",
+  "instant" }`) ; une reprise d'un envoi connu ne consomme rien. La consigne
+  de la fiche du client liste les confirmations attendues dans l'ordre des
+  étapes qu'elles débloquent (la fiche pour l'étape 2, le versement pour
+  l'étape 5), chacune en une phrase, avec un lien vers la page de la fiche ;
+  les deux notées, la consigne « Lancez l'inscription sur le registre
+  public » les dit toutes deux notées ; « Confirmations et paquet » dit où
+  en est la fiche. Sur l'écran des confirmations, la carte d'une
+  confirmation qui ne vaut plus dit qu'elle n'autorise plus rien.
+- **Si la fiche change** (un approbateur ajouté ou retiré, une adresse ou un
+  nom modifiés), son empreinte change ; une confirmation qui cite une
+  version qui n'est plus la courante « ne vaut plus » (`perimee` dans ce que
+  l'interface lit, pastille « Ne vaut plus » sur sa carte avec la raison,
+  fiche changée depuis, la version citée et la version courante ; bandeau
+  sur la page de la fiche), elle ne compte plus comme prête à servir, et
+  l'étape 2 reste bloquée jusqu'à la confirmation de la version courante.
+- **Ce qui ne change pas** : ce qui part vers le registre public, les
+  sorties des travaux (aucun membre de plus), le dossier, le paquet, les
+  schémas, les vecteurs, l'outil de référence.
 
 ## 3. Agent (`src/agent/`, `bin/noortrace-inscription-agent`)
 
@@ -941,24 +1095,29 @@ vaut `null`.
 
 ### 3.5 Confirmations hors bande (EX-7.26)
 
-Confirmation : `{ "operation": "approvisionnement" | "approvisionner" |
-"administrer-jeu", "objet", "personne_client", "canal", "instant",
-"piece_sha256" }`, `objet` valant `{ "org_id", "cle_chaine" }` pour un
-approvisionnement et `{ "org_id", "digest" }` (le condensé de la demande)
-pour `administrer-jeu` ; l'agent y ajoute l'exploitant et l'instant de
-réception et l'inscrit en ajout seul. Un travail `inscrire-client` dont
-l'étape `approvisionnement` reste à faire, `approvisionner`, ou
-`administrer-jeu`, est refusé (`confirmation_absente`) sans confirmation
-inscrite et non consommée pour chaque clé de chaîne ou pour la demande
-visée ; aucune sortie n'est produite et rien n'est envoyé ; l'interface
-affiche « confirmation hors bande absente ».
+Confirmation : `{ "operation": "jeu_approbateurs" | "approvisionnement" |
+"approvisionner" | "administrer-jeu", "objet", "personne_client", "canal",
+"instant", "piece_sha256" }`, `objet` valant `{ "org_id", "cle_chaine" }`
+pour un approvisionnement, `{ "org_id", "digest" }` (le condensé de la
+demande) pour `administrer-jeu` et, complément du 2026-11-25 (2.7),
+`{ "org_id", "fiche_sha256" }` (l'empreinte de la fiche de contrôle des
+adresses des approbateurs) pour `jeu_approbateurs` ; l'agent y ajoute
+l'exploitant et l'instant de réception et l'inscrit en ajout seul. Un
+travail `inscrire-client` dont l'étape `jeu_approbateurs` reste à faire ou
+en échec (confirmation `jeu_approbateurs` citant l'empreinte de la fiche du
+dossier tel qu'il est) ou dont l'étape `approvisionnement` reste à faire,
+`approvisionner`, ou `administrer-jeu`, est refusé (`confirmation_absente`)
+sans confirmation inscrite et non consommée pour la fiche, pour chaque clé
+de chaîne ou pour la demande visée ; aucune sortie n'est produite et rien
+n'est envoyé ; l'interface affiche « confirmation hors bande absente ».
 
 Une confirmation n'autorise qu'un approvisionnement ou qu'un relais (choix
 de l'assemblage de l'étape 6, lecture stricte d'EX-7.26 et d'EX-8.21 : « avant
 *tout* approvisionnement ») : juste avant l'envoi qui s'en sert, l'agent la
 consomme par une ligne `{ "consommation": "<id>", "travail", "org_id",
-"cle_chaine" | "digest", "instant" }` du même registre, en ajout seul, et ne
-compte plus qu'une confirmation non consommée. Un travail qui n'envoie rien
+"cle_chaine" | "digest" | "fiche_sha256", "instant" }` du même registre, en
+ajout seul, et ne compte plus qu'une confirmation non consommée ; le
+déploiement du jeu consomme de même la confirmation de la fiche (2.7). Un travail qui n'envoie rien
 (clé déjà au-dessus du seuil, refus avant l'envoi, reprise d'un envoi connu)
 ne consomme rien.
 
@@ -980,6 +1139,12 @@ EX-8.21, revue de l'étape 8).
   confirmations.ndjson              ajout seul (EX-7.26), jamais tourné
   notes-internes.ndjson             ajout seul (2.6, complément du 2026-11-19) : nom interne, remise du paquet et correction, jamais tourné ;
                                     aucun travail ne le lit, il n'entre pas dans le paquet
+  fiches-controle.ndjson            complément du 2026-11-25 (2.7, CT-4 EX-7.8, EX-7.23) : chaque version de la fiche de contrôle
+                                    ({ org_id, version, fiche_sha256, produite_a }), ajout seul, jamais tourné ; n'entre pas dans le paquet
+  frais-instance.json               complément du 2026-11-25 (CT-4 EX-7.23) : les frais de l'instance que l'agent applique
+                                    ({ version: 0, provision_days, refill_below_days, gas_limit, max_daily_budget_gas, manifest_sha256 }),
+                                    réécrit par renommage au démarrage et à chaque relecture du manifeste qui les change ;
+                                    l'interface les lit pour dire la durée que couvre un versement (2.5) ; n'entre ni dans un dossier ni dans le paquet
   travaux/<id>.json                 $defs/travail, réécrit par renommage
   clients/<slug>/
     dossier.json                    inscription-client-v0 (EX-7.16)
@@ -1091,7 +1256,22 @@ les corps exacts des notes ; `test/inscription-application.test.js`, sur
 l'agent réel, donne un nom interne avant les pas 2 à 10 et ne le retrouve
 dans aucune requête faite au nœud, aucun fichier des données de l'agent
 hors des notes (journal, dossier, captures, sorties, parties, paquet), ni
-l'archive du paquet.
+l'archive du paquet. Décisions du porteur du 2026-11-25 (2.5, 2.7) :
+`test/inscription-presentation.test.js` lit les phrases de la durée d'un
+versement (les cinq cas, sans prix), les confirmations attendues dans
+l'ordre des étapes, la fiche canonique (lignes, octets, empreinte, deux
+dossiers → deux fiches, sans nom interne), la forme de sa confirmation et
+celle des frais de l'instance ; `test/inscription-presentation-chromium.test.js`
+lit la durée sur chaque écran sans rien ouvrir, le formulaire « Alimenter un
+compte technique » avant et après le versement, la page et le fichier de la
+fiche (mêmes lignes, même empreinte), la confirmation de la fiche au corps
+exact, l'étape 2 débloquée, puis le dossier changé et la confirmation qui ne
+vaut plus, à 1280 et 390 px ; `test/inscription-application.test.js`, sur
+l'agent réel, refuse les pas 2 à 5 sans la confirmation de la fiche (aucun
+travail, aucune sortie, rien d'envoyé), la refuse encore après un changement
+du dossier, puis déploie le jeu en consommant la confirmation, et lit les
+frais écrits par l'agent ; `test/inscription-agent.test.js` et ses voisins
+confirment la fiche avant les pas 2 à 5.
 
 ## 6. Précisions de la construction (étape 6)
 

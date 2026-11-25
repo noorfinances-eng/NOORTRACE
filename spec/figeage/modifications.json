@@ -15339,6 +15339,79 @@
           "apres": "7f0c757e6350dccbacc904187c45611d7cde66325b59e058a19870c92f9d5a05"
         }
       ]
+    },
+    {
+      "id": "MC-113",
+      "date": "2026-11-25",
+      "etape": 8,
+      "motif": "Complément du 2026-11-25, décision du porteur (outil d'inscription) : sur chaque écran qui montre un versement sur un compte technique, l'application d'exploitant dit combien de jours de la consommation prévue par jour il couvre, que c'est une prévision, et que ce que le client paie pour ces crédits est fixé par son contrat, sans aucun prix (CT-4 EX-7.9) ; avant que les adresses des approbateurs partent vers le registre public, elle produit une fiche de contrôle de ces adresses, avec le nom de chaque approbateur donné par le client, que le client renvoie confirmée par écrit, consignée comme confirmation hors bande, choisie par sa version, et exigée avant l'étape du jeu d'approbateurs (EX-7.8, EX-7.26) ; l'agent écrit dans ses données les frais de l'instance qu'il applique, les noms des approbateurs et chaque version de la fiche, hors du dossier et du paquet (EX-7.23) ; catalogue de CT-9 régénéré, renvois par numéro de ligne recollés.",
+      "fichiers": [
+        {
+          "chemin": "spec/CT-4-registre.md",
+          "avant": "9189fb66d7d8767e234ecb8be5731c96906e02d99ddf5f3e22945eb001811ef1",
+          "apres": "8b96d39ed2a7293745612dfc42e6cd8a0200744215f786f4f35e944b69690870"
+        },
+        {
+          "chemin": "spec/CT-7-securite-et-conformite.md",
+          "avant": "ed48fce7342cbb60dd0c484a4a57fc70e80ebcf20e99ba5ab483bb2a6cc724f9",
+          "apres": "4fd864a742d74b308d8e2f816d58c926efba098cf4f053d3cb1811615a6846d9"
+        },
+        {
+          "chemin": "spec/CT-8-deploiement-et-exploitation.md",
+          "avant": "c1a6439e890b6bb9a67378a88d71c24168f7428d50941e48aadc3b1957519916",
+          "apres": "39b409c88aebbace399ef4d18bb794f47b946eca80e193764a11260513465b3e"
+        },
+        {
+          "chemin": "spec/CT-9-plan-de-tests.md",
+          "avant": "cf38a742f71c7899a36269a5cf0fc35348d991b7e61cbeb3eb5e605d76c67353",
+          "apres": "86da4201d14b21fffd725699a64d620a0ef9ef879ef225382b7467dcdd5c5f63"
+        },
+        {
+          "chemin": "spec/README.md",
+          "avant": "3b83fd76e3a951051024cdd2bcb42239b5cf5cbab3a318bc81b0f655561c9ff4",
+          "apres": "df6f82cd51de4e618ff3785d12792348cf8c148aa2965a5bcacadc019dc6ae59"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/INDEX.md",
+          "avant": "638cef5f95cd08e8b47e1bda755bef3dbcf59a6cac65c3a38af4babd689de167",
+          "apres": "e385d984643417658dbf3e04ac07d70ab4c25bdb4a175736a38f49a72e0eab8c"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/catalogue.json",
+          "avant": "3511e86e45cd0813fdd72a04a3d62d526d8a83afcc5a146780415a38c4453c06",
+          "apres": "8cf116459e322466e92d5043d9abf1c02e2b64bc1afeb216bc3635ffa66986fb"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/confrontation/sorties/recompte.txt",
+          "avant": "ea8654d3e7619f6c5bd521a8d91255b547c760fb4417b41b092d5dfd4095a9e9",
+          "apres": "b83c59a1ff80ef31f965668e3c4b177938ea6aa563d7ed589821cc71c0e598f1"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/couverture.json",
+          "avant": "7f0c757e6350dccbacc904187c45611d7cde66325b59e058a19870c92f9d5a05",
+          "apres": "ade80b3fabd2ca4aa7fa1ca8c9bf8170f272f5f311363437393e396801c44d56"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-7-sans-9-A15.md",
+          "avant": "421e77416608327f16bcebd23e0374eaa89230f434e7e3a75d2185cea75297f8",
+          "apres": "f2c59cd34da5c161f86d13aef48b2930ce9f58fe066b1c8b17254f91efcc3def"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-8-sans-14-A.md",
+          "avant": "2ab98e0fef957989ece429963b7489fabe48ed273132abd96a1fddd4310e11f0",
+          "apres": "82678283ef20e9be1a03d81d495f63a4bdd46f0fb1cd2b1c9dbd5abf05237254"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/CT-9-sans-15.md",
+          "avant": "6ea027b8eae60d96e691b34d82ae5ffbd7d2a6f45b646e2cbdf364aa3ddfbb86",
+          "apres": "3844b84c63cc7f4dc53f8038b2085abea75ad48cbf3de1ec6979351e06a90ec6"
+        },
+        {
+          "chemin": "spec/vecteurs/ct-9/extraits/SHA256SUMS",
+          "avant": "ba7f481390eec8d3ee8ad70d1d7c1c0d11174ca13932958d4d8a509a148f0592",
+          "apres": "6ad5bedb6cc7177578f20ec901a3ce5797a66b6e32e48756dc42ae283d470b41"
+        }
+      ]
     }
   ]
 }

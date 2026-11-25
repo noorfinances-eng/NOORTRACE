@@ -43,6 +43,16 @@
 // Cinquième lecture (même complément) : l'explication des crédits d'écriture est un bloc replié (`CreditsEnClair`),
 // une fois sur l'écran ; sous le montant, un repère vrai, calculé depuis ce que l'écran affiche (`repereEnClair`). Le
 // choix de l'opération dit qu'une confirmation ne vaut que pour une opération, et laquelle l'inscription demande.
+//
+// Décisions du porteur du 2026-11-25 (CT-4 EX-7.8, EX-7.9, EX-7.26) : une opération de plus, « Adresses des
+// approbateurs : fiche de contrôle renvoyée » (`jeu_approbateurs`), dont l'objet est la version de la fiche, désignée
+// par son empreinte et choisie parmi les versions produites (`fiche.versions`, la plus récente d'abord, chacune avec
+// son numéro, son instant et son empreinte) d'après l'empreinte écrite sur la fiche que le client a renvoyée ; la
+// pièce est la fiche renvoyée telle que reçue ; aucune version n'est choisie d'office ; une version qui n'est pas la
+// courante se note mais ne débloque rien, et la relecture le dit ; l'écran dit que l'empreinte de la pièce diffère de
+// celle de la fiche produite dès que le client l'a signée ou annotée. Sous un versement, la durée qu'il couvre (`dureeVersement`, phrases fixées par
+// CT-4) et le renvoi au contrat du client, sans prix. Ce qui est envoyé pour les opérations d'avant ne change pas ;
+// l'opération choisie d'avance reste le premier versement.
 
 import { useId, useRef, useState } from "react";
 import { empreinteFichier, lireChamp } from "./champs-page.js";
@@ -50,7 +60,7 @@ import Icone from "./Icone.js";
 import { Refus } from "./FormulaireTravail.js";
 import { CopierValeur } from "./CopierTexte.js";
 import CreditsEnClair from "./CreditsEnClair.js";
-import { ADRESSE_A_CONFIRMER, QUI_PAIE, repereEnClair, VERSEMENT_EN_CLAIR, OPERATIONS_CONFIRMATION, dateLisible, explicationSaisie, jourLisible, nombreLisible } from "../lib/parcours.mjs";
+import { ADRESSE_A_CONFIRMER, PIECE_FICHE, QUI_PAIE, repereEnClair, VERSEMENT_EN_CLAIR, OPERATIONS_CONFIRMATION, dateLisible, dureeVersement, explicationSaisie, jourLisible, nombreLisible } from "../lib/parcours.mjs";
 
 const MOTIF_INSTANT = /^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{3}Z$/;
 const deux = (n) => String(n).padStart(2, "0");
@@ -70,7 +80,7 @@ function localEnClair(local) {
 }
 const taille = (n) => (n < 1024 ? "moins de 1 Ko" : n < 1024 * 1024 ? `${Math.round(n / 1024)} Ko` : `${(n / 1024 / 1024).toFixed(1).replace(".", ",")} Mo`);
 
-export default function FormulaireConfirmation({ slug, orgId, comptes, montant = null }) {
+export default function FormulaireConfirmation({ slug, orgId, comptes, montant = null, parJour = null, frais = null, fiche = null }) {
   const prefixe = useId();
   const fichier = useRef(null);
   const avances = useRef(null);
@@ -84,6 +94,8 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
   // La confirmation contrôlée, à relire : c'est cet objet, et lui seul, que le second clic envoie.
   const [relecture, setRelecture] = useState(null);
   const administration = operation === "administrer-jeu";
+  const adresses = operation === "jeu_approbateurs";
+  const duree = dureeVersement({ montant, parJour, frais, complement: operation === "approvisionner" });
   const choisi = comptes.find((c) => c.adresse === compte) ?? null;
   const choisirLocal = (valeur) => {
     setRelecture(null);
@@ -125,8 +137,10 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
       document.getElementById(`${prefixe}-${champ}`)?.focus();
     };
     const v = {};
-    const champs = [administration ? { nom: "digest", type: "hachage" } : { nom: "cle_chaine", type: "adresse" }, { nom: "personne_client", type: "texte" }, { nom: "canal", type: "texte" }];
+    const champs = [administration ? { nom: "digest", type: "hachage" } : adresses ? { nom: "fiche_sha256", type: "hachage" } : { nom: "cle_chaine", type: "adresse" }, { nom: "personne_client", type: "texte" }, { nom: "canal", type: "texte" }];
     for (const c of champs) {
+      // Décisions du 2026-11-25 : la version de la fiche n'est jamais choisie d'office ; sans choix, la page le dit.
+      if (c.nom === "fiche_sha256" && String(f.get(c.nom) ?? "") === "") return refuser(c.nom, "version_fiche");
       const r = lireChamp(c, String(f.get(c.nom) ?? ""));
       if (r.erreur) return refuser(c.nom, c.type);
       v[c.nom] = r.valeur;
@@ -135,7 +149,7 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
     if (!MOTIF_INSTANT.test(saisi)) return refuser("instant", "horodatage");
     const lue = lireChamp({ nom: "piece_sha256", type: "hachage" }, String(f.get("piece_sha256") ?? ""));
     if (lue.erreur) return refuser("piece_sha256", "hachage");
-    const objet = administration ? { org_id: orgId, digest: v.digest } : { org_id: orgId, cle_chaine: v.cle_chaine };
+    const objet = administration ? { org_id: orgId, digest: v.digest } : adresses ? { org_id: orgId, fiche_sha256: v.fiche_sha256 } : { org_id: orgId, cle_chaine: v.cle_chaine };
     const confirmation = { operation, objet, personne_client: v.personne_client, canal: v.canal, instant: saisi, piece_sha256: lue.valeur };
     setEtat({ saisie: null, refus: null, inscrite: null, envoi: false });
     // L'heure du poste n'est redite que si elle est bien celle de l'instant relu (elle ne l'est plus après une retouche à la main).
@@ -176,13 +190,22 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
     <form className="nt-formulaire" onSubmit={relire} onInput={() => { if (relecture) setRelecture(null); }} data-formulaire="confirmation">
       <fieldset className="nt-groupe-champs ins-section">
         <legend>Ce que le client a confirmé</legend>
-        {champ("operation", "Opération confirmée", "Une confirmation ne vaut que pour une seule opération. Pour une inscription en cours, c'est le premier choix : le versement de l'étape 5, la seule étape de l'inscription qui demande une confirmation.", (a) => (
+        {champ("operation", "Opération confirmée", "Une confirmation ne vaut que pour une seule opération. Pour une inscription en cours, il en faut deux, dans l'ordre des étapes qu'elles débloquent : la fiche de contrôle des adresses des approbateurs (étape 2), puis le versement de l'étape 5, qui est le choix proposé.", (a) => (
           <select {...a} className="nt-saisie" data-type="texte" value={operation} onChange={(ev) => setOperation(ev.target.value)}>
             {Object.entries(OPERATIONS_CONFIRMATION).map(([code, libelle]) => <option key={code} value={code}>{libelle}</option>)}
           </select>
         ))}
         {administration
           ? champ("digest", "Empreinte du document de changement", "L'empreinte du document que le client a confirmé. Elle est sur la fiche du client, sous « Documents à faire signer par le client », avec un bouton « Copier l'empreinte ». Collez-la ici sans la retaper : « 0x » suivi de 64 caractères.", (a) => <input {...a} className="nt-saisie nt-saisie-fixe" data-type="hachage" required />)
+          : adresses
+          ? champ("fiche_sha256", "Version de la fiche de contrôle renvoyée", "Choisissez la version dont l'empreinte est écrite au bas de la fiche que le client vous a renvoyée (sur la page imprimée ; pour un fichier renvoyé tel quel, « Calculer l'empreinte d'une pièce » la donne). Comparez-la au document renvoyé avant de noter. Si ce n'est pas la version courante, la confirmation est notée mais ne débloque rien : remettez au client la fiche actuelle et faites-la confirmer de nouveau.", (a) => (
+            <select {...a} className="nt-saisie nt-saisie-fixe" data-type="hachage" data-valeur="" defaultValue="" aria-required="true">
+              <option value="">Choisissez la version d'après l'empreinte écrite au bas de la fiche renvoyée</option>
+              {(fiche?.versions ?? (fiche ? [{ version: null, fiche_sha256: fiche.sha256, produite_a: null, courante: true }] : [])).map((v) => (
+                <option key={v.fiche_sha256} value={v.fiche_sha256}>{`${v.version === null ? "Fiche actuelle, pas encore numérotée" : `Version ${v.version}`}${v.courante ? " (courante)" : ""}${v.produite_a ? ` du ${dateLisible(v.produite_a)}` : ""} · ${v.fiche_sha256.slice(0, 10)}…${v.fiche_sha256.slice(-6)} · ${v.fiche_sha256}`}</option>
+              ))}
+            </select>
+          ))
           : champ("cle_chaine", "Compte technique concerné", "Le compte technique de l'enregistreur du client, sur lequel portera le versement. C'est ce compte, avec son adresse entière, que le client confirme.", (a) => (
             <select {...a} className="nt-saisie nt-saisie-fixe" data-type="adresse" data-valeur="" value={compte} onChange={(ev) => setCompte(ev.target.value)}>{comptes.map((c) => <option key={c.adresse} value={c.adresse}>{c.nom ? `${c.nom} · ${c.adresse}` : c.adresse}</option>)}</select>
           ))}
@@ -190,6 +213,11 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
           <p className="nt-sur-titre">Ce que le client confirme</p>
           {administration ? (
             <p>Le changement de la liste de ses approbateurs que décrit le document dont vous donnez l'empreinte ci-dessus, et aucun autre.</p>
+          ) : adresses ? (
+            <>
+              <p>La liste de ses approbateurs et de leur responsable, telle que la fiche de contrôle la donne{fiche?.approbations ? <> ({fiche.approbations})</> : null}, et aucune autre : chaque approbateur a comparé sa ligne à l'adresse de son propre portefeuille, et le client vous a renvoyé la fiche confirmée par écrit. Elle se lit et se télécharge sur <a href={`/clients/${slug}/fiche-controle`} data-lien-fiche="">sa page</a>.</p>
+              <p className="nt-aide" data-piece-fiche="">{PIECE_FICHE}</p>
+            </>
           ) : (
             <>
               <p>
@@ -198,7 +226,8 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
                 {operation === "approvisionnement" ? " sur le compte technique" : ", sur le compte technique"}{choisi?.nom ? <> de son enregistreur <span className="nt-fixe" data-valeur="">{choisi.nom}</span></> : null}, dont l'adresse est <CopierValeur valeur={compte} forme="adresse" libelle="Copier l'adresse" suite="." />
               </p>
               <CreditsEnClair versement={VERSEMENT_EN_CLAIR} />
-              {montant && repereEnClair(montant) ? <p className="nt-aide" data-repere="">{repereEnClair(montant)}</p> : null}
+              <p className="nt-aide" data-duree-versement="">{duree}</p>
+              {montant && repereEnClair(montant, parJour) ? <p className="nt-aide" data-repere="">{repereEnClair(montant, parJour)}</p> : null}
               <p className="nt-aide" data-qui-paie="">{QUI_PAIE}</p>
               <p className="nt-aide">L'adresse : {ADRESSE_A_CONFIRMER.charAt(0).toLowerCase()}{ADRESSE_A_CONFIRMER.slice(1)}</p>
             </>
@@ -228,7 +257,7 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
       </fieldset>
       <fieldset className="nt-groupe-champs ins-section">
         <legend>La pièce qui garde la trace de la confirmation</legend>
-        <p className="nt-aide">La pièce est le courrier signé du client, ou votre compte rendu de l'appel. Rangez-la dans le dossier du client : l'outil ne la reçoit pas. Il n'en garde que l'empreinte : une suite de caractères qui identifie la pièce sans erreur possible, et qui prouvera plus tard que c'est bien celle-là.</p>
+        <p className="nt-aide">{adresses ? "La pièce est la fiche de contrôle telle que le client vous l'a renvoyée (signée, annotée, ou renvoyée telle quelle)." : "La pièce est le courrier signé du client, ou votre compte rendu de l'appel."} Rangez-la dans le dossier du client : l'outil ne la reçoit pas. Il n'en garde que l'empreinte : une suite de caractères qui identifie la pièce sans erreur possible, et qui prouvera plus tard que c'est bien celle-là.</p>
         {champ("piece_sha256", "Empreinte de la pièce", "Remplie par le bouton « Choisir la pièce ». Vous pouvez aussi la coller si quelqu'un l'a calculée pour vous : « 0x » suivi de 64 caractères.", (a) => <input {...a} className="nt-saisie nt-saisie-fixe" data-type="hachage" required value={empreinte} onChange={(ev) => { setEmpreinte(ev.target.value); setPiece(null); }} />, {
           avant: (
             <div className="ins-aide-saisie">
@@ -257,6 +286,8 @@ export default function FormulaireConfirmation({ slug, orgId, comptes, montant =
             <dd data-relu="objet">
               {relecture.confirmation.operation === "administrer-jeu" ? (
                 <span>un changement de la liste de ses approbateurs ; empreinte du document : <span className="nt-fixe" data-valeur="">{relecture.confirmation.objet.digest}</span></span>
+              ) : relecture.confirmation.operation === "jeu_approbateurs" ? (
+                <span>la liste des adresses de ses approbateurs, telle que la fiche de contrôle la donne{(() => { const v = fiche?.versions?.find((x) => x.fiche_sha256 === relecture.confirmation.objet.fiche_sha256); return v ? ` (${v.version === null ? "fiche actuelle" : `version ${v.version}`}${v.courante ? ", courante" : ", qui n'est plus la version courante : cette confirmation ne débloquera rien"})` : ""; })()} ; empreinte de la fiche : <span className="nt-fixe" data-valeur="">{relecture.confirmation.objet.fiche_sha256}</span></span>
               ) : (
                 <span>
                   {relecture.confirmation.operation === "approvisionnement" ? "le versement de " : "un nouveau versement, qui complète le compte jusqu'à "}

@@ -202,12 +202,16 @@ export const etat = {
  * qu'un approvisionnement (relecture de l'étape 6, R4 : EX-7.26 et EX-8.21
  * demandent la confirmation avant *tout* approvisionnement) : le versement
  * qui s'en sert la consomme par une ligne `{ consommation, travail, org_id,
- * cle_chaine, instant }` du même registre, en ajout seul.
+ * cle_chaine, instant }` du même registre, en ajout seul. Complément du
+ * 2026-11-25 : la confirmation de la fiche de contrôle des adresses des
+ * approbateurs (opération `jeu_approbateurs`) a pour objet l'empreinte de la
+ * fiche (`ficheSha256`), et n'autorise que le déploiement du jeu de cette
+ * fiche.
  */
-export function confirmationsPour(ctx, { operations, orgId, cleChaine = null, digest = null }) {
+export function confirmationsPour(ctx, { operations, orgId, cleChaine = null, digest = null, ficheSha256 = null }) {
   const lignes = lireLignes(ctx.donnees.confirmations);
   const consommees = new Set(lignes.filter((l) => typeof l.consommation === "string").map((l) => l.consommation));
-  const objet = (o) => (digest !== null ? o?.digest === digest : o?.cle_chaine === cleChaine);
+  const objet = (o) => (ficheSha256 !== null ? o?.fiche_sha256 === ficheSha256 : digest !== null ? o?.digest === digest : o?.cle_chaine === cleChaine);
   return lignes.filter((c) => typeof c.id === "string" && !consommees.has(c.id) && operations.includes(c.operation) && c.objet?.org_id === orgId && objet(c.objet));
 }
 
@@ -230,10 +234,17 @@ export class ConfirmationAbsente extends Error {
  * y compris quand rien n'est versé (`deja_fait`) ; l'agent le rend de
  * même (EX-7.24).
  */
-export function confirmationRequise(ctx, { operations, orgId, cleChaine = null, digest = null }) {
-  const c = confirmationsPour(ctx, { operations, orgId, cleChaine, digest })[0];
-  if (!c) throw new ConfirmationAbsente(digest !== null ? `confirmation hors bande absente pour la demande d'administration du jeu ${digest} (EX-7.26)` : `confirmation hors bande absente pour l'approvisionnement de ${cleChaine} (EX-7.26)`);
+export function confirmationRequise(ctx, { operations, orgId, cleChaine = null, digest = null, ficheSha256 = null }) {
+  const c = confirmationsPour(ctx, { operations, orgId, cleChaine, digest, ficheSha256 })[0];
+  if (!c) throw new ConfirmationAbsente(messageConfirmationAbsente({ orgId, cleChaine, digest, ficheSha256 }));
   return c;
+}
+
+/** La mention fixée par EX-7.26 (« confirmation hors bande absente »), suivie de l'opération et de son objet. */
+export function messageConfirmationAbsente({ orgId, cleChaine = null, digest = null, ficheSha256 = null }) {
+  if (ficheSha256 !== null) return `confirmation hors bande absente pour le jeu d'approbateurs de ${orgId} (fiche de contrôle ${ficheSha256}) (EX-7.26)`;
+  if (digest !== null) return `confirmation hors bande absente pour la demande d'administration du jeu ${digest} (EX-7.26)`;
+  return `confirmation hors bande absente pour l'approvisionnement de ${cleChaine} (EX-7.26)`;
 }
 
 /**
@@ -241,9 +252,10 @@ export function confirmationRequise(ctx, { operations, orgId, cleChaine = null, 
  * confirmation non consommée qui l'autorise (`confirmationRequise`) ; rend la
  * confirmation consommée.
  */
-export function consommerConfirmation(ctx, { operations, orgId, cleChaine = null, digest = null }) {
-  const c = confirmationRequise(ctx, { operations, orgId, cleChaine, digest });
-  ajouterLigne(ctx.donnees.confirmations, { consommation: c.id, travail: ctx.travailId, org_id: orgId, ...(digest !== null ? { digest } : { cle_chaine: cleChaine }), instant: ecrireHorodatage(ctx.horloge.murale()) });
+export function consommerConfirmation(ctx, { operations, orgId, cleChaine = null, digest = null, ficheSha256 = null }) {
+  const c = confirmationRequise(ctx, { operations, orgId, cleChaine, digest, ficheSha256 });
+  const objet = ficheSha256 !== null ? { fiche_sha256: ficheSha256 } : digest !== null ? { digest } : { cle_chaine: cleChaine };
+  ajouterLigne(ctx.donnees.confirmations, { consommation: c.id, travail: ctx.travailId, org_id: orgId, ...objet, instant: ecrireHorodatage(ctx.horloge.murale()) });
   return c;
 }
 

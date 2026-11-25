@@ -40,12 +40,20 @@
 // toutes les étapes sont faites, « Envoyée — à vous d'agir » ou « Envoyée — attendez la réponse » selon qui a envoyé.
 // Une consigne qui envoie des écritures dit qui les paie (`QUI_PAIE`, la même phrase partout) et, en mode essai, ce
 // qu'elles consomment ; une consigne où il n'y a rien à faire n'a pas de ligne « Ayez sous la main ».
+//
+// Décisions du porteur du 2026-11-25 (CT-4 EX-7.8, EX-7.9, EX-7.26) : là où la fiche montre un versement (confirmation à
+// noter, étape 5 à faire, « Alimenter un compte technique »), une phrase fixée par CT-4 dit combien de jours de la
+// consommation prévue il couvre et que ce que le client paie pour ces crédits relève de son contrat, sans prix
+// (`dureeVersement`, avec les frais que l'agent écrit dans ses données). La consigne « confirmation à noter » liste
+// les deux confirmations attendues dans l'ordre des étapes qu'elles débloquent : la fiche de contrôle des adresses des
+// approbateurs (étape 2 ; sa page, son fichier), puis le versement (étape 5). « Confirmations et paquet » dit où en
+// est la fiche.
 
 import { notFound } from "next/navigation";
 import { client, confirmations, notes } from "../../../lib/donnees.mjs";
 import { remiseEnVigueur } from "../../../../commun/notes.mjs";
 import { exigerSession, nature } from "../../../lib/page.mjs";
-import { CHERCHER_LA_REPONSE, OPERATIONS_JEU, PAR_NOTRE_COMPTE, PASTILLES, avancement, dateLisible, etapesDuParcours, etatsTravaux, explicationErreur, jourLisible, libelleCommande, manifesteDuPaquet, montantEnClair, nombreLisible, nommeLesCredits, prochaineAction, repereEnClair } from "../../../lib/parcours.mjs";
+import { CHERCHER_LA_REPONSE, OPERATIONS_JEU, PAR_NOTRE_COMPTE, PASTILLES, avancement, confirmationPerimee, dateLisible, etapesDuParcours, etatsTravaux, explicationErreur, ficheSansConfirmation, jourLisible, libelleCommande, manifesteDuPaquet, nombreLisible, nommeLesCredits, prochaineAction } from "../../../lib/parcours.mjs";
 import CopierTexte, { CopierValeur } from "../../../composants/CopierTexte.js";
 import CreditsEnClair from "../../../composants/CreditsEnClair.js";
 import FormulaireTravail from "../../../composants/FormulaireTravail.js";
@@ -82,7 +90,7 @@ const idTexte = (nom) => `texte-${nom.replace(/[^A-Za-z0-9-]/g, "-")}`;
  * l'exploitant, seul admis pour un vrai client : CT-4 EX-7.3, OP-5 ; la route reçoit `relayeur: true`) et son envoi
  * par le compte qu'une référence désigne, pour les essais (la route reçoit la référence seule).
  */
-function actions({ d, c, action, etapes }) {
+function actions({ d, c, action, etapes, frais }) {
   const cles = d.recorders.map((r) => ({ valeur: r.chain_key, libelle: `${r.key_id} · ${r.chain_key}` }));
   const keyIds = d.recorders.map((r) => ({ valeur: r.key_id, libelle: r.key_id }));
   const periodes = c.periodes.map((p) => ({ valeur: p, libelle: p }));
@@ -143,6 +151,9 @@ function actions({ d, c, action, etapes }) {
         { nom: "cle_chaine", libelle: "Compte technique à alimenter", type: "adresse", options: cles, donnees: true, aide: "Le compte technique de l'enregistreur du client qui recevra le versement." },
         { nom: "budget_jour", libelle: "Consommation prévue par jour", type: "montant", facultatif: true, exemple: "10800000", aide: "Le nombre de crédits d'écriture que l'enregistreur devrait employer chaque jour ; le versement est calculé à partir de lui. Laissez vide : l'outil reprend la valeur du dossier. N'écrivez une autre valeur que si l'équipe technique vous la donne." },
       ],
+      // La durée que couvrira ce versement de complément (complément du 2026-11-25), d'après la consommation prévue du
+      // dossier ou celle qu'on écrit dans le champ, et les frais que l'agent applique.
+      duree: { parJour: d.funding?.daily_budget_gas ?? null, frais, complement: true, champ: "budget_jour" },
     },
     {
       commande: "condense-administration", cle: "condense-administration", groupe: "Changer les approbateurs du client", titre: libelleCommande("condense-administration"),
@@ -270,7 +281,7 @@ function Action({ x, slug }) {
       <div className="nt-detail-corps">
         <p><strong>Ce que fait cette action :</strong> {x.quoi}</p>
         <p><strong>Quand s'en servir :</strong> {x.quand}</p>
-        <FormulaireTravail commande={x.commande} slug={slug} champs={x.champs} fixe={x.fixe ?? {}} bouton={x.bouton} sousBouton={x.sousBouton ?? null} principal={false} />
+        <FormulaireTravail commande={x.commande} slug={slug} champs={x.champs} fixe={x.fixe ?? {}} bouton={x.bouton} sousBouton={x.sousBouton ?? null} principal={false} duree={x.duree ?? null} />
       </div>
     </details>
   );
@@ -290,7 +301,7 @@ export default async function PageClient({ params }) {
   const a = avancement(d, { remise, travaux: c.travaux });
   const production = nature() === "production";
   const action = prochaineAction({ ...c, confirmations: registre, remise, essai: !production });
-  const toutes = actions({ d, c, action, etapes });
+  const toutes = actions({ d, c, action, etapes, frais: c.frais });
   // L'action de la consigne. Aller chercher la réponse d'un envoi : l'envoi est connu, la personne n'a rien à choisir
   // ni à recopier. Envoyer le document signé : par notre compte d'envoi, que le bouton nomme.
   const principale = action.code === "reprendre_envoi"
@@ -317,24 +328,31 @@ export default async function PageClient({ params }) {
   const rares = autres.filter((x) => !utiles.includes(x));
   const groupes = [...new Set(rares.map((x) => x.groupe))];
   const essai = !production;
-  const disponibles = registre.filter((x) => !x.consommee_par).length;
+  const disponibles = registre.filter((x) => !x.consommee_par && !x.perimee).length;
   // Ce que la fiche dit des confirmations : combien sont notées, et à quoi elles ont servi. Le versement d'un
   // compte technique consomme sa confirmation (CT-4 EX-7.26) : une confirmation utilisée reste comptée, avec le
   // jour du versement qu'elle a autorisé. Un versement fait sans aucune confirmation notée ici n'est pas normal
   // (le service d'inscription l'exige avant tout versement) : la fiche le dit au lieu de se taire.
   const versements = d.steps.filter((e) => e.step === "approvisionnement");
   const verse = versements.some((e) => e.state === "capturee" || e.state === "faite");
-  const utilisees = registre.length - disponibles;
+  const perimeesComptees = registre.filter((x) => x.perimee).length;
+  const utilisees = registre.length - disponibles - perimeesComptees;
   const jourVersement = (x) => {
     const e = versements.find((v) => v.subject === x.objet?.cle_chaine && v.state === "capturee");
     return x.operation === "approvisionnement" && e?.updated_at ? jourLisible(e.updated_at) : null;
   };
+  // La fiche de contrôle des adresses des approbateurs (complément du 2026-11-25) : où elle en est.
+  const etapeJeu = d.steps.find((e) => e.step === "jeu_approbateurs");
+  const adressesEnregistrees = Boolean(etapeJeu) && etapeJeu.state !== "a_faire" && etapeJeu.state !== "echec";
+  const perimees = registre.filter((x) => confirmationPerimee(x, c.fiche)).length;
+  const etatFiche = adressesEnregistrees ? "adresses_enregistrees" : ficheSansConfirmation(d, registre, c.fiche) ? (perimees > 0 ? "perimee" : "a_confirmer") : "confirmee";
+  const phraseFiche = { adresses_enregistrees: "adresses enregistrées sur le registre public", a_confirmer: "à remettre au client, qui la renvoie confirmée par écrit", perimee: "ne vaut plus : le dossier a changé, faites confirmer la fiche actuelle", confirmee: "confirmée par le client : prête à servir" }[etatFiche];
   const seule = registre.length === 1 ? registre[0] : null;
   const phraseConfirmations = registre.length === 0
     ? (verse ? "aucune notée ici, alors que le versement est fait : ce n'est pas normal, prévenez l'équipe technique" : "aucune notée")
     : seule
-      ? (seule.consommee_par ? `1 notée, ${jourVersement(seule) ? `utilisée pour le versement du ${jourVersement(seule)}` : "déjà utilisée"}` : "1 notée, prête à servir")
-      : `${registre.length} notées : ${[disponibles > 0 ? `${disponibles} ${disponibles > 1 ? "prêtes" : "prête"} à servir` : null, utilisees > 0 ? `${utilisees} déjà ${utilisees > 1 ? "utilisées" : "utilisée"}` : null].filter(Boolean).join(", ")}`;
+      ? (seule.consommee_par ? `1 notée, ${jourVersement(seule) ? `utilisée pour le versement du ${jourVersement(seule)}` : "déjà utilisée"}` : seule.perimee ? "1 notée, qui ne vaut plus" : "1 notée, prête à servir")
+      : `${registre.length} notées : ${[disponibles > 0 ? `${disponibles} ${disponibles > 1 ? "prêtes" : "prête"} à servir` : null, perimeesComptees > 0 ? `${perimeesComptees} qui ne ${perimeesComptees > 1 ? "valent" : "vaut"} plus` : null, utilisees > 0 ? `${utilisees} déjà ${utilisees > 1 ? "utilisées" : "utilisée"}` : null].filter(Boolean).join(", ")}`;
   const nomTire = /^o-[0-9a-f]{32}$/.test(slug);
   const explicationDernier = dernierRefuse ? explicationErreur(codeDernier, { verification: verificationDernier }) : null;
   // La demande préparée qui attend les signatures du client, pour l'action « faites signer, puis envoyez ».
@@ -347,6 +365,7 @@ export default async function PageClient({ params }) {
     ...echecs.map((e) => [`echec-${e.numero}`, `${e.erreur.phrase} ${e.erreur.effet}`]),
     ["dernier", dernierRefuse ? `${explicationDernier.phrase} ${explicationDernier.effet} ${explicationDernier.quoiFaire}` : ""],
     ["phrase", action.phrase],
+    ["duree", action.code === "conduire_etapes" ? action.duree ?? "" : ""],
     ["cles", action.cles ? "crédits d'écriture" : ""],
     ["a-preparer", action.aPreparer],
     ["apres", action.apres],
@@ -409,11 +428,22 @@ export default async function PageClient({ params }) {
           <div className="ins-consigne">
             <p className="ins-essentiel-texte">{action.phrase}</p>
             {credits("phrase")}
-            {action.cles ? (
+            {action.code === "conduire_etapes" && action.duree ? <p className="ins-essentiel-texte" data-duree-versement="">{action.duree}</p> : null}
+            {credits("duree")}
+            {action.attendues ? (
               <dl className="nt-faits">
-                {action.cles.map((cle) => (
-                  <div className="nt-fait ins-fait-large" key={cle}>
-                    <dt>Ce que le client doit confirmer</dt>
+                {action.ficheAttendue ? (
+                  <div className="nt-fait ins-fait-large" data-a-confirmer="fiche">
+                    <dt>Ce que le client doit confirmer pour l'étape {action.attendues[0].etape}</dt>
+                    <dd>
+                      <span className="ins-ligne">la fiche de contrôle des adresses de ses approbateurs ({d.approvers.members.length} {d.approvers.members.length > 1 ? "approbateurs" : "approbateur"}, {d.approvers.threshold} {d.approvers.threshold > 1 ? "approbations requises" : "approbation requise"}, et leur responsable), qu'il vous renvoie confirmée par écrit</span>
+                      <span className="ins-ligne"><a href={`/clients/${slug}/fiche-controle`} data-lien-fiche="">Voir, télécharger ou imprimer la fiche</a></span>
+                    </dd>
+                  </div>
+                ) : null}
+                {(action.cles ?? []).map((cle) => (
+                  <div className="nt-fait ins-fait-large" key={cle} data-a-confirmer="versement">
+                    <dt>Ce que le client doit confirmer{action.ficheAttendue ? ` pour l'étape ${action.attendues.find((x) => x.operation === "approvisionnement")?.etape ?? 5}` : ""}</dt>
                     <dd>
                       <span className="ins-ligne">le versement de <span data-valeur="">{nombreLisible(d.funding.amount_wei)}</span> crédits d'écriture sur le compte technique{nomEnregistreur(cle) ? <> de son enregistreur <Valeur>{nomEnregistreur(cle)}</Valeur></> : null}</span>
                       <span className="ins-ligne">l'adresse de ce compte : <CopierValeur valeur={cle} forme="adresse" libelle="Copier l'adresse" /></span>
@@ -456,15 +486,19 @@ export default async function PageClient({ params }) {
         {credits("qui-paie")}
         {action.cles ? (
           <dl className="nt-definitions ins-pour-expliquer" data-pour-expliquer="">
-            <dt>Si le client demande d'où vient ce montant</dt>
-            <dd>
-              <span className="ins-ligne" data-montant-en-clair="">{montantEnClair(d.funding.daily_budget_gas)}</span>
-              {repereEnClair(d.funding.amount_wei, d.funding.daily_budget_gas) ? <span className="ins-ligne" data-repere="">{repereEnClair(d.funding.amount_wei, d.funding.daily_budget_gas)}</span> : null}
-            </dd>
-            <dt>Si le client demande qui paie</dt>
-            <dd data-qui-paie="">{action.quiPaieExplique}</dd>
-            <dt>Pour lui faire confirmer l'adresse</dt>
-            <dd data-adresse-a-confirmer="">{action.adresse}</dd>
+            {action.cles ? (
+              <>
+                <dt>Si le client demande d'où vient ce montant</dt>
+                <dd>
+                  <span className="ins-ligne" data-duree-versement="">{action.duree}</span>
+                  {action.repere ? <span className="ins-ligne" data-repere="">{action.repere}</span> : null}
+                </dd>
+                <dt>Si le client demande qui paie</dt>
+                <dd data-qui-paie="">{action.quiPaieExplique}</dd>
+                <dt>Pour lui faire confirmer l'adresse</dt>
+                <dd data-adresse-a-confirmer="">{action.adresse}</dd>
+              </>
+            ) : null}
           </dl>
         ) : null}
       </section>
@@ -494,6 +528,10 @@ export default async function PageClient({ params }) {
               <li>
                 <a href={`/clients/${slug}/confirmations`}>Confirmations du client</a>
                 <span className="nt-attenue nt-petit" data-confirmations-notees={registre.length} data-anomalie={registre.length === 0 && verse ? "versement_sans_confirmation" : undefined}>{phraseConfirmations}</span>
+              </li>
+              <li>
+                <a href={`/clients/${slug}/fiche-controle`}>Fiche de contrôle des adresses</a>
+                <span className="nt-attenue nt-petit" data-fiche-controle={etatFiche}>{phraseFiche}</span>
               </li>
               <li>
                 <a href={`/clients/${slug}/paquet`}>Paquet du client</a>

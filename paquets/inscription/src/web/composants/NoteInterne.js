@@ -10,6 +10,9 @@
 // - `RemisePaquet` : « J'ai remis le paquet au client » ; corps `{ sorte: "remise_paquet", manifest_sha256 }`, celui
 //   du paquet affiché. Une remise ne s'efface pas ; « Corriger cette note » envoie `{ sorte: "correction_remise",
 //   remise, motif }`, et la remise corrigée reste lisible.
+// - `NomsApprobateurs` (décisions du 2026-11-25, CT-4 EX-7.8) : le nom de chaque approbateur, tel que le client l'a
+//   donné, pour la fiche de contrôle ; corps `{ sorte: "noms_approbateurs", noms: [{ adresse, nom }] }` (`nom` null
+//   pour retirer) ; modifiable tant que les approbateurs ne sont pas enregistrés ; la fiche change avec les noms.
 
 import { useId, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -102,6 +105,67 @@ export function NomInterne({ slug, nom = null, compact = false, invite = null })
         <div className="nt-actions ins-actions-bouton">
           <button type="submit" className="nt-bouton" disabled={etat.envoi}>{nom ? "Changer le nom interne" : "Enregistrer ce nom"}</button>
           {nom ? <button type="button" className="nt-bouton" disabled={etat.envoi} onClick={() => envoyer({ sorte: "nom_interne", nom: null }, "Le nom interne est retiré : la liste et la fiche montrent de nouveau le nom court.")} data-retirer-nom="">Retirer le nom interne</button> : null}
+        </div>
+      </form>
+      <div role="status" aria-live="polite">
+        {etat.envoi ? <p className="nt-attenue nt-petit">Envoi de la note…</p> : null}
+        {etat.fait ? <p className="nt-attenue nt-petit" data-note-faite="">{etat.fait}</p> : null}
+      </div>
+      {etat.refus ? <Refus code={etat.refus.code} message={etat.refus.message} slug={slug} /> : null}
+    </div>
+  );
+}
+
+/**
+ * Noms des approbateurs de la fiche de contrôle : un champ par adresse du dossier (`adresses`), rempli du nom en
+ * vigueur (`noms`, par adresse) ; « Enregistrer les noms » remet une note pour chaque adresse dont le nom change
+ * (vidé : retiré). La fiche de contrôle change avec les noms : l'écran le dit.
+ */
+export function NomsApprobateurs({ slug, adresses, noms = {} }) {
+  const id = useId();
+  const router = useRouter();
+  const [etat, setEtat] = useState({ erreurs: {}, refus: null, envoi: false, fait: null });
+  const enregistrer = async (ev) => {
+    ev.preventDefault();
+    const f = new FormData(ev.currentTarget);
+    const erreurs = {};
+    const liste = [];
+    for (const adresse of adresses) {
+      const brut = String(f.get(`nom-${adresse}`) ?? "").trim();
+      const actuel = noms[adresse] ?? null;
+      if (brut === "") {
+        if (actuel !== null) liste.push({ adresse, nom: null });
+        continue;
+      }
+      const v = lireTexte(`nom-${adresse}`, brut, NOM_MAX);
+      if (v.erreur) erreurs[adresse] = v.erreur;
+      else if (v.valeur !== actuel) liste.push({ adresse, nom: v.valeur });
+    }
+    if (Object.keys(erreurs).length > 0) {
+      setEtat({ erreurs, refus: null, envoi: false, fait: null });
+      document.getElementById(`${id}-${Object.keys(erreurs)[0]}`)?.focus();
+      return;
+    }
+    if (liste.length === 0) return setEtat({ erreurs: {}, refus: null, envoi: false, fait: "Aucun nom n'a changé." });
+    setEtat({ erreurs: {}, refus: null, envoi: true, fait: null });
+    const refus = await noter(slug, { sorte: "noms_approbateurs", noms: liste });
+    if (refus) return setEtat({ erreurs: {}, refus, envoi: false, fait: null });
+    setEtat({ erreurs: {}, refus: null, envoi: false, fait: "Les noms sont enregistrés : la fiche de contrôle est refaite avec eux, et c'est elle que le client confirme." });
+    router.refresh();
+  };
+  return (
+    <div className="nt-pile" data-noms-approbateurs-formulaire="">
+      <p className="nt-aide">Le nom de chaque approbateur, tel que le client vous l'a écrit, pour la fiche de contrôle que chaque approbateur relit. Ces noms ne partent jamais vers le registre public ni dans le paquet du client. Un nom changé refait la fiche : le client la confirme de nouveau.</p>
+      <form className="nt-formulaire" onSubmit={enregistrer} noValidate data-note="noms_approbateurs">
+        {adresses.map((adresse, k) => (
+          <div className="nt-champ" key={adresse}>
+            <label className="nt-libelle" htmlFor={`${id}-${adresse}`}>Approbateur {k + 1} <span className="nt-fixe ins-adresse" data-valeur="">{adresse}</span></label>
+            <input id={`${id}-${adresse}`} name={`nom-${adresse}`} className="nt-saisie" data-type="texte" type="text" autoComplete="off" defaultValue={noms[adresse] ?? ""} aria-describedby={etat.erreurs[adresse] ? `${id}-${adresse}-erreur` : undefined} aria-invalid={etat.erreurs[adresse] ? "true" : undefined} data-nom-approbateur={adresse} />
+            {etat.erreurs[adresse] ? <p className="nt-erreur" id={`${id}-${adresse}-erreur`} role="alert"><Icone nom="alerte" /><span>{etat.erreurs[adresse]}</span></p> : null}
+          </div>
+        ))}
+        <div className="nt-actions ins-actions-bouton">
+          <button type="submit" className="nt-bouton" disabled={etat.envoi} data-enregistrer-noms="">Enregistrer les noms</button>
         </div>
       </form>
       <div role="status" aria-live="polite">

@@ -81,6 +81,8 @@ describe("inscription : paquet client produit par l'application (CT-4 §7.13, EX
     await ex({ commande: "inscrire-client-preparer", slug, parametres: { org: slug, journaux: [JOURNAL], approbateurs: app, seuil: 2, admin_jeu: O.compteHardhat(4).adresse, cles_enregistreur: [doc] } });
     const d = JSON.parse(fs.readFileSync(a.client(slug).dossier, "utf8"));
     await a.confirmation(X, { operation: "approvisionnement", objet: { org_id: d.organisation.org_id, cle_chaine: cleChaine.adresse }, personne_client: "Responsable de l'essai", canal: "courrier signé", instant: "2026-11-11T10:00:00.000Z", piece_sha256: "0x" + "ef".repeat(32) });
+    // Décisions du 2026-11-25 (CT-4 EX-7.8) : la fiche de contrôle des adresses des approbateurs, confirmée avant les pas 2 à 5.
+    expect((await a.confirmerFiche(X, slug)).reponse.accepte).to.equal(true);
     expect((await ex({ commande: "inscrire-client", slug, parametres: {} })).sortie.result).to.equal("reussi");
     const c = await ex({ commande: "condense-inscription", slug, parametres: { key_id: "rec-paquet-01" } });
     const signee = O.signerDemande(JSON.parse(fs.readFileSync(c.sortie.outputs.demande, "utf8")), [1, 3]);

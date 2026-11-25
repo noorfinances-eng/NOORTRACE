@@ -1669,6 +1669,8 @@ export const TE = [
       "CT-4"
     ],
     "covers": [
+      "CT-4 EX-7.8",
+      "CT-4 EX-7.9",
       "CT-4 EX-7.23",
       "CT-4 EX-7.24",
       "CT-4 EX-7.25",
@@ -1681,15 +1683,20 @@ export const TE = [
       "Application d'exploitant de CT-4 §7.14 : interface web et agent sous deux comptes du système, reliés par une prise de domaine Unix ; réseau de développement (TE-4)."
     ],
     "steps": [
-      "Conduire par l'application les pas de 7.1 et la production du paquet pour un client fictif, puis les mêmes pas par l'outil de référence sur un second client ; relever chaque champ de chaque page et chaque méthode de l'agent ; demander une administration du jeu et un approvisionnement sans, puis avec la confirmation hors bande ; joindre l'agent depuis un autre compte et par une adresse IP."
+      "Conduire par l'application les pas de 7.1 et la production du paquet pour un client fictif, puis les mêmes pas par l'outil de référence sur un second client ; relever chaque champ de chaque page et chaque méthode de l'agent ; demander une administration du jeu et un approvisionnement sans, puis avec la confirmation hors bande ; joindre l'agent depuis un autre compte et par une adresse IP.",
+      "Complément du 2026-11-25 de CT-4 (décisions du porteur : outil d'inscription, EX-7.8, EX-7.9, EX-7.23, EX-7.26) : lire la phrase de la durée que couvre un versement sur chaque écran qui en montre un, dans les cinq cas (inscription, complément avant et après, montant hors formule, consommation prévue absente, réglage inconnu) et sans aucun prix ; produire la fiche de contrôle des adresses des approbateurs par sa route et sa page, la faire confirmer, demander les pas 2 à 5 sans puis avec cette confirmation, changer le dossier et les noms après une confirmation, confirmer une version d'avant ; relever les frais de l'instance écrits par l'agent et les corps envoyés aux routes existantes."
     ],
-    "oracle": "Dossiers, envois, captures et paquet de mêmes formes et mêmes états que ceux de l'outil de référence (EX-7.24) ; aucun champ ni aucune méthode ne reçoit une clé, une graine, une mnémonique, un jeton ou un mot de passe (EX-7.25) ; aucune demande d'administration ni aucun approvisionnement sans confirmation consignée (EX-7.26) ; aucun condensé du registre signé par l'application (EX-7.27) ; l'agent n'écoute qu'une prise et refuse un pair d'un autre compte (EX-7.28) ; les refus de la table de 7.11 que les travaux offerts peuvent rendre, `administrer-jeu` compris (`cle_revoquee`, qu'aucun travail offert n'atteint, est sans objet) ; une étape `echec` déjà accomplie passe à `capturee` par `capturer --transaction --dossier` (EX-7.29). Écrans (complément du 2026-11-18 de CT-4 EX-7.25 et EX-7.26) : aucune aide de saisie n'envoie rien (le fichier de la pièce ne part pas, l'empreinte calculée est celle de `sha256sum`, l'instant converti est celui du champ envoyé, sous plusieurs fuseaux) ; aucun choix n'est demandé pour envoyer un document signé (le bouton nomme notre compte d'envoi, l'envoi par une référence est une action rangée), et la route reçoit ce qu'elle recevait ; chaque fiche d'enregistreur se colle telle quelle dans sa zone, la liste envoyée est celle de la saisie à la main, et une première zone vide est refusée avec sa raison ; la mention « confirmation hors bande absente » reste mot pour mot sous sa phrase courante ; aucun mot de technicien au premier niveau des écrans (liste publiée dans `test/fixtures/inscription/langage.mjs`) ; les crédits d'écriture sont expliqués une fois, juste après leur première mention, sans durée ; le calcul de l'empreinte d'une pièce hors du formulaire n'envoie aucune requête et ne remplit aucun champ ; l'instant exact, l'identité entière et l'identifiant de l'action d'une confirmation notée restent lisibles sans rien ouvrir, et la relecture donne l'instant exact avant le clic qui note.",
+    "oracle": "Dossiers, envois, captures et paquet de mêmes formes et mêmes états que ceux de l'outil de référence (EX-7.24) ; aucun champ ni aucune méthode ne reçoit une clé, une graine, une mnémonique, un jeton ou un mot de passe (EX-7.25) ; aucune demande d'administration ni aucun approvisionnement sans confirmation consignée (EX-7.26) ; aucun condensé du registre signé par l'application (EX-7.27) ; l'agent n'écoute qu'une prise et refuse un pair d'un autre compte (EX-7.28) ; les refus de la table de 7.11 que les travaux offerts peuvent rendre, `administrer-jeu` compris (`cle_revoquee`, qu'aucun travail offert n'atteint, est sans objet) ; une étape `echec` déjà accomplie passe à `capturee` par `capturer --transaction --dossier` (EX-7.29). Écrans (complément du 2026-11-18 de CT-4 EX-7.25 et EX-7.26) : aucune aide de saisie n'envoie rien (le fichier de la pièce ne part pas, l'empreinte calculée est celle de `sha256sum`, l'instant converti est celui du champ envoyé, sous plusieurs fuseaux) ; aucun choix n'est demandé pour envoyer un document signé (le bouton nomme notre compte d'envoi, l'envoi par une référence est une action rangée), et la route reçoit ce qu'elle recevait ; chaque fiche d'enregistreur se colle telle quelle dans sa zone, la liste envoyée est celle de la saisie à la main, et une première zone vide est refusée avec sa raison ; la mention « confirmation hors bande absente » reste mot pour mot sous sa phrase courante ; aucun mot de technicien au premier niveau des écrans (liste publiée dans `test/fixtures/inscription/langage.mjs`) ; les crédits d'écriture sont expliqués une fois, juste après leur première mention, sans durée ; le calcul de l'empreinte d'une pièce hors du formulaire n'envoie aucune requête et ne remplit aucun champ ; l'instant exact, l'identité entière et l'identifiant de l'action d'une confirmation notée restent lisibles sans rien ouvrir, et la relecture donne l'instant exact avant le clic qui note. Complément du 2026-11-25 : les phrases de la durée sont, mot pour mot, celles d'EX-7.9, N venant de `provision_days` des frais que l'agent écrit dans ses données et b de la consommation prévue du dossier, aucun nombre de jours sans consommation prévue, aucun prix, aucune devise ni montant en monnaie nulle part ; la fiche de contrôle est un fichier texte canonique (le même dossier et les mêmes noms donnent les mêmes octets, sans le nom interne), son empreinte le SHA-256 de ce fichier, la page en donne les mêmes lignes ; sans confirmation `jeu_approbateurs` citant l'empreinte de la fiche du dossier tel qu'il est, les pas 2 à 5 sont refusés (`confirmation_absente`, « confirmation hors bande absente »), aucun travail créé, aucune sortie, rien d'envoyé ; une confirmation d'une autre version est consignée, dite « ne vaut plus » et ne débloque rien ; le déploiement du jeu consomme la confirmation de la version courante ; les noms des approbateurs et les versions de la fiche restent hors du dossier, des sorties, du paquet et de toute requête au nœud ; les corps envoyés aux routes existantes sont identiques octet pour octet (EX-7.8, EX-7.9, EX-7.23, EX-7.26).",
     "status": {
       "state": "executable",
       "tests": [
         {
           "file": "test/inscription-application.test.js",
           "describe": "inscription : application d'exploitant, interface Next.js et agent réel (TE-22, EX-7.23 à EX-7.28)"
+        },
+        {
+          "file": "test/inscription-application.test.js",
+          "describe": "fiche de contrôle des adresses des approbateurs et durée d'un versement (décisions du porteur du 2026-11-25 ; CT-4 EX-7.8, EX-7.9, EX-7.23, EX-7.26)"
         },
         {
           "file": "test/inscription-agent.test.js",
@@ -1710,6 +1717,10 @@ export const TE = [
         {
           "file": "test/inscription-presentation.test.js",
           "describe": "inscription : présentation de l'interface d'exploitant (complément du 2026-11-17)"
+        },
+        {
+          "file": "test/inscription-presentation.test.js",
+          "describe": "fiche de contrôle des adresses des approbateurs et frais de l'instance (décisions du 2026-11-25 ; src/commun/fiche-controle.mjs, src/commun/frais.mjs)"
         },
         {
           "file": "test/inscription-presentation-chromium.test.js",

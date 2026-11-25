@@ -9,7 +9,10 @@
 // une ligne d'au plus 65 536 octets ; seules la remise d'un travail, celle
 // d'une confirmation et celle d'une note interne (nom interne d'un client,
 // remise de son paquet : CT-4 EX-7.23, complément du 2026-11-19) passent :
-// l'état se lit dans les fichiers (3.6). La file
+// l'état se lit dans les fichiers (3.6), où l'agent écrit aussi les frais de
+// l'instance qu'il applique (complément du 2026-11-25). Avant les pas 2 à 5,
+// l'agent exige la confirmation de la fiche de contrôle des adresses des
+// approbateurs (EX-7.8) comme celle du versement (EX-7.26). La file
 // est unique et ordonnée, un travail à la fois ; l'agent refait chaque
 // vérification avant d'écrire et ne croit pas l'interface.
 //
@@ -38,7 +41,9 @@ import { clientRpc } from "./reseau.mjs";
 import { lireDossier } from "./dossier.mjs";
 import { FinCommande, Sortie } from "./sortie.mjs";
 import { ErreurReference, referenceDeTravail } from "./cles.mjs";
-import { ConfirmationAbsente, confirmationsPour } from "./commandes/base.mjs";
+import { ConfirmationAbsente, confirmationsPour, messageConfirmationAbsente } from "./commandes/base.mjs";
+import { empreinteFiche, nouvelleVersion } from "../commun/fiche-controle.mjs";
+import { fraisInstance } from "../commun/frais.mjs";
 import { preparer } from "./commandes/preparer.mjs";
 import { inscrireClient } from "./commandes/inscrire-client.mjs";
 import { approvisionner } from "./commandes/approvisionner.mjs";
@@ -217,6 +222,44 @@ export async function demarrerAgent(source, options = {}) {
   creerRepertoire(D.clients);
 
   /**
+   * Frais de l'instance appliqués (CT-4 EX-7.23, complément du 2026-11-25) : écrits dans les données au démarrage et à
+   * chaque relecture du manifeste qui les change, pour que l'interface dise la durée que couvre un versement (EX-7.9).
+   */
+  let fraisEcrits = null;
+  const ecrireFrais = (instance) => {
+    const octets = serialiser(fraisInstance(instance));
+    if (fraisEcrits !== null && fraisEcrits.equals(octets)) return;
+    ecrireAtomique(D.frais, octets);
+    fraisEcrits = octets;
+  };
+  ecrireFrais(instanceDemarrage);
+
+  /**
+   * La fiche de contrôle des adresses des approbateurs d'un client (CT-4 EX-7.8, complément du 2026-11-25) : son
+   * empreinte, calculée depuis le dossier tel qu'il est et les noms des approbateurs notés ; et sa version, enregistrée
+   * au registre des versions si cette empreinte n'y est pas encore (préparation du dossier, note de noms, et chaque
+   * recalcul à l'admission d'un travail ou à la réception d'une confirmation). Rend `{ sha256, orgId }` ou null.
+   */
+  const ficheDuClient = (slug, { enregistrer = true } = {}) => {
+    const l = lireDossier(D.client(slug).dossier);
+    if (l.erreur) return null;
+    const orgId = l.dossier.organisation.org_id;
+    const sha256 = empreinteFiche(l.dossier, etatNotes(lireLignes(D.notes), orgId).nomsApprobateurs);
+    if (enregistrer) {
+      const ligne = nouvelleVersion(lireLignes(D.fiches), orgId, sha256, ecrireHorodatage(horloge.murale()));
+      if (ligne) {
+        ajouterLigne(D.fiches, ligne);
+        consigner("fiche_controle_version", { org_id: orgId, version: ligne.version, fiche_sha256: sha256 });
+      }
+    }
+    return { sha256, orgId };
+  };
+  const slugDe = (orgId) => (fs.existsSync(D.clients) ? fs.readdirSync(D.clients) : []).find((s) => {
+    const l = lireDossier(D.client(s).dossier);
+    return !l.erreur && l.dossier.organisation.org_id === orgId;
+  }) ?? null;
+
+  /**
    * Instance relue à l'admission et à l'exécution de chaque travail (le manifeste peut avoir été révisé) : elle doit
    * garder la nature de la configuration et les identifiants de l'instance du démarrage, sinon
    * `instance_illisible`. Lève `ErreurInstance`.
@@ -227,6 +270,7 @@ export async function demarrerAgent(source, options = {}) {
     if (instance.evmChainId !== instanceDemarrage.evmChainId || instance.bftChainId !== instanceDemarrage.bftChainId) {
       throw new ErreurInstance(`identifiants de l'instance (${instance.evmChainId}, ${instance.bftChainId}) différents de ceux du démarrage (${instanceDemarrage.evmChainId}, ${instanceDemarrage.bftChainId})`);
     }
+    ecrireFrais(instance);
     return instance;
   };
 
@@ -271,6 +315,15 @@ export async function demarrerAgent(source, options = {}) {
     if (t.commande === "inscrire-client") {
       const l = lireDossier(client.dossier);
       if (l.erreur) return null;
+      const orgId = l.dossier.organisation.org_id;
+      // Complément du 2026-11-25 (EX-7.8) : avant que les adresses des approbateurs partent (étape `jeu_approbateurs` à faire
+      // ou en échec), la fiche de contrôle du dossier tel qu'il est doit avoir été renvoyée confirmée par le client.
+      const eJeu = l.dossier.steps.find((e) => e.step === "jeu_approbateurs");
+      if (eJeu && (eJeu.state === "a_faire" || eJeu.state === "echec")) {
+        const fiche = ficheDuClient(t.slug).sha256;
+        const n = confirmationsPour({ donnees: D }, { operations: ["jeu_approbateurs"], orgId, ficheSha256: fiche });
+        if (n.length === 0) return messageConfirmationAbsente({ orgId, ficheSha256: fiche });
+      }
       for (const e of l.dossier.steps) {
         if (e.step !== "approvisionnement" || (e.state !== "a_faire" && e.state !== "echec")) continue;
         const n = confirmationsPour({ donnees: D }, { operations: ["approvisionnement"], orgId: l.dossier.organisation.org_id, cleChaine: e.subject });
@@ -328,13 +381,18 @@ export async function demarrerAgent(source, options = {}) {
    * qu'aucune remise en vigueur ne nomme déjà ; une correction vise une remise de ce client, non encore corrigée.
    */
   const admettreNote = (n) => {
-    const clients = fs.existsSync(D.clients) ? fs.readdirSync(D.clients) : [];
-    const slug = clients.find((s) => {
-      const l = lireDossier(D.client(s).dossier);
-      return !l.erreur && l.dossier.organisation.org_id === n.org_id;
-    });
+    const slug = slugDe(n.org_id);
     if (!slug) return { code: "client_inconnu", message: `aucun client d'org_id ${n.org_id}` };
     if (n.sorte === "nom_interne") return null;
+    if (n.sorte === "noms_approbateurs") {
+      // Décisions du 2026-11-25 (CT-4 EX-7.8) : une adresse du dossier, tant que les approbateurs ne sont pas enregistrés.
+      const l = lireDossier(D.client(slug).dossier);
+      if (l.erreur) return { code: "client_inconnu", message: `dossier illisible pour le client ${slug}` };
+      const eJeu = l.dossier.steps.find((e) => e.step === "jeu_approbateurs");
+      if (eJeu && eJeu.state !== "a_faire" && eJeu.state !== "echec") return { code: "fiche_figee", message: "les approbateurs sont enregistrés sur le registre public : leurs noms sur la fiche de contrôle ne changent plus" };
+      for (const x of n.noms) if (!l.dossier.approvers.members.includes(x.adresse)) return { code: "requete_invalide", message: "adresse hors des approbateurs du dossier" };
+      return null;
+    }
     const etat = etatNotes(lireLignes(D.notes), n.org_id);
     if (n.sorte === "remise_paquet") {
       const base = D.client(slug).paquets;
@@ -413,6 +471,8 @@ export async function demarrerAgent(source, options = {}) {
     t.etat = "fini";
     t.fin = ecrireHorodatage(horloge.murale());
     if (t.sortie) ecrireAtomique(path.join(D.client(commande.slug).sorties, `${t.id}.json`), serialiser(t.sortie));
+    // Le dossier préparé : la première version de sa fiche de contrôle est enregistrée (complément du 2026-11-25).
+    if (commande.commande === "inscrire-client-preparer" && t.sortie?.result === "reussi") ficheDuClient(commande.slug);
     ecrireTravail(t);
     consigner("travail_fin", { id: t.id, commande: t.commande, slug: t.slug, result: t.sortie?.result ?? null, exit_code: t.sortie?.exit_code ?? null });
   };
@@ -485,9 +545,11 @@ export async function demarrerAgent(source, options = {}) {
         consigner("confirmation_refusee", { exploitant: requete.exploitant, code: "client_inconnu" });
         return repondre(socket, { accepte: false, code: "client_inconnu", message: `aucun client d'org_id ${c.objet.org_id}` });
       }
+      // La confirmation de la fiche cite une version ; la fiche courante est recalculée et enregistrée si elle est nouvelle.
+      if (c.operation === "jeu_approbateurs") ficheDuClient(slugDe(c.objet.org_id));
       const id = `cnf-${crypto.randomBytes(16).toString("hex")}`;
       ajouterLigne(D.confirmations, { id, ...c, exploitant: requete.exploitant, recu_a: ecrireHorodatage(horloge.murale()) });
-      consigner("confirmation_recue", { id, operation: c.operation, org_id: c.objet.org_id, cle_chaine: c.objet.cle_chaine, exploitant: requete.exploitant });
+      consigner("confirmation_recue", { id, operation: c.operation, org_id: c.objet.org_id, cle_chaine: c.objet.cle_chaine, fiche_sha256: c.objet.fiche_sha256, exploitant: requete.exploitant });
       return repondre(socket, { accepte: true, id });
     }
     if (requete.kind === "note") {
@@ -510,6 +572,8 @@ export async function demarrerAgent(source, options = {}) {
       ajouterLigne(D.notes, { id, ...n, exploitant: requete.exploitant, recu_a: ecrireHorodatage(horloge.murale()) });
       // Le journal ne garde ni le nom interne ni le motif d'une correction (CT-4 EX-7.23, complément du 2026-11-19).
       consigner("note_recue", { id, sorte: n.sorte, org_id: n.org_id, exploitant: requete.exploitant });
+      // Des noms changés : une fiche de contrôle nouvelle, enregistrée au registre des versions (complément du 2026-11-25).
+      if (n.sorte === "noms_approbateurs") ficheDuClient(slugDe(n.org_id));
       return repondre(socket, { accepte: true, id });
     }
     return repondre(socket, { accepte: false, code: "requete_invalide", message: "kind travail, confirmation ou note attendu" });

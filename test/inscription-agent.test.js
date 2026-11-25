@@ -119,10 +119,19 @@ describe("inscription : agent d'inscription sur le réseau Hardhat 31337 (CT-4 �
     fs.writeFileSync(fichier, `Confirmation hors bande ${nom} n° ${pieces} : courrier signé du client, recueilli par ${X}.\n`);
     return { fichier, sha256: "0x" + crypto.createHash("sha256").update(fs.readFileSync(fichier)).digest("hex") };
   };
-  /** Remet une confirmation par clé de chaîne du client ; rend les pièces, dans l'ordre des clés. */
+  /**
+   * Remet une confirmation par clé de chaîne du client ; rend les pièces, dans l'ordre des clés. Décisions du 2026-11-25
+   * (CT-4 EX-7.8) : avant les pas 2 à 5 d'un dossier dont le jeu n'est pas encore déployé, la fiche de contrôle des
+   * adresses des approbateurs est aussi confirmée (la pièce : la fiche renvoyée telle quelle).
+   */
   const confirmer = async (p, operation = "approvisionnement") => {
     const d = dossierA(p);
     const liste = [];
+    const jeu = d.steps.find((e) => e.step === "jeu_approbateurs");
+    if (operation === "approvisionnement" && jeu && (jeu.state === "a_faire" || jeu.state === "echec")) {
+      const f = await a.confirmerFiche(X, p.A.slug);
+      expect(f.reponse.accepte, JSON.stringify(f.reponse)).to.equal(true);
+    }
     for (const c of p.A.cles) {
       const pc = piece(`${p.A.slug}-${operation}`);
       const r = await a.confirmation(X, { operation, objet: { org_id: d.organisation.org_id, cle_chaine: c.chaine.adresse }, personne_client: "Responsable de l'essai", canal: "appel téléphonique au numéro du contrat", instant: "2026-11-11T10:00:00.000Z", piece_sha256: pc.sha256 });

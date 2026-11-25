@@ -4,7 +4,11 @@
 // (`setCuratorSet`), `lecture_jeu` (CT-3 EX-8.1, `LecteurJeu`),
 // `approvisionnement` de chaque clé de chaîne ; arrêt au premier refus ;
 // reprise selon la table d'EX-7.16 (jamais un nouvel envoi pour une étape
-// `envoyee` ou `incluse`).
+// `envoyee` ou `incluse`). Complément du 2026-11-25 (EX-7.8, EX-7.26) : le
+// déploiement du jeu, seul envoi des adresses des approbateurs, consomme la
+// confirmation de la fiche de contrôle dont l'empreinte est celle du dossier
+// au moment de l'exécution, comme le versement consomme la sienne ; une
+// reprise d'un envoi connu ne consomme rien.
 
 import fs from "node:fs";
 import * as R from "@noortrace/ancrage/registre";
@@ -15,6 +19,9 @@ import { attendreHauteur, attendreRecu, capturerEtRelire, conclure, envoyer, non
 import * as J from "../jeu.mjs";
 import { lecture, solde } from "../reseau.mjs";
 import { ecrireAtomique, serialiser } from "../donnees.mjs";
+import { empreinteFiche } from "../../commun/fiche-controle.mjs";
+import { etatNotes } from "../../commun/notes.mjs";
+import { lireLignes } from "../donnees.mjs";
 import { cleRole, consommerConfirmation, controlerProvisionDossier, dossierClient, ecartCompte, ecartRolesDistincts, etat, prealables, provision, ZERO20 } from "./base.mjs";
 
 const ROLE_ETAPE = { jeu_approbateurs: "jeu_approbateurs", assignation: "assignation", approvisionnement: "approvisionnement", inscription: "inscription", premiere_ancre: "ancre", premiere_cloture: "cloture" };
@@ -182,6 +189,8 @@ export async function inscrireClient(ctx) {
       // puis imposé à l'envoi, comme le fait l'outil de référence pour le déploiement du jeu.
       const n = await nonceASigner(ctx, sortie, deployeur.adresse());
       set = R.adresseCreation(deployeur.adresse(), n);
+      // La fiche de contrôle confirmée par le client, pour ce dossier tel qu'il est (complément du 2026-11-25).
+      consommerConfirmation(ctx, { operations: ["jeu_approbateurs"], orgId, ficheSha256: empreinteFiche(d, etatNotes(lireLignes(ctx.donnees.notes), orgId).nomsApprobateurs) });
       await envoyer(ctx, sortie, {
         tenue, etape: eJeu, cle: deployeur, objet: "deploiement", to: null, donnees: J.donneesDeploiement(code, setAdmin, membres, seuil), nonce: n,
         role: "jeu_approbateurs", contrat: set, contratCree: set, op11: op11Jeu(set), op12: op12Jeu(set),

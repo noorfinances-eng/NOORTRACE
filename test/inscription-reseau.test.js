@@ -143,6 +143,12 @@ describe("inscription : client fictif inscrit par l'application et l'agent sur l
     expect(dossier.instance).to.include({ evm_chain_id: 2124, bft_chain_id: "noortrace-2124-dev", manifest_sha256: null });
     const c = await web.requete(`/api/clients/${slug}/confirmations`, { methode: "POST", corps: { operation: "approvisionnement", objet: { org_id: dossier.organisation.org_id, cle_chaine: cleChaine.adresse }, personne_client: "Responsable du client fictif", canal: "appel au numéro du contrat", instant: new Date().toISOString(), piece_sha256: "0x" + "5a".repeat(32) } });
     expect(c.statut, c.texte).to.equal(200);
+    // Décisions du 2026-11-25 (CT-4 EX-7.8) : la fiche de contrôle des adresses des approbateurs, renvoyée telle quelle, confirmée par la route.
+    const fiche = await web.requete(`/api/clients/${slug}/fiche-controle`);
+    expect(fiche.statut).to.equal(200);
+    const ficheSha256 = "0x" + crypto.createHash("sha256").update(fiche.texte, "utf8").digest("hex");
+    const cf = await web.requete(`/api/clients/${slug}/confirmations`, { methode: "POST", corps: { operation: "jeu_approbateurs", objet: { org_id: dossier.organisation.org_id, fiche_sha256: ficheSha256 }, personne_client: "Responsable de l'essai", canal: "fiche renvoyée signée, par courrier", instant: "2026-11-25T09:00:00.000Z", piece_sha256: ficheSha256 } });
+    expect(cf.statut, cf.texte).to.equal(200);
     t = await travailSurReseau({ commande: "inscrire-client", slug, parametres: {} });
     expect(t.sortie?.result, JSON.stringify(t.sortie)).to.equal("reussi");
     t = await travailSurReseau({ commande: "condense-inscription", slug, parametres: { key_id: "rec-reseau-01" } });

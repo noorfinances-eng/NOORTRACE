@@ -123,6 +123,8 @@ describe("inscription : agent, nonce du déploiement du jeu d'approbateurs (CT-4
     let s2;
     try {
       await confirmer("approvisionnement", orgId);
+      // Décisions du 2026-11-25 (CT-4 EX-7.8) : la fiche de contrôle des adresses des approbateurs, confirmée avant le déploiement du jeu.
+      expect((await a.confirmerFiche(X, slug)).reponse.accepte).to.equal(true);
       s2 = await travail({ commande: "inscrire-client", slug, parametres: {} });
     } finally {
       etat.actif = false;

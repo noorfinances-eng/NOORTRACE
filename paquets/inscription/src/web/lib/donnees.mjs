@@ -8,6 +8,8 @@ import path from "node:path";
 import { MOTIF_SLUG } from "../../commun/champs.mjs";
 import { dernierPaquet } from "../../commun/paquet.mjs";
 import { etatNotes, FICHIER_NOTES } from "../../commun/notes.mjs";
+import { empreinteFiche, FICHIER_FICHES, versionsFiche } from "../../commun/fiche-controle.mjs";
+import { FICHIER_FRAIS, lireFraisLus } from "../../commun/frais.mjs";
 import { configuration } from "./serveur.mjs";
 
 const lireJson = (chemin) => {
@@ -20,6 +22,44 @@ const lireJson = (chemin) => {
 
 /** Répertoire des données de l'agent. */
 const racine = () => configuration().donnees;
+
+/**
+ * Frais de l'instance que l'agent applique (`frais-instance.json`, CT-4 EX-7.23, complément du 2026-11-25), ou null
+ * s'il ne les a pas écrits : l'écran ne dit alors aucun nombre de jours tiré de ces réglages.
+ */
+export function frais() {
+  return lireFraisLus(lireJson(path.join(racine(), FICHIER_FRAIS)));
+}
+
+/**
+ * La fiche de contrôle des adresses des approbateurs d'un dossier (CT-4 EX-7.8, complément du 2026-11-25) : les noms
+ * des approbateurs notés (`noms`, par adresse), l'empreinte de la fiche courante (`sha256`) et ses versions
+ * (`versions`, la plus récente d'abord, d'après le registre de l'agent, la courante marquée). `lignes` : celles de
+ * `lignesNotes()`, lues une fois.
+ */
+export function fiche(dossier, lignes = null) {
+  const orgId = dossier?.organisation?.org_id ?? null;
+  const noms = orgId ? etatNotes(lignes ?? lignesNotes(), orgId).nomsApprobateurs : {};
+  const sha256 = empreinteFiche(dossier, noms);
+  return { sha256, noms, versions: versionsFiche(lignesRegistre(FICHIER_FICHES), orgId, sha256) };
+}
+
+/** Lignes d'un registre en ajout seul des données de l'agent, dans l'ordre ; une ligne illisible est ignorée. */
+function lignesRegistre(nom) {
+  let texte = "";
+  try {
+    texte = fs.readFileSync(path.join(racine(), nom), "utf8");
+  } catch {
+    return [];
+  }
+  return texte.split("\n").filter(Boolean).map((l) => {
+    try {
+      return JSON.parse(l);
+    } catch {
+      return null;
+    }
+  }).filter(Boolean);
+}
 
 /** Répertoire d'un client, ou null si le slug n'a pas la forme de RG-1. */
 export function repertoireClient(slug) {
@@ -91,12 +131,14 @@ export function client(slug) {
   } catch {
     parties = [];
   }
-  return { slug, dossier, travaux: t, demandes, periodes, parties, paquet: etatPaquet(slug) };
+  return { slug, dossier, travaux: t, demandes, periodes, parties, paquet: etatPaquet(slug), frais: frais(), fiche: fiche(dossier) };
 }
 
 /**
  * Confirmations hors bande inscrites pour un client (registre en ajout seul, EX-7.26), chacune avec
- * `consommee_par` : le travail dont le versement l'a consommée, ou null (une confirmation par approvisionnement).
+ * `consommee_par` : le travail dont le versement l'a consommée, ou null (une confirmation par approvisionnement), et
+ * `perimee` : vrai pour une confirmation de la fiche de contrôle (complément du 2026-11-25) non consommée qui cite une
+ * autre empreinte que la fiche du dossier tel qu'il est.
  */
 export function confirmations(slug) {
   const dir = repertoireClient(slug);
@@ -116,7 +158,11 @@ export function confirmations(slug) {
     }
   }).filter(Boolean);
   const consommees = new Map(lignes.filter((l) => typeof l.consommation === "string").map((l) => [l.consommation, l.travail ?? null]));
-  return lignes.filter((c) => c.objet?.org_id === d.organisation.org_id).map((c) => ({ ...c, consommee_par: consommees.get(c.id) ?? null }));
+  const ficheSha256 = fiche(d).sha256;
+  return lignes.filter((c) => c.objet?.org_id === d.organisation.org_id).map((c) => {
+    const consommee_par = consommees.get(c.id) ?? null;
+    return { ...c, consommee_par, perimee: c.operation === "jeu_approbateurs" && consommee_par === null && c.objet?.fiche_sha256 !== ficheSha256 };
+  });
 }
 
 /** Dernier paquet produit pour un client (`paquets/<n>/paquet-client-<slug>`, EX-7.30) et le dernier travail `paquet` (sa sortie `paquet-client`). */
@@ -130,19 +176,7 @@ export function etatPaquet(slug) {
 
 /** Lignes du registre des notes internes (`notes-internes.ndjson`), dans l'ordre ; une ligne illisible est ignorée. */
 export function lignesNotes() {
-  let texte = "";
-  try {
-    texte = fs.readFileSync(path.join(racine(), FICHIER_NOTES), "utf8");
-  } catch {
-    return [];
-  }
-  return texte.split("\n").filter(Boolean).map((l) => {
-    try {
-      return JSON.parse(l);
-    } catch {
-      return null;
-    }
-  }).filter(Boolean);
+  return lignesRegistre(FICHIER_NOTES);
 }
 
 /**

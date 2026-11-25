@@ -1,6 +1,7 @@
 // Données de l'agent (INTERFACES.md 3.6) : répertoire du compte de l'agent,
 // groupe de l'interface, mode 0750 ; journaux en ajout seul
-// (`journal-agent.ndjson`, `confirmations.ndjson`, `notes-internes.ndjson`), état des travaux
+// (`journal-agent.ndjson`, `confirmations.ndjson`, `notes-internes.ndjson`), frais de
+// l'instance appliqués (`frais-instance.json`, complément du 2026-11-25), état des travaux
 // (`travaux/<id>.json`, réécrit par renommage), et, par client, le dossier,
 // les captures, les demandes, les sorties, les parties et le paquet.
 //
@@ -14,6 +15,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import { FICHIER_FRAIS } from "../commun/frais.mjs";
+import { FICHIER_FICHES } from "../commun/fiche-controle.mjs";
 
 export const MODE_FICHIER = 0o640;
 export const MODE_REPERTOIRE = 0o750;
@@ -134,6 +137,12 @@ export function chemins(donnees) {
     // Notes internes (CT-4 EX-7.23, complément du 2026-11-19) : nom interne et remise du paquet, en ajout seul, hors
     // du répertoire des clients, que le paquet et les parties ne lisent pas.
     notes: path.join(donnees, "notes-internes.ndjson"),
+    // Frais de l'instance que l'agent applique (CT-4 EX-7.23, complément du 2026-11-25) : réécrits par renommage au
+    // démarrage et à chaque relecture du manifeste qui les change ; l'interface les lit (EX-7.9).
+    frais: path.join(donnees, FICHIER_FRAIS),
+    // Versions de la fiche de contrôle des adresses des approbateurs (CT-4 EX-7.8 et EX-7.23, complément du 2026-11-25) :
+    // ajout seul, hors du répertoire des clients, jamais tourné ; aucun travail ne le lit pour le paquet.
+    fiches: path.join(donnees, FICHIER_FICHES),
     travaux: path.join(donnees, "travaux"),
     travail: (id) => path.join(donnees, "travaux", `${id}.json`),
     clients: path.join(donnees, "clients"),

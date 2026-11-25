@@ -209,7 +209,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect((await lire("client-neuf")).code).to.equal("consigner_confirmation");
     expect((await lire("client-en-echec")).code).to.equal("conduire_etapes");
     expect((await lire("client-en-echec")).action).to.equal("Reprenez à l'étape 3");
-    expect((await lire("client-neuf")).action).to.equal("Notez la confirmation du client");
+    expect((await lire("client-neuf")).action).to.equal("Notez les deux confirmations du client");
     expect((await lire("client-envoye")).action).to.equal("Allez chercher la réponse du registre public pour l'étape 2");
     expect((await lire("client-inscrit")).action).to.equal("Remettez le paquet au client");
     // L'écran d'accueil dit à quoi il sert et explique le parcours une fois, en cinq lignes au plus.
@@ -330,8 +330,9 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     await aller("/clients/client-neuf");
     const neuf = page.locator("section.nt-essentiel[data-prochaine-action]");
     expect(await neuf.getAttribute("data-prochaine-action")).to.equal("consigner_confirmation");
-    expect(await neuf.locator('a[href="/clients/client-neuf/confirmations"]').innerText()).to.equal("Aller noter la confirmation");
-    expect(await neuf.locator("h2").innerText()).to.equal("Notez la confirmation du client");
+    // Décisions du 2026-11-25 : deux confirmations attendues (la fiche de contrôle des adresses, puis le versement).
+    expect(await neuf.locator('a[href="/clients/client-neuf/confirmations"]').innerText()).to.equal("Aller noter les confirmations");
+    expect(await neuf.locator("h2").innerText()).to.equal("Notez les deux confirmations du client");
     // Ce que le client doit confirmer : le montant, le nom de l'enregistreur et l'adresse exacte du compte technique.
     const dNeuf = F.clients["client-neuf"].dossier;
     const aConfirmer = (await neuf.locator("dl.nt-faits").innerText()).replace(/\s+/g, " ");
@@ -343,8 +344,8 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(await neuf.locator("[data-credits-en-clair]").evaluate((x) => x.tagName === "DETAILS" && !x.open)).to.equal(true);
     expect(await neuf.locator("[data-credits-en-clair] > summary").innerText()).to.equal("Qu'est-ce qu'un crédit d'écriture ?");
     await neuf.locator("[data-credits-en-clair] > summary").click();
-    expect((await neuf.locator("[data-credits-en-clair] > .ins-detail-corps").innerText()).replace(/\s+/g, " ")).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société ; le client ne les paie pas. Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
-    expect((await neuf.locator("[data-montant-en-clair]").innerText()).replace(/\s+/g, " ")).to.equal("Le montant est calculé à partir de la consommation prévue pour son enregistreur, réglée à 10 800 000 crédits par jour ; si le compte en a déjà, l'outil ne verse que la différence.");
+    expect((await neuf.locator("[data-credits-en-clair] > .ins-detail-corps").innerText()).replace(/\s+/g, " ")).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société. Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
+    expect((await neuf.locator("[data-duree-versement]").innerText()).replace(/\s+/g, " ")).to.equal("Ce versement couvre 30 jours de la consommation prévue par jour, 10 800 000 crédits d'écriture, plus une réserve pour un envoi. C'est une prévision : une journée peut consommer plus ou moins. Ce que le client paie pour ces crédits est fixé par son contrat, pas par cet outil.");
     expect(await neuf.locator("[data-adresse-a-confirmer]").innerText()).to.equal("Ne la dictez pas : 42 caractères ne se lisent pas à voix haute sans erreur. Envoyez-la au client par écrit, par un autre moyen que cet outil, et demandez-lui de vous répondre par écrit qu'elle est bien, en entier, celle du compte technique de son enregistreur. Gardez sa réponse avec la pièce de la confirmation.");
     expect(aConfirmer).to.not.match(/à lui lire/);
     expect(await page.locator("[data-actions-utiles]").count(), "aucune autre action utile sur un client neuf").to.equal(0);
@@ -466,9 +467,10 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(await page.locator(`[data-confirmation="${F.confirmations[1].id}"]`).locator(".nt-pastille").innerText()).to.equal("Prête à servir");
     // Une confirmation prête à servir attend déjà le versement : aucune autre n'est attendue.
     expect(await page.locator("[data-aucune-attendue] details[data-autre-confirmation]").evaluate((x) => x.open)).to.equal(false);
-    // Le client neuf attend la confirmation de son premier versement : le formulaire est déployé, sans la phrase.
+    // Le client neuf attend la fiche de contrôle des adresses (décisions du 2026-11-25) et la confirmation de son
+    // premier versement, dans l'ordre des étapes : le formulaire est déployé, sans la phrase.
     await aller("/clients/client-neuf/confirmations");
-    expect(await page.locator("section[data-confirmation-attendue]").getAttribute("data-confirmation-attendue")).to.equal("approvisionnement");
+    expect(await page.locator("section[data-confirmation-attendue]").getAttribute("data-confirmation-attendue")).to.equal("jeu_approbateurs approvisionnement");
     expect(await page.locator('section[data-confirmation-attendue] > form[data-formulaire="confirmation"]').isVisible()).to.equal(true);
     expect(await page.locator("[data-aucune-attendue]").count()).to.equal(0);
     // Paquet produit : téléchargement et empreinte du manifeste, en entier, hors de tout bloc replié.
@@ -503,13 +505,14 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     expect(await avances.evaluate((x) => x.open)).to.equal(false);
     expect(await avances.locator("[name]").evaluateAll((l) => l.map((x) => [x.getAttribute("name"), x.required]))).to.deep.equal([["budget_jour", false], ["tresorerie", false]]);
     const champs = await forme.locator("[name]").evaluateAll((l) => l.map((x) => ({ nom: x.getAttribute("name"), type: x.getAttribute("data-type"), libelles: x.id ? document.querySelectorAll(`label[for="${x.id}"]`).length : 0, aide: document.getElementById(`${x.id}-aide`)?.textContent ?? "", decrit: (x.getAttribute("aria-describedby") ?? "").split(" "), exemple: document.getElementById(`${x.id}-exemple`)?.textContent ?? "", fantome: x.getAttribute("placeholder"), id: x.id })));
-    expect(champs.map((x) => x.nom)).to.deep.equal(["nom_interne", "org", "journaux", "approbateurs", "seuil", "admin_jeu", "cles_enregistreur", "budget_jour", "tresorerie"]);
+    expect(champs.map((x) => x.nom)).to.deep.equal(["nom_interne", "org", "journaux", "approbateurs", "noms_approbateurs", "seuil", "admin_jeu", "cles_enregistreur", "budget_jour", "tresorerie"]);
+    expect(champs.find((x) => x.nom === "noms_approbateurs").type, "décisions du 2026-11-25 : une liste de textes, un nom par ligne").to.equal("liste_textes");
     for (const x of champs) {
       expect(x.libelles, `libellé de ${x.nom}`).to.equal(1);
       expect(x.aide, `aide de ${x.nom}`).to.match(/\.$/);
       // L'aide dit d'où vient l'information : le client la donne par écrit, ou le champ se laisse vide.
       // Le nom interne (sixième lecture) est celui que notre équipe choisit pour reconnaître le client.
-      expect(x.aide, `origine de ${x.nom}`).to.match(x.nom === "nom_interne" ? /^Le nom sous lequel notre équipe reconnaîtra ce client/ : /Le client vous|Laissez vide|cliquez sur « Tirer un nom au hasard »/);
+      expect(x.aide, `origine de ${x.nom}`).to.match(x.nom === "nom_interne" ? /^Le nom sous lequel notre équipe reconnaîtra ce client/ : /[Ll]e client vous|Laissez vide|cliquez sur « Tirer un nom au hasard »/);
       // L'exemple s'écrit sous le champ, jamais dans le champ ; il est lu avec l'aide par les lecteurs d'écran.
       expect(x.fantome, `texte fantôme de ${x.nom}`).to.equal(null);
       expect(x.exemple, `exemple de ${x.nom}`).to.match(/^Exemple : ./);
@@ -631,7 +634,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       // La fiche, dans chacun de ses états ; la prochaine action attendue prouve que l'état est le bon.
       const fiches = [
         ["essai-a-lancer", "conduire_etapes", "Lancez l'inscription sur le registre public"],
-        ["client-neuf", "consigner_confirmation", "Notez la confirmation du client"],
+        ["client-neuf", "consigner_confirmation", "Notez les deux confirmations du client"],
         ["essai-a-preparer", "preparer_demande", "Préparez le document d'inscription de l'enregistreur"],
         ["client-en-cours", "relayer_demande", "Faites signer le document par les approbateurs du client, puis envoyez-le"],
         ["client-envoye", "reprendre_envoi", "Allez chercher la réponse du registre public pour l'étape 2"],
@@ -1170,7 +1173,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       // Cinquième lecture : l'explication des crédits est repliée sous son titre ; ouverte, elle dit la même chose.
       expect(plat(await rappel.innerText())).to.contain("Qu'est-ce qu'un crédit d'écriture ?");
       await rappel.locator("[data-credits-en-clair] > summary").click();
-      expect(plat(await rappel.innerText())).to.contain("Tous ces crédits viennent de notre société ; le client ne les paie pas. Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
+      expect(plat(await rappel.innerText())).to.contain("Tous ces crédits viennent de notre société. Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
       expect(plat(await rappel.innerText())).to.contain("L'adresse : ne la dictez pas : 42 caractères ne se lisent pas à voix haute sans erreur.");
       await f.locator('[name="operation"]').selectOption("approvisionner");
       expect(plat(await rappel.innerText())).to.contain(`Un nouveau versement, qui complète le compte jusqu'à 327 000 000 crédits d'écriture, sur le compte technique de son enregistreur rec-client-neuf-01, dont l'adresse est ${compte}.`);
@@ -1441,7 +1444,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     try {
       const { page, ecarts, aller } = await ouvrir();
       const plat = (x) => x.replace(/\s+/g, " ").trim();
-      const CREDITS = "Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société ; le client ne les paie pas.";
+      const CREDITS = "Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société.";
       const VERSEMENT = "Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.";
       // Le premier texte de l'écran (hors des blocs repliés fermés et hors de l'explication elle-même) qui nomme les
       // crédits, et l'explication : une seule, un bloc replié « Qu'est-ce qu'un crédit d'écriture ? » fermé à
@@ -1640,15 +1643,16 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
     // 3. La confirmation : ce qu'elle autorise, dit sur la fiche, sur l'écran des confirmations et dans le formulaire.
     await aller("/clients/client-neuf");
     const consigne = page.locator("section.nt-essentiel[data-prochaine-action]");
-    expect(plat(await consigne.locator(".ins-essentiel-texte").first().innerText())).to.equal("L'étape 5 verse des crédits d'écriture sur le compte technique de l'enregistreur du client. Le client doit d'abord confirmer ce versement par un autre moyen que cet outil : un appel au numéro de son contrat, un courrier signé. L'outil fait les étapes 2 à 5 en une seule action : tant que cette confirmation n'est pas notée ici, il ne la commence pas, même pour les étapes qui ne versent rien.");
+    // Décisions du 2026-11-25 : la fiche de contrôle des adresses (étape 2) se dit d'abord, puis le versement (étape 5).
+    expect(plat(await consigne.locator(".ins-essentiel-texte").first().innerText())).to.equal("Deux confirmations du client sont à noter ici, dans l'ordre des étapes qu'elles débloquent. L'étape 2 enregistre les approbateurs du client sur le registre public : le client doit d'abord renvoyer, confirmée par écrit, la fiche de contrôle de leurs adresses, que cet outil lui prépare. L'étape 5 verse des crédits d'écriture sur le compte technique de l'enregistreur du client : le client doit aussi confirmer ce versement par un autre moyen que cet outil, un appel au numéro de son contrat, un courrier signé. L'outil fait les étapes 2 à 5 en une seule action : tant que ces deux confirmations ne sont pas notées ici, il ne la commence pas.");
     // Le montant et le compte restent écrits sans rien ouvrir ; le repère l'accompagne.
     expect(plat(await consigne.locator("dl.nt-faits").innerText())).to.contain("le versement de 327 000 000 crédits d'écriture");
-    expect(await consigne.locator("[data-repere]").evaluate((x) => x.closest("dd")?.querySelector("[data-montant-en-clair]") !== null), "le repère suit le calcul, dans la même réponse").to.equal(true);
-    expect(plat(await consigne.locator("[data-repere]").innerText())).to.equal("Repère : d'ordinaire, une preuve de date consomme au plus 100 000 crédits et une clôture de période au plus 350 000. La consommation prévue, 10 800 000 crédits par jour, paie chaque jour au moins 24 preuves de date suivies chacune de leur clôture.");
+    expect(await consigne.locator("[data-repere]").evaluate((x) => x.closest("dd")?.querySelector("[data-duree-versement]") !== null), "le repère suit la durée, dans la même réponse").to.equal(true);
+    expect(plat(await consigne.locator("[data-repere]").innerText())).to.equal("Repère : d'ordinaire, une preuve de date consomme au plus 100 000 crédits et une clôture de période au plus 350 000. La consommation prévue par jour paie au moins 24 preuves de date suivies chacune de leur clôture.");
     await aller("/clients/client-neuf/confirmations");
-    expect(plat(await page.locator(".nt-sous-titre").innerText())).to.equal("Le client confirme par un autre moyen que cet outil (un appel, un courrier signé) chaque versement sur son compte technique et, une fois ses approbateurs enregistrés, chaque changement de leur liste. Vous notez ici chaque confirmation ; sans elle, l'outil n'envoie pas l'opération. La liste garde tout : rien ne s'en efface.");
-    expect(plat(await page.locator("[data-une-operation]").innerText())).to.equal("Une confirmation « prête à servir » autorise une seule opération : un versement, ou un changement des approbateurs. Dès que l'opération est faite, elle devient « déjà utilisée » et ne peut plus servir. Pour l'inscription, il en faut une seule : celle du versement de l'étape 5. Les étapes 2 à 4 n'en demandent pas, mais l'outil les fait avec l'étape 5, en une seule action, qu'il ne commence pas sans cette confirmation.");
-    expect(plat(await page.locator("[data-ce-que-confirme] [data-repere]").innerText())).to.equal("Repère : d'ordinaire, une preuve de date consomme au plus 100 000 crédits et une clôture de période au plus 350 000.");
+    expect(plat(await page.locator(".nt-sous-titre").innerText())).to.equal("Le client confirme par un autre moyen que cet outil (un appel, un courrier signé) la liste des adresses de ses approbateurs avant qu'elle parte vers le registre public (il renvoie la fiche de contrôle confirmée), chaque versement sur son compte technique et, une fois ses approbateurs enregistrés, chaque changement de leur liste. Vous notez ici chaque confirmation ; sans elle, l'outil n'envoie pas l'opération. La liste garde tout : rien ne s'en efface.");
+    expect(plat(await page.locator("[data-une-operation]").innerText())).to.equal("Une confirmation « prête à servir » autorise une seule opération : l'enregistrement des approbateurs dont la fiche de contrôle a été renvoyée, un versement, ou un changement des approbateurs. Dès que l'opération est faite, elle devient « déjà utilisée » et ne peut plus servir. Pour l'inscription, il en faut deux : celle de la fiche de contrôle des adresses des approbateurs (étape 2) et celle du versement (étape 5). Les étapes 3 et 4 n'en demandent pas, mais l'outil fait les étapes 2 à 5 en une seule action, qu'il ne commence pas sans ces deux confirmations.");
+    expect(plat(await page.locator("[data-ce-que-confirme] [data-repere]").innerText())).to.equal("Repère : d'ordinaire, une preuve de date consomme au plus 100 000 crédits et une clôture de période au plus 350 000. La consommation prévue par jour paie au moins 24 preuves de date suivies chacune de leur clôture.");
     // 4. Aucune date ni aucun identifiant de machine au premier niveau, hors des valeurs qui engagent (INTERFACES.md
     // 2.4 : instant exact, identité enregistrée, identifiant de l'action, sur la carte d'une confirmation).
     const machine = () => page.evaluate(() => {
@@ -1992,7 +1996,7 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       expect(await page.locator("[data-a-preparer]").count(), "rien à faire : pas de « Ayez sous la main »").to.equal(0);
 
       // 4. Qui paie : la même phrase partout où l'écran le dit ; le mode essai dit ce qu'il consomme, au lancement.
-      expect(P.QUI_PAIE).to.equal("Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société ; le client ne les paie pas.");
+      expect(P.QUI_PAIE).to.equal("Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société.");
       expect(P.ESSAI_DEPENSE).to.equal("En mode essai, ces écritures consomment aussi des crédits d'écriture, mais ceux du registre d'essai : rien n'est pris sur le registre réel.");
       for (const t of [P.QUI_PAIE, P.ESSAI_DEPENSE]) expect(t, "aucune somme d'argent, aucun équivalent, aucune durée").to.not.match(/€|euro|franc|[0-9]|jours?|semaines?|mois\b|environ/i);
       await aller("/clients/essai-lancement");
@@ -2014,8 +2018,9 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       await aller("/clients/client-en-cours/confirmations");
       await depuisLaTable("confirmations, toutes utilisées");
       expect(await page.locator("[data-etat-confirmations]").evaluate((x) => [x.getAttribute("data-etat-confirmations"), x.textContent.trim(), x.className])).to.deep.equal(["confirmation_rien_a_noter", "Rien à noter", "nt-pastille nt-pastille-grande"]);
+      // Décisions du 2026-11-25 : la fiche de contrôle confirmée s'ajoute à celle du versement (les deux prêtes à servir).
       await aller("/clients/essai-lancement/confirmations");
-      expect(await page.locator("[data-etat-confirmations]").innerText()).to.equal("1 prête à servir");
+      expect(await page.locator("[data-etat-confirmations]").innerText()).to.equal("2 prêtes à servir");
 
       // 6. Paquet : « Paquet à remettre », puis, la remise notée, « Paquet remis » en haut de l'écran, de la fiche et de la liste.
       await aller("/clients/client-inscrit/paquet");
@@ -2053,4 +2058,386 @@ describe("inscription : écrans de l'interface d'exploitant dans Chromium (compl
       for (const x of plus) x.retirer();
     }
   });
+  it("décisions du 2026-11-25 : la durée que couvre un versement se lit, sans rien ouvrir et sans prix, sur la fiche (confirmations à noter, étapes à lancer), dans « Alimenter un compte technique » (avant le versement, d'après la consommation écrite ; après, ce que le montant versé représente) et dans le formulaire de confirmation ; la fiche de contrôle des adresses des approbateurs a sa page imprimable et son fichier texte (mêmes lignes, même empreinte, sans nom interne), se note comme une confirmation au corps exact, débloque l'étape 2, et ne vaut plus si le dossier change ; 1280 et 390", async function () {
+    const P = await import("../paquets/inscription/src/web/lib/parcours.mjs");
+    const C = await import("../paquets/inscription/src/commun/fiche-controle.mjs");
+    const plat = (x) => x.replace(/\s+/g, " ").trim();
+    const CONTRAT = "Ce que le client paie pour ces crédits est fixé par son contrat, pas par cet outil.";
+    const PREVISION = "C'est une prévision : une journée peut consommer plus ou moins.";
+    const INSCRIPTION = `Ce versement couvre 30 jours de la consommation prévue par jour, 10 800 000 crédits d'écriture, plus une réserve pour un envoi. ${PREVISION} ${CONTRAT}`;
+    const COMPLEMENT = (b) => `Ce versement complète le compte jusqu'à 30 jours de la consommation prévue par jour, ${b} crédits d'écriture, plus une réserve pour un envoi : il ne verse que ce qui manque. ${PREVISION} ${CONTRAT}`;
+    const sansPrix = (texte, quoi) => expect(texte, `${quoi} : aucun prix, aucune devise, aucun montant en monnaie`).to.not.match(/€|\beuros?\b|\bEUR\b|franc|\$|\bprix\b|tarif|factur|gratuit|payant|ne les paie pas/i);
+    const frais = path.join(donneesFictives, "frais-instance.json");
+    const fraisAvant = fs.existsSync(frais) ? fs.readFileSync(frais, "utf8") : null;
+    fs.writeFileSync(frais, JSON.stringify({ version: 0, provision_days: 30, refill_below_days: 7, gas_limit: 3000000, max_daily_budget_gas: null, manifest_sha256: null }, null, 2) + "\n");
+    const registre = path.join(donneesFictives, "confirmations.ndjson");
+    const registreAvant = fs.readFileSync(registre, "utf8");
+    const notes = path.join(donneesFictives, "notes-internes.ndjson");
+    const notesAvant = fs.existsSync(notes) ? fs.readFileSync(notes, "utf8") : null;
+    const dossierNeuf = path.join(donneesFictives, "clients", "client-neuf", "dossier.json");
+    const dossierAvant = fs.readFileSync(dossierNeuf, "utf8");
+    const A = "a_faire";
+    const plus = [ajouterClientFictif(donneesFictives, "essai-duree", [A, A, A, A, A, A, A], { confirmation: true, histoire: true })];
+    const dNeuf = F.clients["client-neuf"].dossier;
+    const empreinte = C.empreinteFiche(dNeuf);
+    /** Un élément lu sans rien ouvrir : affiché, hors de tout bloc replié fermé. */
+    const lisible = (loc) => loc.evaluate((el) => {
+      for (let d = el.closest("details"); d; d = d.parentElement?.closest("details") ?? null) if (!d.open && !d.querySelector(":scope > summary")?.contains(el)) return false;
+      return el.getClientRects().length > 0;
+    });
+    try {
+      const { page, ecarts, aller } = await ouvrir();
+      // 1. Fiche du client : les deux confirmations, dans l'ordre des étapes ; la durée du versement, lue sans rien ouvrir.
+      await aller("/clients/client-neuf");
+      const consigne = page.locator("section.nt-essentiel[data-prochaine-action]");
+      expect(await consigne.locator("h2").innerText()).to.equal("Notez les deux confirmations du client");
+      expect(await consigne.locator("[data-a-confirmer]").evaluateAll((l) => l.map((x) => x.getAttribute("data-a-confirmer")))).to.deep.equal(["fiche", "versement"]);
+      /** Le texte d'un fait de la consigne, ligne par ligne (le libellé s'affiche en capitales par la feuille). */
+      const fait = (loc) => loc.evaluate((x) => [...x.querySelectorAll("dt, .ins-ligne")].map((e) => e.textContent.replace(/\s+/g, " ").trim()).join(" "));
+      expect(await fait(consigne.locator('[data-a-confirmer="fiche"]'))).to.equal("Ce que le client doit confirmer pour l'étape 2 la fiche de contrôle des adresses de ses approbateurs (3 approbateurs, 2 approbations requises, et leur responsable), qu'il vous renvoie confirmée par écrit Voir, télécharger ou imprimer la fiche");
+      expect(await consigne.locator("[data-lien-fiche]").getAttribute("href")).to.equal("/clients/client-neuf/fiche-controle");
+      expect(await fait(consigne.locator('[data-a-confirmer="versement"]'))).to.match(/^Ce que le client doit confirmer pour l'étape 5 le versement de 327 000 000 crédits d'écriture/);
+      const duree = consigne.locator("[data-duree-versement]");
+      expect(await duree.count()).to.equal(1);
+      expect(await lisible(duree), "lue sans rien ouvrir").to.equal(true);
+      expect(plat(await duree.innerText())).to.equal(INSCRIPTION);
+      expect(await consigne.locator("[data-pourquoi-fiche]").count(), "le pourquoi de la fiche est sur sa page, pas sur la consigne").to.equal(0);
+      const fiche = page.locator("[data-fiche-controle]");
+      expect(await fiche.getAttribute("data-fiche-controle")).to.equal("a_confirmer");
+      expect(plat(await fiche.innerText())).to.equal("à remettre au client, qui la renvoie confirmée par écrit");
+      sansPrix(await page.locator("main").innerText(), "fiche du client");
+      expect(motsTechniquesDans(await page.evaluate(textePremierNiveau))).to.deep.equal([]);
+      // Étapes à lancer (les deux confirmations notées) : la consigne dit la durée du versement de l'étape 5 ; l'explication des crédits la suit.
+      await aller("/clients/essai-duree");
+      expect(await consigne.getAttribute("data-prochaine-action")).to.equal("conduire_etapes");
+      expect(await lisible(consigne.locator("[data-duree-versement]"))).to.equal(true);
+      expect(plat(await consigne.locator("[data-duree-versement]").innerText())).to.equal(INSCRIPTION);
+      expect(await consigne.locator("[data-duree-versement] + details[data-credits-en-clair]").count(), "l'explication des crédits suit la première mention").to.equal(1);
+      expect(await page.locator("[data-fiche-controle]").getAttribute("data-fiche-controle")).to.equal("confirmee");
+      expect(plat(await page.locator('article, main').first().innerText())).to.contain("2 notées : 2 prêtes à servir");
+      // 2. « Alimenter un compte technique » : la durée avant le versement suit la consommation écrite ; le montant versé, après.
+      await aller("/clients/client-inscrit");
+      await page.locator("details[data-actions-rares] > summary").click();
+      await page.locator('details[data-actions-rares] details[data-action="approvisionner"] > summary').click();
+      const f = page.locator('details[data-action="approvisionner"] form');
+      const dureeForm = f.locator("[data-duree-versement]");
+      expect(plat(await dureeForm.innerText())).to.equal(COMPLEMENT("10 800 000"));
+      await f.locator('[name="budget_jour"]').fill("21600000");
+      await page.waitForFunction(() => document.querySelector('details[data-action="approvisionner"] form [data-duree-versement]')?.textContent.replace(/\s+/g, " ").includes("21 600 000"));
+      expect(plat(await dureeForm.innerText())).to.equal(COMPLEMENT("21 600 000"));
+      await f.locator('[name="budget_jour"]').fill("abc");
+      await page.waitForFunction(() => document.querySelector('details[data-action="approvisionner"] form [data-duree-versement]')?.textContent.includes("pas calculable"));
+      expect(plat(await dureeForm.innerText())).to.equal(P.DUREE_NON_CALCULABLE);
+      await f.locator('[name="budget_jour"]').fill("");
+      await page.waitForFunction(() => document.querySelector('details[data-action="approvisionner"] form [data-duree-versement]')?.textContent.replace(/\s+/g, " ").includes("10 800 000"));
+      // Le versement fait (réponses fictives) : ce que le montant versé représente ; le corps envoyé est celui d'avant.
+      const id = `trv-${"0".repeat(30)}77`;
+      const corps = [];
+      await page.route("**/api/travaux", (r) => { corps.push(r.request().postData()); return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id }) }); });
+      await page.route(`**/api/travaux/${id}`, (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id, commande: "approvisionner", slug: "client-inscrit", exploitant: `exploitant ${NOM}`, recu_a: "2026-11-25T09:00:00.000Z", etat: "fini", sortie: { version: 0, command: "approvisionner", result: "reussi", exit_code: 0, checks: [], error: null, outputs: { to: F.clients["client-inscrit"].dossier.recorders[0].chain_key, daily_budget_gas: 10800000, amount_wei: "21600001", provision_wei: "327000000" } } }) }));
+      await f.locator('button[type="submit"]').click();
+      await page.locator('details[data-action="approvisionner"] [data-duree-versee]').waitFor();
+      expect(corps).to.deep.equal([JSON.stringify({ commande: "approvisionner", slug: "client-inscrit", parametres: { cle_chaine: F.clients["client-inscrit"].dossier.recorders[0].chain_key } })]);
+      expect(plat(await page.locator('details[data-action="approvisionner"] [data-duree-versee]').innerText())).to.equal(`Le versement de 21 600 001 crédits d'écriture représente 2 jours de la consommation prévue par jour, 10 800 000 crédits d'écriture. ${PREVISION} ${CONTRAT}`);
+      await page.unroute("**/api/travaux");
+      await page.unroute(`**/api/travaux/${id}`);
+      // 3. La page de la fiche de contrôle et son fichier texte : mêmes lignes, même empreinte ; sans nom interne.
+      if (notesAvant === null || !notesAvant.includes(dNeuf.organisation.org_id)) fs.appendFileSync(notes, JSON.stringify({ id: `not-${"0".repeat(31)}9`, sorte: "nom_interne", org_id: dNeuf.organisation.org_id, nom: "Coopérative Fictive FC9X2", exploitant: `exploitant ${NOM}`, recu_a: "2026-11-25T08:00:00.000Z" }) + "\n");
+      await aller("/clients/client-neuf/fiche-controle");
+      expect(await page.locator("h1").innerText()).to.equal("Fiche de contrôle des adresses des approbateurs");
+      expect(await page.locator("[data-etat-fiche]").innerText()).to.equal("À faire confirmer par le client");
+      const lignes = C.lignesFiche(dNeuf);
+      expect(await page.locator("[data-adresse-approbateur]").evaluateAll((l) => l.map((x) => x.textContent))).to.deep.equal(dNeuf.approvers.members);
+      expect(await page.locator("[data-adresse-responsable]").innerText()).to.equal(dNeuf.approvers.set_admin);
+      expect(plat(await page.locator("[data-approbations]").innerText())).to.equal(lignes.find((x) => x.cle === "approbations").valeur);
+      expect(plat(await page.locator("[data-consigne-fiche]").innerText())).to.equal(C.CONSIGNE_FICHE);
+      expect(await page.locator("[data-fiche-sha256]").innerText()).to.equal(empreinte);
+      expect(await page.locator("[data-telecharger-fiche]").getAttribute("href")).to.equal("/api/clients/client-neuf/fiche-controle");
+      expect(await page.locator("[data-imprimer]").count()).to.equal(1);
+      const fichier = await page.evaluate(async () => { const r = await fetch("/api/clients/client-neuf/fiche-controle"); return { statut: r.status, type: r.headers.get("content-type"), disposition: r.headers.get("content-disposition"), texte: await r.text() }; });
+      expect(fichier.statut).to.equal(200);
+      expect(fichier.type).to.equal("text/plain; charset=utf-8");
+      expect(fichier.disposition).to.equal('attachment; filename="fiche-controle-client-neuf.txt"');
+      expect(fichier.texte).to.equal(C.texteFiche(dNeuf));
+      expect("0x" + crypto.createHash("sha256").update(fichier.texte, "utf8").digest("hex"), "l'empreinte affichée est celle du fichier").to.equal(empreinte);
+      for (const ligne of fichier.texte.split("\n").filter(Boolean)) {
+        const [, valeur] = ligne.split(" : ");
+        if (valeur) expect(plat(await page.locator("[data-fiche]").innerText()), ligne).to.contain(valeur.replace(/ — nom$/, ""));
+      }
+      for (const texte of [fichier.texte, await page.locator("main").innerText()]) expect(texte, "le nom interne n'entre pas dans la fiche").to.not.match(/Coopérative|FC9X2/);
+      expect(motsTechniquesDans(await page.evaluate(textePremierNiveau))).to.deep.equal([]);
+      sansPrix(await page.locator("main").innerText(), "fiche de contrôle");
+      // 4. La fiche renvoyée se note comme une confirmation : opération, objet (l'empreinte de la fiche actuelle), pièce ; corps exact.
+      await aller("/clients/client-neuf/confirmations");
+      expect(await page.locator("[data-etat-confirmations]").innerText()).to.equal("Confirmation à noter");
+      const fc = page.locator('form[data-formulaire="confirmation"]');
+      expect(await fc.locator('[name="operation"] option').evaluateAll((l) => l.map((x) => x.value))).to.deep.equal(["jeu_approbateurs", "approvisionnement", "approvisionner", "administrer-jeu"]);
+      expect(await fc.locator('[name="operation"]').inputValue(), "le choix proposé reste le premier versement").to.equal("approvisionnement");
+      const rappel = fc.locator("[data-ce-que-confirme]");
+      expect(plat(await rappel.locator("[data-duree-versement]").innerText())).to.equal(INSCRIPTION);
+      expect(await lisible(rappel.locator("[data-duree-versement]"))).to.equal(true);
+      await fc.locator('[name="operation"]').selectOption("approvisionner");
+      expect(plat(await rappel.locator("[data-duree-versement]").innerText())).to.equal(COMPLEMENT("10 800 000"));
+      await fc.locator('[name="operation"]').selectOption("jeu_approbateurs");
+      const choixFiche = fc.locator('select[name="fiche_sha256"]');
+      expect(await choixFiche.evaluate((x) => [x.getAttribute("data-type"), x.hasAttribute("data-valeur"), x.value, [...x.options].map((o) => o.value)]), "aucune version choisie d'office ; la version 1, courante").to.deep.equal(["hachage", true, "", ["", empreinte]]);
+      await choixFiche.selectOption(empreinte);
+      expect(plat(await rappel.innerText())).to.contain("La liste de ses approbateurs et de leur responsable, telle que la fiche de contrôle la donne (2, sur 3 approbateurs), et aucune autre");
+      expect(plat(await rappel.innerText())).to.contain(P.PIECE_FICHE);
+      expect(await rappel.locator("[data-lien-fiche]").getAttribute("href")).to.equal("/clients/client-neuf/fiche-controle");
+      expect(await rappel.locator("[data-duree-versement]").count(), "aucune durée pour la fiche").to.equal(0);
+      const renvoyee = path.join(dir, "fiche-renvoyee-signee.txt");
+      fs.writeFileSync(renvoyee, `${fichier.texte}Confirmé par écrit, signature du client (fictive).\n`);
+      const pieceSha256 = "0x" + crypto.createHash("sha256").update(fs.readFileSync(renvoyee)).digest("hex");
+      expect(pieceSha256).to.not.equal(empreinte);
+      const [choix] = await Promise.all([page.waitForEvent("filechooser"), fc.getByRole("button", { name: "Choisir la pièce" }).click()]);
+      await choix.setFiles(renvoyee);
+      await page.waitForFunction((v) => document.querySelector('form[data-formulaire="confirmation"] [name="piece_sha256"]')?.value === v, pieceSha256);
+      await fc.locator('[name="personne_client"]').fill("Camille Durand (personne fictive)");
+      await fc.locator('[name="canal"]').fill("fiche renvoyée signée, par courrier");
+      await fc.locator('details[data-reglages-avances="instant"] > summary').click();
+      await fc.locator('[name="instant"]').fill("2026-11-25T09:10:00.000Z");
+      await fc.locator('button[type="submit"]').click();
+      await fc.locator("[data-relecture]").waitFor();
+      expect(plat(await fc.locator('[data-relu="objet"]').innerText())).to.equal(`la liste des adresses de ses approbateurs, telle que la fiche de contrôle la donne (version 1, courante) ; empreinte de la fiche : ${empreinte}`);
+      const envoyes = [];
+      await page.route("**/api/clients/client-neuf/confirmations", (r) => { envoyes.push(r.request().postData()); return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: `cnf-${"0".repeat(30)}f1` }) }); });
+      // La page se recharge une fois la confirmation notée : la navigation suivante attend ce rechargement.
+      const rechargement = page.waitForEvent("load");
+      await Promise.all([page.waitForRequest((x) => x.method() === "POST" && x.url().endsWith("/api/clients/client-neuf/confirmations")), fc.locator("[data-relecture] button[data-noter]").click()]);
+      await rechargement;
+      await page.waitForLoadState("networkidle");
+      await page.unroute("**/api/clients/client-neuf/confirmations");
+      const attendu = { operation: "jeu_approbateurs", objet: { org_id: dNeuf.organisation.org_id, fiche_sha256: empreinte }, personne_client: "Camille Durand (personne fictive)", canal: "fiche renvoyée signée, par courrier", instant: "2026-11-25T09:10:00.000Z", piece_sha256: pieceSha256 };
+      expect(envoyes).to.deep.equal([JSON.stringify(attendu)]);
+      // Notée (ce que l'agent aurait écrit) : la carte, la fiche du client (il reste le versement), la page de la fiche.
+      fs.appendFileSync(registre, JSON.stringify({ id: `cnf-${"0".repeat(30)}f1`, ...attendu, exploitant: `exploitant ${NOM}`, recu_a: "2026-11-25T09:12:00.000Z" }) + "\n");
+      await aller("/clients/client-neuf/confirmations");
+      const carte = page.locator(`[data-confirmation="cnf-${"0".repeat(30)}f1"]`);
+      expect(await carte.locator("h3").innerText()).to.equal("Adresses des approbateurs : fiche de contrôle renvoyée (étape 2 de l'inscription)");
+      expect(await carte.locator(".nt-pastille").first().innerText()).to.equal("Prête à servir");
+      expect(plat(await carte.innerText())).to.contain(`la fiche actuelle du dossier (version 1) ; son empreinte : ${empreinte}`);
+      expect(await carte.locator("[data-piece]").innerText()).to.equal(pieceSha256);
+      await aller("/clients/client-neuf");
+      expect(await consigne.locator("h2").innerText()).to.equal("Notez la confirmation du client");
+      expect(await consigne.locator("[data-a-confirmer]").evaluateAll((l) => l.map((x) => x.getAttribute("data-a-confirmer")))).to.deep.equal(["versement"]);
+      expect(await page.locator("[data-fiche-controle]").getAttribute("data-fiche-controle")).to.equal("confirmee");
+      await aller("/clients/client-neuf/fiche-controle");
+      expect(await page.locator("[data-etat-fiche]").innerText()).to.equal("Confirmée par le client");
+      expect(plat(await page.locator("[data-confirmations-fiche]").innerText())).to.match(/^Confirmée par Camille Durand \(personne fictive\) \(fiche renvoyée signée, par courrier\) le 25 novembre 2026 à 09:10 UTC, notée par operateur-1 le 25 novembre 2026 à 09:12 UTC ; prête à servir\.$/);
+      // 5. Le dossier change (un approbateur de plus) : la fiche change, la confirmation ne vaut plus, l'étape 2 redevient bloquée.
+      const change = JSON.parse(dossierAvant);
+      change.approvers.members = [...change.approvers.members, "0x" + "4d".repeat(20)].sort();
+      fs.writeFileSync(dossierNeuf, JSON.stringify(change, null, 2) + "\n");
+      const nouvelle = C.empreinteFiche(change);
+      expect(nouvelle).to.not.equal(empreinte);
+      await aller("/clients/client-neuf/fiche-controle");
+      expect(await page.locator("[data-etat-fiche]").innerText()).to.equal("À faire confirmer par le client");
+      expect(await page.locator("[data-fiche-sha256]").innerText()).to.equal(nouvelle);
+      expect(await page.locator("[data-adresse-approbateur]").count()).to.equal(4);
+      expect(await page.locator("[data-confirmations-perimees]").getAttribute("data-confirmations-perimees")).to.equal("1");
+      expect(plat(await page.locator("[data-confirmations-perimees]").innerText())).to.match(/^Une confirmation notée ne vaut plus\. La fiche a changé depuis : elle cite une autre version de la fiche \(version 1, empreinte 0x[0-9a-f]{8}…[0-9a-f]{6}, notée le 25 novembre 2026 à 09:12 UTC\)\. Remettez au client la fiche actuelle et faites-la confirmer de nouveau ; l'étape 2 reste bloquée d'ici là\.$/);
+      await aller("/clients/client-neuf/confirmations");
+      expect(await carte.getAttribute("data-perimee")).to.equal("");
+      expect(await carte.locator(".nt-pastille").first().innerText()).to.equal("Ne vaut plus");
+      expect(plat(await carte.locator("[data-phrase-perimee]").innerText())).to.match(/^La confirmation cite une version de la fiche de contrôle qui n'est plus celle du dossier : elle ne peut plus servir, faites confirmer la fiche actuelle\./);
+      expect(plat(await carte.innerText())).to.contain("une version d'avant de la fiche (version 1), qui n'est plus celle du dossier");
+      expect(plat(await carte.innerText()), "une confirmation qui ne vaut plus n'autorise plus rien, et la carte ne dit pas le contraire").to.contain("à rien : elle ne vaut plus et n'autorise plus rien").and.to.not.contain("à rien encore");
+      expect(await page.locator("[data-etat-confirmations]").innerText()).to.equal("Confirmation à noter");
+      await fc.locator('[name="operation"]').selectOption("jeu_approbateurs");
+      expect(await fc.locator('select[name="fiche_sha256"] option').evaluateAll((l) => l.map((x) => [x.value, x.textContent.startsWith("Fiche actuelle, pas encore numérotée (courante)")])), "la fiche actuelle, changée à la main et pas encore numérotée, est proposée en tête, après le choix à faire").to.deep.equal([["", false], [nouvelle, true], [empreinte, false]]);
+      await aller("/clients/client-neuf");
+      expect(await consigne.locator("h2").innerText()).to.equal("Notez les deux confirmations du client");
+      expect(await page.locator("[data-fiche-controle]").getAttribute("data-fiche-controle")).to.equal("perimee");
+      expect(plat(await page.locator("[data-fiche-controle]").innerText())).to.equal("ne vaut plus : le dossier a changé, faites confirmer la fiche actuelle");
+      expect(plat(await page.locator("[data-confirmations-notees]").innerText())).to.equal("1 notée, qui ne vaut plus");
+      fs.writeFileSync(dossierNeuf, dossierAvant);
+      expect(ecarts).to.deep.equal([]);
+      // 6. À 390 px : rien ne déborde ; la durée se lit sans rien ouvrir ; les cibles de la fiche font 44 px.
+      const tel = await ouvrir({ largeur: 390, hauteur: 844 });
+      for (const ecran of ["/clients/client-neuf", "/clients/client-neuf/fiche-controle", "/clients/client-neuf/confirmations", "/clients/essai-duree"]) {
+        await tel.aller(ecran);
+        expect(await tel.page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `${ecran} à 390 px`).to.equal(true);
+        if (ecran !== "/clients/client-neuf/fiche-controle") expect(await lisible(tel.page.locator("[data-duree-versement]").first()), `${ecran} à 390 px : la durée se lit`).to.equal(true);
+      }
+      await tel.aller("/clients/client-neuf/fiche-controle");
+      const petites = await tel.page.evaluate(() => [...document.querySelectorAll("[data-actions-fiche] a, [data-actions-fiche] button, [data-copier]")].map((x) => [x.textContent.trim(), Math.round(x.getBoundingClientRect().height)]).filter(([, h]) => h < 44));
+      expect(petites).to.deep.equal([]);
+      expect(tel.ecarts).to.deep.equal([]);
+    } finally {
+      fs.writeFileSync(dossierNeuf, dossierAvant);
+      fs.writeFileSync(registre, registreAvant);
+      if (notesAvant === null) fs.rmSync(notes, { force: true });
+      else fs.writeFileSync(notes, notesAvant);
+      if (fraisAvant === null) fs.rmSync(frais, { force: true });
+      else fs.writeFileSync(frais, fraisAvant);
+      for (const x of plus) x.retirer();
+    }
+  });
+
+  it("décisions du 2026-11-25 (noms et versions) : le nom de chaque approbateur se saisit sur l'écran du pas 1 avec les adresses (jamais dans le corps du travail : une note après la réussite, au corps exact) et se change sur la fiche du client tant que l'étape 2 n'est pas faite ; la fiche de contrôle porte le nom à côté de l'adresse, ou le trait et « le client complète le nom » ; un nom changé fait une fiche nouvelle, numérotée, et les versions se listent ; le formulaire ne choisit aucune version d'office ; la confirmation d'une version d'avant se note mais « Ne vaut plus » et l'étape 2 reste bloquée ; 1280 et 390", async function () {
+    const C = await import("../paquets/inscription/src/commun/fiche-controle.mjs");
+    const plat = (x) => x.replace(/\s+/g, " ").trim();
+    const frais = path.join(donneesFictives, "frais-instance.json");
+    const fraisAvant = fs.existsSync(frais) ? fs.readFileSync(frais, "utf8") : null;
+    fs.writeFileSync(frais, JSON.stringify({ version: 0, provision_days: 30, refill_below_days: 7, gas_limit: 3000000, max_daily_budget_gas: null, manifest_sha256: null }, null, 2) + "\n");
+    const registre = path.join(donneesFictives, "confirmations.ndjson");
+    const registreAvant = fs.readFileSync(registre, "utf8");
+    const notes = path.join(donneesFictives, "notes-internes.ndjson");
+    const notesAvant = fs.existsSync(notes) ? fs.readFileSync(notes, "utf8") : null;
+    const fiches = path.join(donneesFictives, "fiches-controle.ndjson");
+    const fichesAvant = fs.readFileSync(fiches, "utf8");
+    const dNeuf = F.clients["client-neuf"].dossier;
+    const org = dNeuf.organisation.org_id;
+    const [a1, a2, a3] = dNeuf.approvers.members;
+    const v1 = C.empreinteFiche(dNeuf);
+    const v2 = C.empreinteFiche(dNeuf, { [a1]: "Camille Durand" });
+    expect(v2).to.not.equal(v1);
+    try {
+      const { page, ecarts, aller } = await ouvrir();
+      // 1. L'écran du pas 1 : le champ des noms suit les adresses ; le travail part sans les noms ; la note part après la réussite.
+      await aller("/clients/nouveau");
+      const forme = page.locator('form[data-commande="inscrire-client-preparer"]').first();
+      const noms = forme.locator('[name="noms_approbateurs"]');
+      expect(await noms.evaluate((x) => [x.tagName, x.getAttribute("data-type"), x.required])).to.deep.equal(["TEXTAREA", "liste_textes", false]);
+      expect(await forme.locator("[name]").evaluateAll((l) => l.map((x) => x.name).slice(3, 5))).to.deep.equal(["approbateurs", "noms_approbateurs"]);
+      await forme.locator('[name="nom_interne"]').fill("Assurances du Léman NI7Q4");
+      await forme.locator('[name="org"]').fill("assureur-demo");
+      await forme.locator('[name="journaux"]').fill("journal-demo");
+      await forme.locator('[name="approbateurs"]').fill([a1, a2, a3].join("\n"));
+      await noms.fill("Camille Durand\n\nDominique Favre");
+      await forme.locator('[name="seuil"]').fill("2");
+      await forme.locator('[name="admin_jeu"]').fill(dNeuf.approvers.set_admin);
+      await forme.locator("input[data-adresses-relues]").check();
+      await forme.locator('textarea[name="cles_enregistreur"]').first().fill(JSON.stringify(dNeuf.recorders[0], null, 2));
+      const id = `trv-${"0".repeat(30)}a9`;
+      const travaux = [];
+      const notees = [];
+      await page.route("**/api/travaux", (r) => { travaux.push(r.request().postData()); return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id }) }); });
+      await page.route(`**/api/travaux/${id}`, (r) => r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id, commande: "inscrire-client-preparer", slug: "assureur-demo", exploitant: `exploitant ${NOM}`, recu_a: "2026-11-25T09:00:00.000Z", etat: "fini", sortie: { version: 0, command: "inscrire-client-preparer", result: "reussi", exit_code: 0, checks: [], error: null, outputs: {} } }) }));
+      await page.route("**/api/clients/assureur-demo/notes", (r) => { notees.push(r.request().postData()); return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: `not-${"0".repeat(31)}${notees.length}` }) }); });
+      await forme.locator('button[type="submit"]').click();
+      await page.locator("[data-noms-approbateurs-note]").waitFor();
+      expect(await page.locator("[data-noms-approbateurs-note]").getAttribute("data-noms-approbateurs-note")).to.equal("2");
+      expect(plat(await page.locator("[data-noms-approbateurs-note]").innerText())).to.equal("Les noms de 2 approbateurs sont enregistrés pour la fiche de contrôle : ils ne partent jamais vers le registre public.");
+      expect(travaux).to.have.length(1);
+      const corps = JSON.parse(travaux[0]);
+      expect(Object.keys(corps.parametres).sort(), "le corps du travail ne porte ni le nom interne ni les noms").to.deep.equal(["admin_jeu", "approbateurs", "cles_enregistreur", "journaux", "org", "seuil"]);
+      expect(travaux[0]).to.not.match(/Camille|Durand|Dominique|Favre|Léman|NI7Q4/);
+      expect(notees, "deux notes, au corps exact : le nom interne, puis les noms appariés aux adresses, la ligne vide sautée").to.deep.equal([JSON.stringify({ sorte: "nom_interne", nom: "Assurances du Léman NI7Q4" }), JSON.stringify({ sorte: "noms_approbateurs", noms: [{ adresse: a1, nom: "Camille Durand" }, { adresse: a3, nom: "Dominique Favre" }] })]);
+      await page.unroute("**/api/travaux");
+      await page.unroute(`**/api/travaux/${id}`);
+      await page.unroute("**/api/clients/assureur-demo/notes");
+      // 2. La page de la fiche : les noms se changent sous la fiche tant que l'étape 2 n'est pas faite ; une note au corps exact ; la fiche est refaite.
+      await aller("/clients/client-neuf/fiche-controle");
+      const bloc = page.locator("details[data-noms-approbateurs-action]");
+      expect(plat(await bloc.locator("> summary").innerText())).to.equal("Noms des approbateurs 0 sur 3 donnés ; se changent ici tant que l'étape 2 n'est pas faite");
+      expect(await bloc.count()).to.equal(1);
+      expect(await bloc.evaluate((x) => x.open), "replié : rien de ce qui engage n'y est").to.equal(false);
+      await bloc.locator("> summary").click();
+      const champsNoms = bloc.locator("[data-nom-approbateur]");
+      expect(await champsNoms.evaluateAll((l) => l.map((x) => [x.getAttribute("data-nom-approbateur"), x.value]))).to.deep.equal([[a1, ""], [a2, ""], [a3, ""]]);
+      expect(plat(await bloc.innerText())).to.contain("ne partent jamais vers le registre public ni dans le paquet du client");
+      const notesClient = [];
+      await page.route("**/api/clients/client-neuf/notes", (r) => { notesClient.push(r.request().postData()); return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: `not-${"0".repeat(31)}7` }) }); });
+      await champsNoms.nth(0).fill("Camille Durand");
+      await Promise.all([page.waitForRequest((x) => x.method() === "POST" && x.url().endsWith("/api/clients/client-neuf/notes")), bloc.locator("[data-enregistrer-noms]").click()]);
+      await bloc.locator("[data-note-faite]").waitFor();
+      expect(notesClient).to.deep.equal([JSON.stringify({ sorte: "noms_approbateurs", noms: [{ adresse: a1, nom: "Camille Durand" }] })]);
+      expect(plat(await bloc.locator("[data-note-faite]").innerText())).to.equal("Les noms sont enregistrés : la fiche de contrôle est refaite avec eux, et c'est elle que le client confirme.");
+      await page.unroute("**/api/clients/client-neuf/notes");
+      // Ce que l'agent aurait écrit : la note, puis la version 2 de la fiche.
+      fs.appendFileSync(notes, JSON.stringify({ id: `not-${"0".repeat(31)}7`, sorte: "noms_approbateurs", org_id: org, noms: [{ adresse: a1, nom: "Camille Durand" }], exploitant: `exploitant ${NOM}`, recu_a: "2026-11-25T09:20:00.000Z" }) + "\n");
+      fs.appendFileSync(fiches, JSON.stringify({ org_id: org, version: 2, fiche_sha256: v2, produite_a: "2026-11-25T09:20:00.000Z" }) + "\n");
+      // 3. La page de la fiche : le nom à côté de l'adresse, le trait pour les autres ; le fichier dit la même chose ; version 2 courante, version 1 listée.
+      await aller("/clients/client-neuf/fiche-controle");
+      expect(await page.locator("[data-ligne=approbateur]").evaluateAll((l) => l.map((x) => [x.querySelector("[data-adresse-approbateur]").textContent, x.querySelector("[data-nom-approbateur-fiche]")?.textContent ?? null, x.querySelector("[data-nom-a-completer]")?.textContent ?? null]))).to.deep.equal([[a1, "Camille Durand", null], [a2, null, C.NOM_A_COMPLETER], [a3, null, C.NOM_A_COMPLETER]]);
+      expect(await page.locator("[data-fiche-sha256]").innerText()).to.equal(v2);
+      expect(await page.locator("[data-version-courante]").innerText()).to.equal("2");
+      const fichier = await page.evaluate(async () => (await fetch("/api/clients/client-neuf/fiche-controle")).text());
+      expect(fichier).to.equal(C.texteFiche(dNeuf, { [a1]: "Camille Durand" }));
+      expect(fichier.split("\n")[3]).to.equal(`Approbateur 1 : ${a1} — nom : Camille Durand`);
+      expect(fichier.split("\n")[4]).to.equal(`Approbateur 2 : ${a2} — nom : — (le client complète le nom)`);
+      expect("0x" + crypto.createHash("sha256").update(fichier, "utf8").digest("hex")).to.equal(v2);
+      expect(await page.locator("[data-versions-fiche] [data-version-fiche]").evaluateAll((l) => l.map((x) => [x.getAttribute("data-version-fiche"), x.querySelector("dt").textContent.replace(/\s+/g, " ").trim(), x.querySelector("[data-valeur]").textContent]))).to.deep.equal([["2", "Version 2 (courante)", v2], ["1", "Version 1", v1]]);
+      expect(plat(await page.locator('[data-version-fiche="2"]').innerText())).to.contain("produite le 25 novembre 2026 à 09:20 UTC");
+      expect(await page.locator("[data-etat-fiche]").innerText()).to.equal("À faire confirmer par le client");
+      expect(motsTechniquesDans(await page.evaluate(textePremierNiveau))).to.deep.equal([]);
+      // 4. Le formulaire de confirmation : aucune version choisie d'office ; les versions, la plus récente d'abord ; sans choix, rien ne part.
+      await aller("/clients/client-neuf/confirmations");
+      const fc = page.locator('form[data-formulaire="confirmation"]');
+      await fc.locator('[name="operation"]').selectOption("jeu_approbateurs");
+      const choix = fc.locator('select[name="fiche_sha256"]');
+      expect(await choix.evaluate((x) => [x.value, x.getAttribute("aria-required"), [...x.options].map((o) => [o.value, o.textContent])])).to.deep.equal(["", "true", [["", "Choisissez la version d'après l'empreinte écrite au bas de la fiche renvoyée"], [v2, `Version 2 (courante) du 25 novembre 2026 à 09:20 UTC · ${v2.slice(0, 10)}…${v2.slice(-6)} · ${v2}`], [v1, `Version 1 du 12 novembre 2026 à 07:55 UTC · ${v1.slice(0, 10)}…${v1.slice(-6)} · ${v1}`]]]);
+      expect(await choix.evaluate((x) => (x.getAttribute("aria-describedby") ?? "").split(" ").map((i) => document.getElementById(i)?.textContent ?? "").join(" ")), "l'aide dit de comparer").to.contain("Comparez-la au document renvoyé avant de noter");
+      const envoyes = [];
+      await page.route("**/api/clients/client-neuf/confirmations", (r) => { envoyes.push(r.request().postData()); return r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ id: `cnf-${"0".repeat(30)}f2` }) }); });
+      await fc.locator('[name="piece_sha256"]').fill(v1);
+      await fc.locator('[name="personne_client"]').fill("Camille Durand (personne fictive)");
+      await fc.locator('[name="canal"]').fill("fiche renvoyée signée, par courrier");
+      await fc.locator('details[data-reglages-avances="instant"] > summary').click();
+      await fc.locator('[name="instant"]').fill("2026-11-25T09:30:00.000Z");
+      await fc.locator('button[type="submit"]').click();
+      await fc.locator('p.nt-erreur[role="alert"]').first().waitFor();
+      expect(plat(await fc.locator('p.nt-erreur[role="alert"]').first().innerText())).to.equal("Aucune version choisie. Choisissez, dans la liste, la version dont l'empreinte est écrite au bas de la fiche que le client vous a renvoyée, après l'avoir comparée au document.");
+      expect(await choix.getAttribute("aria-invalid")).to.equal("true");
+      expect(await fc.locator("[data-relecture]").count(), "sans version choisie : pas de relecture, rien ne part").to.equal(0);
+      expect(envoyes).to.deep.equal([]);
+      // La version 1, celle d'avant, choisie : la relecture le dit ; la confirmation part au corps exact.
+      await choix.selectOption(v1);
+      await fc.locator('button[type="submit"]').click();
+      await fc.locator("[data-relecture]").waitFor();
+      expect(plat(await fc.locator('[data-relu="objet"]').innerText())).to.equal(`la liste des adresses de ses approbateurs, telle que la fiche de contrôle la donne (version 1, qui n'est plus la version courante : cette confirmation ne débloquera rien) ; empreinte de la fiche : ${v1}`);
+      const rechargement = page.waitForEvent("load");
+      await Promise.all([page.waitForRequest((x) => x.method() === "POST" && x.url().endsWith("/api/clients/client-neuf/confirmations")), fc.locator("[data-relecture] button[data-noter]").click()]);
+      await rechargement;
+      await page.waitForLoadState("networkidle");
+      await page.unroute("**/api/clients/client-neuf/confirmations");
+      const attendu = { operation: "jeu_approbateurs", objet: { org_id: org, fiche_sha256: v1 }, personne_client: "Camille Durand (personne fictive)", canal: "fiche renvoyée signée, par courrier", instant: "2026-11-25T09:30:00.000Z", piece_sha256: v1 };
+      expect(envoyes).to.deep.equal([JSON.stringify(attendu)]);
+      // 5. Notée (ce que l'agent aurait écrit) : « Ne vaut plus », avec les versions ; l'étape 2 reste bloquée.
+      fs.appendFileSync(registre, JSON.stringify({ id: `cnf-${"0".repeat(30)}f2`, ...attendu, exploitant: `exploitant ${NOM}`, recu_a: "2026-11-25T09:32:00.000Z" }) + "\n");
+      await aller("/clients/client-neuf/confirmations");
+      const carte = page.locator(`[data-confirmation="cnf-${"0".repeat(30)}f2"]`);
+      expect(await carte.getAttribute("data-perimee")).to.equal("");
+      expect(await carte.locator(".nt-pastille").first().innerText()).to.equal("Ne vaut plus");
+      expect(plat(await carte.locator("[data-phrase-perimee]").innerText())).to.equal("La confirmation cite une version de la fiche de contrôle qui n'est plus celle du dossier : elle ne peut plus servir, faites confirmer la fiche actuelle. Fiche changée depuis : cette confirmation cite la version 1, et la fiche actuelle est la version 2. Remettez au client la fiche actuelle, sur sa page, et notez sa nouvelle confirmation.");
+      expect(plat(await carte.innerText())).to.contain("une version d'avant de la fiche (version 1), qui n'est plus celle du dossier");
+      expect(plat(await carte.innerText()), "une confirmation qui ne vaut plus n'autorise plus rien, et la carte ne dit pas le contraire").to.contain("à rien : elle ne vaut plus et n'autorise plus rien").and.to.not.contain("à rien encore");
+      expect(await page.locator("[data-etat-confirmations]").innerText()).to.equal("Confirmation à noter");
+      await aller("/clients/client-neuf");
+      const consigne = page.locator("section.nt-essentiel[data-prochaine-action]");
+      expect(await consigne.locator("h2").innerText()).to.equal("Notez les deux confirmations du client");
+      expect(await consigne.locator("[data-a-confirmer]").evaluateAll((l) => l.map((x) => x.getAttribute("data-a-confirmer")))).to.deep.equal(["fiche", "versement"]);
+      expect(await page.locator("[data-fiche-controle]").getAttribute("data-fiche-controle")).to.equal("perimee");
+      expect(await page.locator("details[data-noms-approbateurs-action]").count(), "la fiche du client ne porte pas la saisie des noms : elle est sur la page de la fiche").to.equal(0);
+      await aller("/clients/client-neuf/fiche-controle");
+      expect(await page.locator("details[data-noms-approbateurs-action] [data-nom-approbateur]").evaluateAll((l) => l.map((x) => x.value)), "le nom noté est repris dans le champ").to.deep.equal(["Camille Durand", "", ""]);
+      expect(plat(await bloc.locator("> summary").innerText())).to.equal("Noms des approbateurs 1 sur 3 donnés ; se changent ici tant que l'étape 2 n'est pas faite");
+      expect(plat(await page.locator("[data-confirmations-perimees]").innerText())).to.equal("Une confirmation notée ne vaut plus. La fiche a changé depuis : elle cite une autre version de la fiche (version 1, empreinte " + `${v1.slice(0, 10)}…${v1.slice(-6)}` + ", notée le 25 novembre 2026 à 09:32 UTC) ; la fiche actuelle est la version 2. Remettez au client la fiche actuelle et faites-la confirmer de nouveau ; l'étape 2 reste bloquée d'ici là.");
+      // 6. Les approbateurs enregistrés (étape 2 faite) : les noms ne se changent plus.
+      await aller("/clients/client-inscrit/fiche-controle");
+      expect(await page.locator("details[data-noms-approbateurs-action]").count()).to.equal(0);
+      expect(ecarts).to.deep.equal([]);
+      // 7. À 390 px : rien ne déborde ; les champs des noms et leur bouton font 44 px.
+      const tel = await ouvrir({ largeur: 390, hauteur: 844 });
+      for (const ecran of ["/clients/client-neuf", "/clients/client-neuf/fiche-controle", "/clients/client-neuf/confirmations"]) {
+        await tel.aller(ecran);
+        expect(await tel.page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), `${ecran} à 390 px`).to.equal(true);
+      }
+      await tel.aller("/clients/client-neuf/fiche-controle");
+      await tel.page.locator("details[data-noms-approbateurs-action] > summary").click();
+      const petites = await tel.page.evaluate(() => [...document.querySelectorAll("details[data-noms-approbateurs-action] input, details[data-noms-approbateurs-action] button")].map((x) => [x.name || x.textContent.trim(), Math.round(x.getBoundingClientRect().height)]).filter(([, h]) => h < 44));
+      expect(petites).to.deep.equal([]);
+      expect(tel.ecarts).to.deep.equal([]);
+    } finally {
+      fs.writeFileSync(registre, registreAvant);
+      fs.writeFileSync(fiches, fichesAvant);
+      if (notesAvant === null) fs.rmSync(notes, { force: true });
+      else fs.writeFileSync(notes, notesAvant);
+      if (fraisAvant === null) fs.rmSync(frais, { force: true });
+      else fs.writeFileSync(frais, fraisAvant);
+    }
+  });
+
 });

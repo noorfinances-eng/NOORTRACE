@@ -264,7 +264,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         expect(a.bouton).to.equal("Aller noter la confirmation");
         // Ce que la personne fait confirmer, elle sait l'expliquer : ce que sont les crédits (CT-4 EX-4.16, EX-4.19),
         // et comment faire confirmer l'adresse, en entier et par écrit (EX-7.26, EX-8.21).
-        expect(a.credits).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société ; le client ne les paie pas.");
+        expect(a.credits).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société.");
         expect(a.versement).to.equal("Ceux que nous versons sur le compte technique de l'enregistreur du client lui servent à payer ses propres écritures : ses preuves de date et ses clôtures de période.");
         expect(a.adresse).to.equal("Ne la dictez pas : 42 caractères ne se lisent pas à voix haute sans erreur. Envoyez-la au client par écrit, par un autre moyen que cet outil, et demandez-lui de vous répondre par écrit qu'elle est bien, en entier, celle du compte technique de son enregistreur. Gardez sa réponse avec la pièce de la confirmation.");
         expect(a.adresse, "jamais une comparaison partielle").to.not.match(/premiers|derniers|début|fin de/);
@@ -497,7 +497,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         for (const t of Object.values(M.OPERATIONS_JEU)) textes.push(t);
         for (const t of Object.values(M.OPERATIONS_CONFIRMATION)) textes.push(t);
         for (const x of M.LEXIQUE) textes.push(x.terme, x.explication);
-        const types = ["slug", "nom_journal", "liste_noms_journal", "adresse", "liste_adresses", "hachage", "cle_publique_ed25519", "seuil", "entier", "montant", "reference_cle", "texte", "chemin", "document", "liste_documents", "horodatage", "type_futur"];
+        const types = ["slug", "nom_journal", "liste_noms_journal", "adresse", "liste_adresses", "hachage", "cle_publique_ed25519", "seuil", "entier", "montant", "reference_cle", "texte", "liste_textes", "chemin", "document", "liste_documents", "horodatage", "version_fiche", "type_futur"];
         for (const t of types) {
           const s = M.explicationSaisie(t);
           expect(s, t).to.match(/^[A-ZÀ-Ý].+\.$/);
@@ -668,14 +668,16 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       expect(sept[5].updated_at > sept[4].updated_at, "étape 7 envoyée après l'étape 6").to.equal(true);
     });
 
-    it("quatrième lecture des écrans : ce que sont les crédits d'écriture se dit en une explication exacte (pas de l'argent, à quoi ils servent, qui les fournit, le client ne les paie pas), sans durée ; aucun texte ne parle de « compte de paiement » ni de « budget » ; la cause d'une étape en échec se dit d'après la vérification qui l'a rendue ; « Rien à réunir » ne contredit jamais une consigne « Préparez » ; mutants : tués", async function () {
+    it("quatrième lecture des écrans : ce que sont les crédits d'écriture se dit en une explication exacte (pas de l'argent, à quoi ils servent, qui les fournit), sans durée ; aucun texte ne parle de « compte de paiement » ni de « budget » ; la cause d'une étape en échec se dit d'après la vérification qui l'a rendue ; « Rien à réunir » ne contredit jamais une consigne « Préparez » ; mutants : tués", async function () {
       const verifier = (M) => {
         // L'explication, mot pour mot, et chacune de ses affirmations (CT-4 4.5, EX-4.15, EX-4.16, EX-4.19).
-        expect(M.CREDITS_EN_CLAIR).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société ; le client ne les paie pas.");
-        for (const motif of [/ne sont pas de l'argent/, /seulement à payer les écritures/, /ne s'achètent pas, ne se vendent pas et ne s'échangent pas/, /viennent de notre société/, /le client ne les paie pas/]) expect(M.CREDITS_EN_CLAIR).to.match(motif);
-        // Aucune durée : elle ne se calcule pas à partir de ce que l'écran affiche.
-        for (const t of [M.CREDITS_EN_CLAIR, M.VERSEMENT_EN_CLAIR, M.montantEnClair(10800000)]) expect(t).to.not.match(/[0-9]+ ?jours?|semaines?|mois\b|environ/);
-        expect(M.montantEnClair(10800000).replace(/\s/g, " "), "milliers séparés par une espace insécable").to.equal("Le montant est calculé à partir de la consommation prévue pour son enregistreur, réglée à 10 800 000 crédits par jour ; si le compte en a déjà, l'outil ne verse que la différence.");
+        expect(M.CREDITS_EN_CLAIR).to.equal("Les crédits d'écriture ne sont pas de l'argent : ils servent seulement à payer les écritures sur le registre public. Ils ne s'achètent pas, ne se vendent pas et ne s'échangent pas. Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société.");
+        for (const motif of [/ne sont pas de l'argent/, /seulement à payer les écritures/, /ne s'achètent pas, ne se vendent pas et ne s'échangent pas/, /viennent de notre société/]) expect(M.CREDITS_EN_CLAIR).to.match(motif);
+        // Décisions du 2026-11-25 : ce que le client paie relève de son contrat ; l'explication ne dit plus « ne les paie pas ».
+        expect(M.CREDITS_EN_CLAIR).to.not.match(/ne les paie pas/);
+        // Aucune durée dans l'explication des crédits : la durée que couvre un versement se dit à part (décisions du 2026-11-25).
+        for (const t of [M.CREDITS_EN_CLAIR, M.VERSEMENT_EN_CLAIR]) expect(t).to.not.match(/[0-9]+ ?jours?|semaines?|mois\b|environ/);
+        expect(M.dureeVersement({ montant: "327000000", parJour: 10800000, frais: { provision_days: 30, gas_limit: 3000000 } }).replace(/\s/g, " "), "milliers séparés par une espace insécable").to.match(/^Ce versement couvre 30 jours de la consommation prévue par jour, 10 800 000 crédits d'écriture, plus une réserve pour un envoi\./);
         expect(M.nommeLesCredits("Cet envoi coûte des crédits d'écriture.")).to.equal(true);
         expect(M.nommeLesCredits("Rien n'est dépensé.")).to.equal(false);
         // Aucun mot qui contredit l'explication, dans aucun texte du module.
@@ -685,9 +687,9 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         const etapes = Object.values(M.ETAPES).map((x) => `${x.titre} ${x.phrase}`);
         const neuf = dossierFictif("client-neuf", ["a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]);
         const consigne = M.prochaineAction({ slug: "client-neuf", dossier: neuf });
-        const tout = [...lexique, ...erreurs, ...etapes, M.CREDITS_EN_CLAIR, M.VERSEMENT_EN_CLAIR, M.montantEnClair(1), M.PAR_NOTRE_COMPTE.sousBouton, consigne.phrase, consigne.credits, consigne.versement].join("\n");
+        const tout = [...lexique, ...erreurs, ...etapes, M.CREDITS_EN_CLAIR, M.VERSEMENT_EN_CLAIR, M.dureeVersement({ montant: "1", parJour: 1 }), M.PAR_NOTRE_COMPTE.sousBouton, consigne.phrase, consigne.credits, consigne.versement].join("\n");
         expect(tout).to.not.match(/compte de paiement|budget/i);
-        expect(lexique.find((x) => x.startsWith("crédits d'écriture"))).to.equal("crédits d'écriture ce qui paie chaque écriture sur le registre public ; ce n'est pas de l'argent : notre société les fournit, ils ne s'achètent ni ne se vendent, et le client ne les paie pas");
+        expect(lexique.find((x) => x.startsWith("crédits d'écriture"))).to.equal("crédits d'écriture ce qui paie chaque écriture sur le registre public ; ce n'est pas de l'argent : notre société les fournit, ils ne s'achètent ni ne se vendent ; ce que le client paie pour eux est fixé par son contrat");
         // Ce qui a échoué : d'après la vérification (OP-11 : reçu ; OP-12 : relecture) ; sans elle, la phrase générale.
         expect(M.explicationErreur("transaction_annulee", { verification: "OP-11" }).phrase).to.equal("Le registre public a reçu l'opération, mais elle n'a pas eu l'effet attendu.");
         expect(M.explicationErreur("transaction_annulee", { verification: "OP-12" }).phrase).to.equal("Le registre public a inscrit l'opération, mais le contrôle fait juste après ne retrouve pas ce qui devait être inscrit.");
@@ -713,7 +715,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       verifier(P);
       let tues = 0;
       for (const [nom, ancien, nouveau] of [
-        ["credits-compte-de-paiement", "Tous ces crédits viennent de notre société ; le client ne les paie pas.", "Tous ces crédits viennent de notre société, depuis son compte de paiement."],
+        ["credits-compte-de-paiement", "Tous ces crédits viennent de notre société.\";", "Tous ces crédits viennent de notre société, depuis son compte de paiement.\";"],
         ["cause-sans-verification", "e.capture ? \"OP-12\" : \"OP-11\"", "null"],
         ["rien-a-preparer", "aPreparer: `${RIEN_A_RASSEMBLER.slice(0, -1)} : l'enregistreur concerné", "aPreparer: `Rien à préparer : l'enregistreur concerné"],
       ]) {
@@ -741,7 +743,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         // paires la consommation prévue paie au moins chaque jour (⌊b / 450 000⌋). Le montant d'un versement ne donne
         // aucun nombre : une part du solde (la limite de gaz d'un envoi, EX-4.18, que l'écran n'affiche pas) ne paie
         // aucune écriture ; avec les réglages par défaut, 327 000 000 crédits en paient 720 paires au moins, non 726.
-        expect(M.repereEnClair("327000000", "10800000").replace(/\s/g, " ")).to.equal("Repère : d'ordinaire, une preuve de date consomme au plus 100 000 crédits et une clôture de période au plus 350 000. La consommation prévue, 10 800 000 crédits par jour, paie chaque jour au moins 24 preuves de date suivies chacune de leur clôture.");
+        expect(M.repereEnClair("327000000", "10800000").replace(/\s/g, " ")).to.equal("Repère : d'ordinaire, une preuve de date consomme au plus 100 000 crédits et une clôture de période au plus 350 000. La consommation prévue par jour paie au moins 24 preuves de date suivies chacune de leur clôture.");
         expect(M.repereEnClair("327000000").replace(/\s/g, " ")).to.equal("Repère : d'ordinaire, une preuve de date consomme au plus 100 000 crédits et une clôture de période au plus 350 000.");
         for (const m of ["450000", "327000000", "4719000000"]) expect(M.repereEnClair(m, "10800000"), "aucun nombre d'écritures tiré du montant").to.not.match(/paient|Ces [0-9 ]+ crédits/);
         for (const m of ["450000", "899999", "327000000", "157200000", "4719000000"]) {
@@ -874,6 +876,120 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       }
       expect(tues, "quatre mutants, quatre tués").to.equal(4);
     });
+
+    it("décisions du 2026-11-25 : la durée que couvre un versement se dit en jours de consommation prévue, par les phrases que CT-4 fixe (inscription, complément avant et après, montant hors formule, consommation absente, réglage inconnu), avec le renvoi au contrat et sans prix ; « qui paie » ne dit plus « ne les paie pas » ; la fiche de contrôle des adresses est une confirmation attendue avant celle du versement, dans l'ordre des étapes, et une confirmation qui cite une autre fiche ne vaut plus ; mutants : tués", async function () {
+      const CONTRAT = "Ce que le client paie pour ces crédits est fixé par son contrat, pas par cet outil.";
+      const PREVISION = "C'est une prévision : une journée peut consommer plus ou moins.";
+      const frais = { provision_days: 30, refill_below_days: 7, gas_limit: 3000000, max_daily_budget_gas: null, manifest_sha256: null };
+      const neuf = dossierFictif("client-neuf", ["a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]);
+      const cle = neuf.recorders[0].chain_key;
+      const fiche = { sha256: `0x${"f1".repeat(32)}` };
+      const confFiche = (plus = {}) => ({ id: "cnf-f", operation: "jeu_approbateurs", objet: { org_id: neuf.organisation.org_id, fiche_sha256: fiche.sha256 }, consommee_par: null, ...plus });
+      const confVersement = (plus = {}) => ({ id: "cnf-v", operation: "approvisionnement", objet: { org_id: neuf.organisation.org_id, cle_chaine: cle }, consommee_par: null, ...plus });
+      const vue = (dossier, plus = {}) => ({ slug: dossier.organisation.slug, dossier, confirmations: [], demandes: [], periodes: [], parties: [], travaux: [], paquet: { present: false, dernier: null }, fiche, frais, ...plus });
+      const sansPrix = (texte, quoi) => {
+        expect(texte, `${quoi} : aucun prix, aucune devise, aucun montant en monnaie`).to.not.match(/€|\beuro|\bEUR\b|\bNUR\b|franc|\$|prix|tarif|factur|gratuit|payant|monnaie/i);
+        expect(motsTechniquesDans(texte), quoi).to.deep.equal([]);
+      };
+      const verifier = (M) => {
+        const d = (x) => M.dureeVersement(x).replace(/\s/g, " ");
+        // 1. Les cinq phrases, mot pour mot (CT-4 EX-7.9, complément du 2026-11-25).
+        expect(d({ montant: "327000000", parJour: 10800000, frais })).to.equal(`Ce versement couvre 30 jours de la consommation prévue par jour, 10 800 000 crédits d'écriture, plus une réserve pour un envoi. ${PREVISION} ${CONTRAT}`);
+        expect(d({ montant: "327000000", parJour: "10800000", frais }), "montant et consommation en texte comme en nombre").to.equal(d({ montant: 327000000, parJour: 10800000, frais }));
+        expect(d({ parJour: 10800000, frais, complement: true })).to.equal(`Ce versement complète le compte jusqu'à 30 jours de la consommation prévue par jour, 10 800 000 crédits d'écriture, plus une réserve pour un envoi : il ne verse que ce qui manque. ${PREVISION} ${CONTRAT}`);
+        expect(d({ montant: "21600001", parJour: 10800000, verse: true })).to.equal(`Le versement de 21 600 001 crédits d'écriture représente 2 jours de la consommation prévue par jour, 10 800 000 crédits d'écriture. ${PREVISION} ${CONTRAT}`);
+        expect(d({ montant: "10800000", parJour: 10800000, verse: true })).to.match(/représente 1 jour de la consommation/);
+        expect(d({ montant: "5000", parJour: 10800000, verse: true }), "⌊M / b⌋, dit comme tel").to.match(/représente 0 jours de la consommation/);
+        // Un montant qui n'est pas provision_days × b + gas_limit avec ces frais (dossier préparé avant une révision du
+        // manifeste) : aucun nombre de jours tiré de provision_days ; ce que le montant représente.
+        expect(d({ montant: "327000001", parJour: 10800000, frais })).to.equal(`Le versement de 327 000 001 crédits d'écriture représente 30 jours de la consommation prévue par jour, 10 800 000 crédits d'écriture. ${PREVISION} ${CONTRAT}`);
+        expect(d({ montant: "327000000", parJour: 10800000, frais: { ...frais, provision_days: 29 } })).to.match(/^Le versement de 327 000 000 crédits d'écriture représente 30 jours/);
+        expect(d({ montant: "327000000", parJour: 10800000, frais: null }), "sans les frais : ce que le montant représente").to.match(/^Le versement de 327 000 000 crédits d'écriture représente 30 jours/);
+        for (const parJour of [null, undefined, "", 0, "abc", -1]) expect(d({ montant: "327000000", parJour, frais }), `consommation prévue ${JSON.stringify(parJour)}`).to.equal(`La durée que couvre ce versement n'est pas calculable : la consommation prévue par jour n'est pas renseignée. ${CONTRAT}`);
+        expect(d({ parJour: 10800000, frais: null, complement: true })).to.equal(`Le nombre de jours que ce versement couvrira dépend d'un réglage du registre public que l'outil ne connaît pas pour l'instant. ${CONTRAT}`);
+        expect(M.CONTRAT).to.equal(CONTRAT);
+        for (const [quoi, texte] of [["inscription", d({ montant: "327000000", parJour: 10800000, frais })], ["complément", d({ parJour: 10800000, frais, complement: true })], ["versé", d({ montant: "21600001", parJour: 10800000, verse: true })], ["non calculable", M.DUREE_NON_CALCULABLE], ["réglage inconnu", M.DUREE_REGLAGE_INCONNU], ["qui paie", M.QUI_PAIE], ["crédits", M.CREDITS_EN_CLAIR], ["lexique", M.LEXIQUE.map((x) => x.explication).join(" ")]]) sansPrix(texte, quoi);
+        // 2. « Qui paie » ne dit plus « le client ne les paie pas » : ce qu'il paie relève de son contrat (dit par la durée).
+        expect(M.QUI_PAIE).to.equal("Chaque écriture sur le registre public consomme des crédits d'écriture du compte qui l'envoie : d'ordinaire l'un de nos comptes pour ce que vous envoyez d'ici, le compte technique du client pour ce que son enregistreur envoie lui-même. Tous ces crédits viennent de notre société.");
+        expect(fs.readFileSync(MODULE, "utf8")).to.not.match(/ne les paie pas/);
+        expect(M.LEXIQUE.find((x) => x.terme === "crédits d'écriture").explication).to.match(/ce que le client paie pour eux est fixé par son contrat$/);
+        expect(M.LEXIQUE.find((x) => x.terme === "fiche de contrôle des adresses"), "le lexique dit la fiche").to.be.an("object");
+        // 3. Le repère ne redit pas la consommation prévue en chiffres (la phrase de la durée la donne).
+        expect(M.repereEnClair("327000000", "10800000")).to.not.match(/10 800 000/);
+        // 4. Les confirmations attendues, dans l'ordre des étapes qu'elles débloquent : la fiche (étape 2), le versement (étape 5).
+        expect(M.confirmationsAttendues({ dossier: neuf, confirmations: [], fiche })).to.deep.equal([{ operation: "jeu_approbateurs", fiche_sha256: fiche.sha256 }, { operation: "approvisionnement", cle_chaine: cle }]);
+        expect(M.confirmationsAttendues({ dossier: neuf, confirmations: [confFiche()], fiche })).to.deep.equal([{ operation: "approvisionnement", cle_chaine: cle }]);
+        expect(M.confirmationsAttendues({ dossier: neuf, confirmations: [confVersement()], fiche })).to.deep.equal([{ operation: "jeu_approbateurs", fiche_sha256: fiche.sha256 }]);
+        expect(M.confirmationsAttendues({ dossier: neuf, confirmations: [confFiche(), confVersement()], fiche })).to.deep.equal([]);
+        // Une confirmation de la fiche consommée, ou qui cite une autre empreinte (le dossier a changé), ne compte pas : elle ne vaut plus.
+        expect(M.confirmationsAttendues({ dossier: neuf, confirmations: [confFiche({ consommee_par: "trv-1" }), confVersement()], fiche })).to.have.length(1);
+        const ancienne = confFiche({ objet: { org_id: neuf.organisation.org_id, fiche_sha256: `0x${"a0".repeat(32)}` } });
+        expect(M.confirmationsAttendues({ dossier: neuf, confirmations: [ancienne, confVersement()], fiche })).to.deep.equal([{ operation: "jeu_approbateurs", fiche_sha256: fiche.sha256 }]);
+        expect(M.confirmationPerimee(ancienne, fiche)).to.equal(true);
+        expect(M.confirmationPerimee(confFiche(), fiche)).to.equal(false);
+        expect(M.confirmationPerimee({ ...ancienne, consommee_par: "trv-1" }, fiche), "consommée : plus rien à juger").to.equal(false);
+        expect(M.confirmationPerimee(confVersement(), fiche)).to.equal(false);
+        expect(M.ficheSansConfirmation(neuf, [], fiche)).to.equal(true);
+        expect(M.ficheSansConfirmation(neuf, [confFiche()], fiche)).to.equal(false);
+        // L'étape 2 faite ou en vol : la fiche n'a plus à être confirmée ; en échec : si.
+        for (const [etat, attendu] of [["capturee", false], ["envoyee", false], ["incluse", false], ["echec", true]]) expect(M.ficheSansConfirmation(dossierFictif("z", [etat, "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]), [], fiche), etat).to.equal(attendu);
+        // 5. La consigne de la fiche du client : les deux confirmations, chacune en une phrase, dans l'ordre ; puis une seule.
+        let a = M.prochaineAction(vue(neuf));
+        expect(a.code).to.equal("consigner_confirmation");
+        expect(a.titre).to.equal("Notez les deux confirmations du client");
+        expect(a.bouton).to.equal("Aller noter les confirmations");
+        expect(a.phrase).to.equal("Deux confirmations du client sont à noter ici, dans l'ordre des étapes qu'elles débloquent. L'étape 2 enregistre les approbateurs du client sur le registre public : le client doit d'abord renvoyer, confirmée par écrit, la fiche de contrôle de leurs adresses, que cet outil lui prépare. L'étape 5 verse des crédits d'écriture sur le compte technique de l'enregistreur du client : le client doit aussi confirmer ce versement par un autre moyen que cet outil, un appel au numéro de son contrat, un courrier signé. L'outil fait les étapes 2 à 5 en une seule action : tant que ces deux confirmations ne sont pas notées ici, il ne la commence pas.");
+        expect(a.attendues.map((x) => [x.operation, x.etape])).to.deep.equal([["jeu_approbateurs", 2], ["approvisionnement", 5]]);
+        expect(a.ficheAttendue).to.deep.equal({ operation: "jeu_approbateurs", fiche_sha256: fiche.sha256 });
+        expect(a.cles).to.deep.equal([cle]);
+        expect(a.duree.replace(/\s/g, " ")).to.equal(d({ montant: "327000000", parJour: 10800000, frais }));
+        expect(a.repere).to.equal(M.repereEnClair("327000000", 10800000));
+        expect(a.aPreparer).to.match(/^Ayez sous la main : la fiche de contrôle renvoyée par le client, telle que vous l'avez reçue ; pour le versement, /);
+        sansPrix(`${a.phrase} ${a.aPreparer} ${a.apres} ${a.duree}`, "consigne");
+        a = M.prochaineAction(vue(neuf, { confirmations: [confVersement()] }));
+        expect(a.titre).to.equal("Notez la confirmation du client");
+        expect(a.bouton).to.equal("Aller noter la confirmation");
+        expect(a.phrase).to.equal("Une confirmation du client reste à noter ici. L'étape 2 enregistre les approbateurs du client sur le registre public : le client doit d'abord renvoyer, confirmée par écrit, la fiche de contrôle de leurs adresses, que cet outil lui prépare. La confirmation du versement de l'étape 5 est déjà notée. L'outil fait les étapes 2 à 5 en une seule action : tant que la fiche n'est pas notée ici, il ne la commence pas.");
+        expect(a.cles).to.equal(null);
+        expect([a.duree, a.repere, a.versement, a.adresse, a.quiPaieExplique], "rien du versement quand seule la fiche manque").to.deep.equal([null, null, null, null, null]);
+        expect(a.aPreparer).to.equal("Ayez sous la main : la fiche de contrôle renvoyée par le client, telle que vous l'avez reçue, et le nom et la fonction de la personne du client qui l'a renvoyée, le moyen employé, la date et l'heure.");
+        a = M.prochaineAction(vue(neuf, { confirmations: [confFiche()] }));
+        expect(a.titre).to.equal("Notez la confirmation du client");
+        expect(a.phrase, "la fiche notée : la phrase du versement, inchangée").to.equal("L'étape 5 verse des crédits d'écriture sur le compte technique de l'enregistreur du client. Le client doit d'abord confirmer ce versement par un autre moyen que cet outil : un appel au numéro de son contrat, un courrier signé. L'outil fait les étapes 2 à 5 en une seule action : tant que cette confirmation n'est pas notée ici, il ne la commence pas, même pour les étapes qui ne versent rien.");
+        expect(a.ficheAttendue).to.equal(null);
+        // Les deux notées : on lance ; la consigne dit la durée du versement de l'étape 5, qui reste à faire.
+        a = M.prochaineAction(vue(neuf, { confirmations: [confFiche(), confVersement()] }));
+        expect(a).to.include({ code: "conduire_etapes", variante: "commencer" });
+        expect(a.phrase, "les deux confirmations notées : la consigne les dit toutes deux").to.equal("Les deux confirmations du client sont notées : la fiche de contrôle des adresses de ses approbateurs, pour l'étape 2, et le versement de l'étape 5. L'outil peut maintenant enregistrer les approbateurs, les rattacher au client, contrôler le résultat, puis alimenter le compte technique.");
+        expect(a.duree.replace(/\s/g, " ")).to.equal(d({ montant: "327000000", parJour: 10800000, frais }));
+        // L'étape 5 faite : plus de durée à dire sur la consigne ; sans frais : ce que le montant représente.
+        expect(M.prochaineAction(vue(dossierFictif("z", ["capturee", "capturee", "faite", "capturee", "a_faire", "a_faire", "a_faire"]))).duree).to.equal(undefined);
+        expect(M.prochaineAction(vue(neuf, { confirmations: [confFiche(), confVersement()], frais: null })).duree.replace(/\s/g, " ")).to.match(/^Le versement de 327 000 000 crédits d'écriture représente 30 jours/);
+        // Sans la fiche connue de l'appelant (aucune empreinte), la règle d'avant tient : la seule confirmation du versement.
+        expect(M.prochaineAction({ ...vue(neuf), fiche: null }).titre).to.equal("Notez la confirmation du client");
+        // 6. L'opération nouvelle, nommée ; les pastilles nouvelles viennent de la table.
+        expect(M.OPERATIONS_CONFIRMATION.jeu_approbateurs).to.equal("Adresses des approbateurs : fiche de contrôle renvoyée (étape 2 de l'inscription)");
+        for (const cle_ of ["confirmation_perimee", "fiche_a_confirmer", "fiche_confirmee", "fiche_adresses_enregistrees"]) expect(M.PASTILLES[cle_].libelle, cle_).to.be.a("string");
+        expect(M.PASTILLES.confirmation_perimee.libelle).to.equal("Ne vaut plus");
+        sansPrix(`${M.POURQUOI_LA_FICHE} ${M.PIECE_FICHE}`, "textes de la fiche");
+      };
+      verifier(P);
+      let tues = 0;
+      for (const [nom, ancien, nouveau] of [
+        // La durée tirée de provision_days même quand le montant n'est pas provision_days × b + gas_limit.
+        ["duree-sans-controle", "if (f && (m === null || m === BigInt(f.provision_days) * b + BigInt(f.gas_limit)))", "if (f)"],
+        // La fiche oubliée des confirmations attendues.
+        ["fiche-oubliee", "if (fiche && ficheSansConfirmation(dossier, confirmations, fiche)) l.push", "if (false) l.push"],
+        // Une confirmation d'une autre fiche prise pour valable.
+        ["fiche-perimee-admise", "!c.consommee_par && c.operation === \"jeu_approbateurs\" && c.objet?.fiche_sha256 === fiche?.sha256", "!c.consommee_par && c.operation === \"jeu_approbateurs\""],
+        // La phrase du contrat retirée.
+        ["sans-contrat", "export const CONTRAT = \"Ce que le client paie pour ces crédits est fixé par son contrat, pas par cet outil.\";", "export const CONTRAT = \"\";"],
+      ]) {
+        const m = await mutant(nom, ancien, nouveau);
+        try { verifier(m); } catch { tues++; }
+      }
+      expect(tues, "quatre mutants du module, quatre tués").to.equal(4);
+    });
   });
 
   describe("suivi interne des clients (complément du 2026-11-19 ; src/commun/notes.mjs)", function () {
@@ -952,7 +1068,7 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
       const mutants = [
         ["correction ignorée", "if (r) r.correction = { ...auteur, motif: l.motif };", "void r;"],
         ["correction qui efface la remise", "if (r) r.correction = { ...auteur, motif: l.motif };", "if (r) remises.splice(remises.indexOf(r), 1);"],
-        ["nom retiré gardé", "return { nom: dernier && dernier.valeur !== null ? dernier : null, noms, remises };", "return { nom: noms.filter((x) => x.valeur !== null).pop() ?? null, noms, remises };"],
+        ["nom retiré gardé", "return { nom: dernier && dernier.valeur !== null ? dernier : null, noms, remises, nomsApprobateurs };", "return { nom: noms.filter((x) => x.valeur !== null).pop() ?? null, noms, remises, nomsApprobateurs };"],
       ];
       for (const [nom, ancien, nouveau] of mutants) {
         expect(texte.split(ancien).length - 1, nom).to.equal(1);
@@ -962,6 +1078,135 @@ describe("inscription : présentation de l'interface d'exploitant (complément d
         try { etat(await import(pathToFileURL(f).href)); } catch { tue = true; }
         expect(tue, `mutant « ${nom} » tué`).to.equal(true);
       }
+    });
+  });
+
+  describe("fiche de contrôle des adresses des approbateurs et frais de l'instance (décisions du 2026-11-25 ; src/commun/fiche-controle.mjs, src/commun/frais.mjs)", function () {
+    it("décisions du 2026-11-25 : la fiche est un fichier texte canonique (mêmes octets pour le même dossier, lignes fixées, adresses entières, sans nom interne), son empreinte est le SHA-256 de ce fichier ; deux dossiers donnent deux fiches ; la confirmation de la fiche a sa forme ; les frais de l'instance se relisent et une forme inattendue vaut absence", async function () {
+      const C = await import("../paquets/inscription/src/commun/fiche-controle.mjs");
+      const Fr = await import("../paquets/inscription/src/commun/frais.mjs");
+      const T = await import("../paquets/inscription/src/commun/travaux.mjs");
+      const crypto = await import("node:crypto");
+      const neuf = dossierFictif("client-neuf", ["a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]);
+      // 1. Le fichier, ligne par ligne, et son empreinte.
+      const texte = C.texteFiche(neuf);
+      const lignes = texte.split("\n");
+      expect(lignes).to.deep.equal([
+        "Fiche de contrôle des adresses des approbateurs",
+        "Organisation (nom court) : client-neuf",
+        "Nombre d'approbations requises : 2, sur 3 approbateurs",
+        ...neuf.approvers.members.map((adresse, k) => `Approbateur ${k + 1} : ${adresse} — nom : — (le client complète le nom)`),
+        `Responsable des approbateurs : ${neuf.approvers.set_admin}`,
+        "Consigne : Chaque approbateur compare sa ligne, en entier, à l'adresse que montre son propre portefeuille, et écrit son nom à côté. Renvoyez-nous ensuite cette fiche confirmée par écrit, par un autre moyen que l'outil d'inscription.",
+        "",
+      ]);
+      for (const adresse of [...neuf.approvers.members, neuf.approvers.set_admin]) expect(texte, "adresse entière, en minuscules").to.contain(`${adresse}\n`.replace("\n", " ").trim());
+      expect(texte).to.not.match(/…|\.\.\./);
+      const octets = C.octetsFiche(neuf);
+      expect(Buffer.from(octets).toString("utf8")).to.equal(texte);
+      expect(C.empreinteFiche(neuf)).to.equal("0x" + crypto.createHash("sha256").update(Buffer.from(octets)).digest("hex"));
+      // Canonique : le même dossier, relu dans un autre ordre de membres, ou avec des membres de plus que la fiche ne lit pas, donne les mêmes octets.
+      const relu = JSON.parse(JSON.stringify({ ...neuf, prepared_at: "2027-01-01T00:00:00.000Z", steps: [] }));
+      expect(C.texteFiche(relu)).to.equal(texte);
+      expect(C.empreinteFiche(relu)).to.equal(C.empreinteFiche(neuf));
+      expect(C.texteFiche(neuf)).to.equal(C.texteFiche(neuf));
+      // Deux dossiers différents (un approbateur de plus ; une adresse changée ; le seuil changé) : deux fiches, deux empreintes.
+      const plusUn = structuredClone(neuf);
+      plusUn.approvers.members = [...plusUn.approvers.members, "0x" + "4d".repeat(20)].sort();
+      const autreAdresse = structuredClone(neuf);
+      autreAdresse.approvers.members[0] = "0x" + "4e".repeat(20);
+      const autreSeuil = structuredClone(neuf);
+      autreSeuil.approvers.threshold = 3;
+      const empreintes = [neuf, plusUn, autreAdresse, autreSeuil].map(C.empreinteFiche);
+      expect(new Set(empreintes).size).to.equal(4);
+      expect(C.texteFiche(plusUn)).to.contain("Nombre d'approbations requises : 2, sur 4 approbateurs");
+      expect(C.texteFiche(autreSeuil)).to.contain("Nombre d'approbations requises : 3, sur 3 approbateurs");
+      // Le nom interne n'y entre jamais : la fiche ne prend que le dossier, qui ne le porte pas ; le slug seul nomme l'organisation.
+      expect(C.lignesFiche(neuf).map((x) => x.cle)).to.deep.equal(["titre", "organisation", "approbations", "approbateur", "approbateur", "approbateur", "responsable", "consigne"]);
+      expect(C.lignesFiche(neuf).find((x) => x.cle === "organisation").valeur).to.equal("client-neuf");
+      expect(C.OPERATION_FICHE).to.equal("jeu_approbateurs");
+      expect(C.nomFichierFiche("client-neuf")).to.equal("fiche-controle-client-neuf.txt");
+      expect(motsTechniquesDans(`${C.TITRE_FICHE}\n${C.CONSIGNE_FICHE}\n${C.PLACE_DU_NOM}`)).to.deep.equal([]);
+      // 2. La confirmation de la fiche : opération `jeu_approbateurs`, objet { org_id, fiche_sha256 } ; une autre forme est refusée sans recopie.
+      const bonne = { operation: "jeu_approbateurs", objet: { org_id: neuf.organisation.org_id, fiche_sha256: C.empreinteFiche(neuf).toUpperCase().replace("0X", "0x") }, personne_client: "Camille Durand", canal: "fiche renvoyée signée", instant: "2026-11-25T09:00:00.000Z", piece_sha256: "0x" + "ab".repeat(32) };
+      const lue = T.lireConfirmation(bonne);
+      expect(lue.objet).to.deep.equal({ org_id: neuf.organisation.org_id, fiche_sha256: C.empreinteFiche(neuf) });
+      expect(T.OPERATIONS_CONFIRMATION).to.deep.equal(["jeu_approbateurs", "approvisionnement", "approvisionner", "administrer-jeu"]);
+      for (const objet of [{ org_id: neuf.organisation.org_id, cle_chaine: neuf.recorders[0].chain_key }, { org_id: neuf.organisation.org_id }, { org_id: neuf.organisation.org_id, fiche_sha256: "0x12" }, { org_id: neuf.organisation.org_id, fiche_sha256: C.empreinteFiche(neuf), digest: "0x" + "cd".repeat(32) }]) {
+        let erreur = null;
+        try { T.lireConfirmation({ ...bonne, objet }); } catch (e) { erreur = e; }
+        expect(erreur?.code, JSON.stringify(objet)).to.equal("requete_invalide");
+        expect(erreur.message).to.not.contain(neuf.recorders[0].chain_key);
+      }
+      let erreur = null;
+      try { T.lireConfirmation({ ...bonne, operation: "approvisionnement" }); } catch (e) { erreur = e; }
+      expect(erreur?.code, "un versement n'a pas de fiche pour objet").to.equal("requete_invalide");
+      // 3. Les frais de l'instance : la forme écrite par l'agent, relue ; une forme inattendue vaut absence.
+      const ecrit = Fr.fraisInstance({ fees: { provision_days: 30, refill_below_days: 7, gas_limit: 3000000, gas_limit_max: 16777216, max_daily_budget_gas: null }, manifestSha256: null });
+      expect(ecrit).to.deep.equal({ version: 0, provision_days: 30, refill_below_days: 7, gas_limit: 3000000, max_daily_budget_gas: null, manifest_sha256: null });
+      expect(Fr.lireFraisLus(JSON.parse(JSON.stringify(ecrit)))).to.deep.equal({ provision_days: 30, refill_below_days: 7, gas_limit: 3000000, max_daily_budget_gas: null, manifest_sha256: null });
+      expect(Fr.lireFraisLus(Fr.fraisInstance({ fees: { provision_days: 14, refill_below_days: 3, gas_limit: 2000000, max_daily_budget_gas: 20000000 }, manifestSha256: "0x" + "ef".repeat(32) }))).to.deep.equal({ provision_days: 14, refill_below_days: 3, gas_limit: 2000000, max_daily_budget_gas: 20000000, manifest_sha256: "0x" + "ef".repeat(32) });
+      for (const mauvais of [null, {}, [], { ...ecrit, version: 1 }, { ...ecrit, provision_days: "30" }, { ...ecrit, gas_limit: -1 }, { ...ecrit, max_daily_budget_gas: "x" }, { ...ecrit, manifest_sha256: "abc" }]) expect(Fr.lireFraisLus(mauvais), JSON.stringify(mauvais)).to.equal(null);
+      expect(Fr.FICHIER_FRAIS).to.equal("frais-instance.json");
+    });
+
+    it("décisions du 2026-11-25 (noms et versions) : le nom de chaque approbateur, tel que le client l'a donné, entre dans la fiche et dans son empreinte (un nom changé est une fiche nouvelle) ; un nom qui manque se lit « — (le client complète le nom) » ; la note des noms a sa forme et le dernier nom par adresse vaut ; les versions se listent la plus récente d'abord, la courante marquée, une fiche changée à la main en tête sans numéro ; mutants : tués", async function () {
+      const C = await import("../paquets/inscription/src/commun/fiche-controle.mjs");
+      const N = await import("../paquets/inscription/src/commun/notes.mjs");
+      const neuf = dossierFictif("client-neuf", ["a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire", "a_faire"]);
+      const [a1, a2, a3] = neuf.approvers.members;
+      const org = neuf.organisation.org_id;
+      // 1. La fiche avec les noms : la ligne de chaque approbateur ; l'empreinte change avec un nom.
+      const sans = C.texteFiche(neuf);
+      expect(sans.split("\n")[3]).to.equal(`Approbateur 1 : ${a1} — nom : — (le client complète le nom)`);
+      const avec = C.texteFiche(neuf, { [a1]: "Camille Durand", [a3]: "Dominique Favre" });
+      expect(avec.split("\n").slice(3, 6)).to.deep.equal([`Approbateur 1 : ${a1} — nom : Camille Durand`, `Approbateur 2 : ${a2} — nom : — (le client complète le nom)`, `Approbateur 3 : ${a3} — nom : Dominique Favre`]);
+      expect(C.lignesFiche(neuf, { [a1]: "Camille Durand" }).find((x) => x.cle === "approbateur").nom).to.equal("Camille Durand");
+      expect(C.empreinteFiche(neuf, { [a1]: "Camille Durand" })).to.not.equal(C.empreinteFiche(neuf));
+      expect(C.empreinteFiche(neuf, { [a1]: "Camille Durand" })).to.not.equal(C.empreinteFiche(neuf, { [a1]: "Camille Durant" }));
+      expect(C.empreinteFiche(neuf, { [a1]: "Camille Durand" }), "un nom pour une adresse hors du dossier ne change rien").to.equal(C.empreinteFiche(neuf, { [a1]: "Camille Durand", ["0x" + "99".repeat(20)]: "Personne" }));
+      expect(C.empreinteFiche(neuf, { [a1]: "" }), "un nom vide vaut absence").to.equal(C.empreinteFiche(neuf));
+      expect(C.NOM_A_COMPLETER).to.equal("— (le client complète le nom)");
+      expect(motsTechniquesDans(C.nomSurLaFiche(null))).to.deep.equal([]);
+      // 2. La note des noms : forme exacte, refus sans recopie, dernier nom par adresse, retrait.
+      const note = N.lireCorpsNote({ sorte: "noms_approbateurs", noms: [{ adresse: a1.toUpperCase().replace("0X", "0x"), nom: "Camille Durand" }, { adresse: a2, nom: null }] });
+      expect(note).to.deep.equal({ sorte: "noms_approbateurs", noms: [{ adresse: a1, nom: "Camille Durand" }, { adresse: a2, nom: null }] });
+      expect(N.lireNote({ sorte: "noms_approbateurs", org_id: org, noms: [{ adresse: a1, nom: "x" }] }).org_id).to.equal(org);
+      const secret = "0x" + "ab".repeat(32);
+      for (const corps of [{ sorte: "noms_approbateurs", noms: [] }, { sorte: "noms_approbateurs", noms: [{ adresse: a1, nom: secret }] }, { sorte: "noms_approbateurs", noms: [{ adresse: a1, nom: " Camille " }] }, { sorte: "noms_approbateurs", noms: [{ adresse: a1, nom: "x" }, { adresse: a1, nom: "y" }] }, { sorte: "noms_approbateurs", noms: [{ adresse: "0x12", nom: "x" }] }, { sorte: "noms_approbateurs", noms: [{ adresse: a1, nom: "x", autre: 1 }] }, { sorte: "noms_approbateurs", noms: [{ adresse: a1, nom: "x".repeat(81) }] }]) {
+        let e = null;
+        try { N.lireCorpsNote(corps); } catch (x) { e = x; }
+        expect(e?.code, JSON.stringify(corps).slice(0, 80)).to.equal("requete_invalide");
+        expect(e.message).to.not.contain(secret);
+      }
+      expect(N.SORTES_NOTE).to.include("noms_approbateurs");
+      const ligne = (n, noms, orgId = org) => ({ id: `not-${String(n).padStart(32, "0")}`, sorte: "noms_approbateurs", org_id: orgId, noms, exploitant: "exploitant operateur-1", recu_a: "2026-11-25T09:00:00.000Z" });
+      const etat = N.etatNotes([ligne(1, [{ adresse: a1, nom: "Camille Durand" }, { adresse: a2, nom: "Alex Martin" }]), ligne(2, [{ adresse: a2, nom: "Alex Martin-Roux" }]), ligne(3, [{ adresse: a1, nom: "Autre Client" }], "0x" + "77".repeat(32)), ligne(4, [{ adresse: a3, nom: "Dominique Favre" }, { adresse: a2, nom: null }])], org);
+      expect(etat.nomsApprobateurs).to.deep.equal({ [a1]: "Camille Durand", [a3]: "Dominique Favre" });
+      expect(N.etatNotes([], org).nomsApprobateurs).to.deep.equal({});
+      // 3. Les versions : la plus récente d'abord, la courante marquée ; une fiche changée à la main, en tête sans numéro.
+      const registre = [{ org_id: org, version: 1, fiche_sha256: "0x" + "01".repeat(32), produite_a: "2026-11-12T07:55:00.000Z" }, { org_id: "0x" + "77".repeat(32), version: 1, fiche_sha256: "0x" + "ee".repeat(32), produite_a: "2026-11-12T07:55:00.000Z" }, { org_id: org, version: 2, fiche_sha256: "0x" + "02".repeat(32), produite_a: "2026-11-25T09:00:00.000Z" }, { bidon: true }];
+      expect(C.versionsFiche(registre, org, "0x" + "02".repeat(32))).to.deep.equal([{ version: 2, fiche_sha256: "0x" + "02".repeat(32), produite_a: "2026-11-25T09:00:00.000Z", courante: true }, { version: 1, fiche_sha256: "0x" + "01".repeat(32), produite_a: "2026-11-12T07:55:00.000Z", courante: false }]);
+      expect(C.versionsFiche(registre, org, "0x" + "03".repeat(32))[0]).to.deep.equal({ version: null, fiche_sha256: "0x" + "03".repeat(32), produite_a: null, courante: true });
+      expect(C.versionsFiche(registre, org, "0x" + "03".repeat(32))).to.have.length(3);
+      expect(C.nouvelleVersion(registre, org, "0x" + "02".repeat(32), "2026-11-25T10:00:00.000Z"), "déjà enregistrée").to.equal(null);
+      expect(C.nouvelleVersion(registre, org, "0x" + "03".repeat(32), "2026-11-25T10:00:00.000Z")).to.deep.equal({ org_id: org, version: 3, fiche_sha256: "0x" + "03".repeat(32), produite_a: "2026-11-25T10:00:00.000Z" });
+      expect(C.nouvelleVersion([], org, "0x" + "03".repeat(32), "2026-11-25T10:00:00.000Z").version).to.equal(1);
+      expect(C.FICHIER_FICHES).to.equal("fiches-controle.ndjson");
+      // 4. Mutants du module de la fiche (copie, imports rendus absolus) : les noms ignorés ; une version d'avant dite courante.
+      const SRC = path.join(RACINE, "paquets", "inscription", "src", "commun", "fiche-controle.mjs");
+      const texte = fs.readFileSync(SRC, "utf8").replace('from "@noortrace/noyau"', `from "${pathToFileURL(path.join(RACINE, "node_modules", "@noortrace", "noyau", "index.mjs")).href}"`);
+      let tues = 0;
+      for (const [nom, ancien, nouveau, verifier] of [
+        ["noms-ignores", 'nom: typeof noms?.[adresse] === "string" && noms[adresse] !== "" ? noms[adresse] : null', "nom: null", (m) => expect(m.empreinteFiche(neuf, { [a1]: "Camille Durand" })).to.not.equal(m.empreinteFiche(neuf))],
+        ["version-d-avant-courante", "courante: x.fiche_sha256 === courante", "courante: true", (m) => expect(m.versionsFiche(registre, org, "0x" + "02".repeat(32)).map((x) => x.courante)).to.deep.equal([true, false])],
+      ]) {
+        expect(texte.split(ancien).length - 1, nom).to.equal(1);
+        const f = path.join(dir, `fiche-${nom}.mjs`);
+        fs.writeFileSync(f, texte.replace(ancien, () => nouveau));
+        try { verifier(await import(pathToFileURL(f).href)); } catch { tues++; }
+      }
+      expect(tues, "deux mutants, deux tués").to.equal(2);
     });
   });
 
